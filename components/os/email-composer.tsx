@@ -68,6 +68,7 @@ function RecipientInput({
 
 export function EmailComposer({ onClose, defaultTo }: EmailComposerProps) {
   const [showCcBcc, setShowCcBcc] = useState(false);
+  const [showScheduleSend, setShowScheduleSend] = useState(false);
   const [toRecipients, setToRecipients] = useState<string[]>([defaultTo]);
   const [ccRecipients, setCcRecipients] = useState<string[]>([]);
   const [bccRecipients, setBccRecipients] = useState<string[]>([]);
@@ -137,14 +138,71 @@ export function EmailComposer({ onClose, defaultTo }: EmailComposerProps) {
 
       {/* Bottom Toolbar */}
       <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-stretch shadow-sm rounded-lg overflow-hidden">
-          <button type="button" className="flex items-center gap-2 px-6 py-2 bg-accent-blue hover:bg-accent-blue-dim text-white text-[15px] font-medium transition-colors">
-            Send
-          </button>
-          <div className="w-[1px] bg-white/20"></div>
-          <button type="button" aria-label="Send options" className="flex items-center justify-center px-3 py-2 bg-accent-blue hover:bg-accent-blue-dim text-white transition-colors">
-            <ChevronDown className="h-5 w-5" />
-          </button>
+        <div className="relative">
+          <div className="flex items-stretch shadow-sm rounded-lg overflow-hidden">
+            <button type="button" className="flex items-center gap-2 px-6 py-2 bg-accent-blue hover:bg-accent-blue-dim text-white text-[15px] font-medium transition-colors">
+              Send
+            </button>
+            <div className="w-[1px] bg-white/20"></div>
+            <button 
+              type="button" 
+              aria-label="Send options" 
+              onClick={() => setShowScheduleSend(!showScheduleSend)}
+              className="flex items-center justify-center px-3 py-2 bg-accent-blue hover:bg-accent-blue-dim text-white transition-colors"
+            >
+              <ChevronDown className="h-5 w-5" />
+            </button>
+          </div>
+          
+          {showScheduleSend && (
+            <div className="absolute bottom-[calc(100%+8px)] left-0 w-[300px] bg-[#282828] text-white rounded-xl shadow-2xl border border-white/5 overflow-hidden flex flex-col z-50 animate-in fade-in zoom-in-95 duration-200 py-1">
+              <div className="px-5 py-3 text-[14px] font-medium text-[#AAAAAA]">
+                Schedule send
+              </div>
+              
+              <button className="flex items-center gap-4 px-5 py-3 hover:bg-white/5 transition-colors text-left group">
+                <div className="flex flex-col items-center justify-center w-9 h-10 rounded-md border border-white/10 bg-transparent flex-shrink-0 group-hover:bg-white/5 transition-colors">
+                  <span className="text-[10px] font-bold text-[#E57373] mt-0.5">SAT</span>
+                  <span className="text-[14px] font-bold leading-tight text-[#CCCCCC]">13</span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[15px] text-[#E0E0E0] font-medium">Tomorrow morning</span>
+                  <span className="text-[13px] text-[#AAAAAA]">June 13 at 8:18 AM</span>
+                </div>
+              </button>
+              
+              <button className="flex items-center gap-4 px-5 py-3 hover:bg-white/5 transition-colors text-left group">
+                <div className="flex flex-col items-center justify-center w-9 h-10 rounded-md border border-white/10 bg-transparent flex-shrink-0 group-hover:bg-white/5 transition-colors">
+                  <span className="text-[10px] font-bold text-[#E57373] mt-0.5">SAT</span>
+                  <span className="text-[14px] font-bold leading-tight text-[#CCCCCC]">13</span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[15px] text-[#E0E0E0] font-medium">Tomorrow afternoon</span>
+                  <span className="text-[13px] text-[#AAAAAA]">June 13 at 12:37 PM</span>
+                </div>
+              </button>
+              
+              <button className="flex items-center gap-4 px-5 py-3 hover:bg-white/5 transition-colors text-left group pb-4">
+                <div className="flex flex-col items-center justify-center w-9 h-10 rounded-md border border-white/10 bg-transparent flex-shrink-0 group-hover:bg-white/5 transition-colors">
+                  <span className="text-[10px] font-bold text-[#E57373] mt-0.5">FRI</span>
+                  <span className="text-[14px] font-bold leading-tight text-[#CCCCCC]">19</span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[15px] text-[#E0E0E0] font-medium">Friday morning</span>
+                  <span className="text-[13px] text-[#AAAAAA]">June 19 at 8:14 AM</span>
+                </div>
+              </button>
+
+              <div className="h-[1px] bg-white/10 mx-5 my-1"></div>
+
+              <button className="flex items-center gap-4 px-5 py-3 hover:bg-white/5 transition-colors text-left group mt-1 mb-1">
+                <div className="flex items-center justify-center w-9 h-10 rounded-md border border-white/10 bg-transparent flex-shrink-0 group-hover:bg-white/5 transition-colors">
+                  <CalendarIcon className="h-5 w-5 text-accent-blue" />
+                </div>
+                <span className="text-[15px] text-[#E0E0E0] font-medium">Custom date</span>
+              </button>
+            </div>
+          )}
         </div>
         
         <div className="flex items-center gap-4 text-text-muted">
