@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useQuery } from '@tanstack/react-query';
 import { format, isToday, isYesterday, isThisYear } from 'date-fns';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 
 type EmailMessage = {
   id: string;
@@ -125,71 +126,97 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
             {emails.map(email => {
               const isChecked = selectedIds.includes(email.id);
               return (
-                <div 
-                  key={email.id}
-                  onClick={() => setSelectedEmailId(email.id)}
-                  className={cn(
-                    "group relative flex items-center gap-4 px-3 py-2.5 border-b border-border-subtle hover:bg-bg-surface/50 transition-colors cursor-pointer rounded-md",
-                    !email.isRead && "bg-bg-surface/20"
-                  )}
-                >
-                  {/* Left Controls & Sender */}
-                  <div className={cn("flex items-center gap-3 flex-shrink-0", isSplitView ? "w-[140px]" : "w-[240px]")}>
-                    <div className="flex items-center gap-2 w-12">
-                      <div className="flex h-5 w-5 items-center justify-center">
-                        {isChecked ? (
-                          <CheckSquare 
-                            className="h-4 w-4 text-accent-blue" 
-                            onClick={(e) => { e.stopPropagation(); toggleSelect(email.id); }} 
-                          />
-                        ) : (
-                          <>
-                            <div className={cn("h-1.5 w-1.5 rounded-full group-hover:hidden", !email.isRead ? "bg-accent-blue" : "bg-transparent")} />
-                            <Square 
-                              className="h-4 w-4 text-text-muted hidden group-hover:block hover:text-text-primary" 
-                              onClick={(e) => { e.stopPropagation(); toggleSelect(email.id); }} 
-                            />
-                          </>
+                <HoverCard key={email.id} openDelay={400} closeDelay={100}>
+                  <HoverCardTrigger asChild>
+                    <div 
+                      onClick={() => setSelectedEmailId(email.id)}
+                      className={cn(
+                        "group relative flex items-center gap-4 px-3 py-2.5 border-b border-border-subtle hover:bg-bg-surface/50 transition-colors cursor-pointer rounded-md",
+                        !email.isRead && "bg-bg-surface/20"
+                      )}
+                    >
+                      {/* Left Controls & Sender */}
+                      <div className={cn("flex items-center gap-3 flex-shrink-0", isSplitView ? "w-[140px]" : "w-[240px]")}>
+                        <div className="flex items-center gap-2 w-12">
+                          <div className="flex h-5 w-5 items-center justify-center">
+                            {isChecked ? (
+                              <CheckSquare 
+                                className="h-4 w-4 text-accent-blue" 
+                                onClick={(e) => { e.stopPropagation(); toggleSelect(email.id); }} 
+                              />
+                            ) : (
+                              <>
+                                <div className={cn("h-1.5 w-1.5 rounded-full group-hover:hidden", !email.isRead ? "bg-accent-blue" : "bg-transparent")} />
+                                <Square 
+                                  className="h-4 w-4 text-text-muted hidden group-hover:block hover:text-text-primary" 
+                                  onClick={(e) => { e.stopPropagation(); toggleSelect(email.id); }} 
+                                />
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <span className={cn("truncate text-[14px]", !email.isRead ? "font-semibold text-text-primary" : "text-text-secondary font-medium")}>
+                          {email.sender.split('<')[0].trim()}
+                        </span>
+                      </div>
+
+                      {/* Subject and Snippet */}
+                      <div className="flex-1 flex items-center overflow-hidden gap-2">
+                        <span className={cn("truncate text-[14px] flex-shrink-0", !email.isRead ? "font-semibold text-text-primary" : "text-text-primary font-medium")}>
+                          {email.subject || '(No Subject)'}
+                        </span>
+                        <span className="truncate text-[14px] text-text-muted">
+                          {email.snippet}
+                        </span>
+                      </div>
+
+                      {/* Actions & Date */}
+                      <div className={cn("flex items-center gap-4 justify-end flex-shrink-0", isSplitView ? "w-[60px]" : "w-[140px]")}>
+                        {/* Hover Actions */}
+                        <div className={cn("hidden group-hover:flex items-center gap-3 text-text-secondary bg-bg-app px-2 absolute", isSplitView ? "right-[40px]" : "right-[80px]")}>
+                          <button className="hover:text-text-primary transition-colors" title="Archive" onClick={(e) => e.stopPropagation()}>
+                            <Archive className="h-4 w-4" />
+                          </button>
+                          <button className="hover:text-destructive transition-colors" title="Delete" onClick={(e) => e.stopPropagation()}>
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                          <button className="hover:text-text-primary transition-colors" title="Mark Read" onClick={(e) => e.stopPropagation()}>
+                            <CheckCircle2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        {/* Date */}
+                        {!isSplitView && (
+                          <span className="text-[12px] font-medium text-text-muted group-hover:opacity-0 transition-opacity">
+                            {formatDisplayDate(email.date)}
+                          </span>
                         )}
                       </div>
                     </div>
-                    <span className={cn("truncate text-[14px]", !email.isRead ? "font-semibold text-text-primary" : "text-text-secondary font-medium")}>
-                      {email.sender.split('<')[0].trim()}
-                    </span>
-                  </div>
-
-                  {/* Subject and Snippet */}
-                  <div className="flex-1 flex items-center overflow-hidden gap-2">
-                    <span className={cn("truncate text-[14px] flex-shrink-0", !email.isRead ? "font-semibold text-text-primary" : "text-text-primary font-medium")}>
-                      {email.subject || '(No Subject)'}
-                    </span>
-                    <span className="truncate text-[14px] text-text-muted">
-                      {email.snippet}
-                    </span>
-                  </div>
-
-                  {/* Actions & Date */}
-                  <div className={cn("flex items-center gap-4 justify-end flex-shrink-0", isSplitView ? "w-[60px]" : "w-[140px]")}>
-                    {/* Hover Actions */}
-                    <div className={cn("hidden group-hover:flex items-center gap-3 text-text-secondary bg-bg-app px-2 absolute", isSplitView ? "right-[40px]" : "right-[80px]")}>
-                      <button className="hover:text-text-primary transition-colors" title="Archive" onClick={(e) => e.stopPropagation()}>
-                        <Archive className="h-4 w-4" />
-                      </button>
-                      <button className="hover:text-destructive transition-colors" title="Delete" onClick={(e) => e.stopPropagation()}>
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                      <button className="hover:text-text-primary transition-colors" title="Mark Read" onClick={(e) => e.stopPropagation()}>
-                        <CheckCircle2 className="h-4 w-4" />
-                      </button>
+                  </HoverCardTrigger>
+                  <HoverCardContent 
+                    align="center" 
+                    side="bottom"
+                    sideOffset={-20}
+                    className="w-[380px] p-0 bg-bg-elevated border-border-subtle shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95"
+                  >
+                    <div className="p-5 max-h-[280px] overflow-hidden flex flex-col gap-3">
+                      <div className="flex items-center gap-3 border-b border-border-subtle pb-3">
+                        <div className="h-8 w-8 rounded-full bg-accent-blue/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-accent-blue font-semibold text-[14px]">
+                            {email.sender.split('<')[0].trim().charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-[14px] font-medium text-text-primary truncate">{email.subject || '(No Subject)'}</span>
+                          <span className="text-[12px] text-text-muted truncate">{email.sender.split('<')[0].trim()}</span>
+                        </div>
+                      </div>
+                      <div className="text-[13px] text-text-secondary leading-relaxed line-clamp-6 whitespace-pre-wrap">
+                        {email.snippet}
+                      </div>
                     </div>
-                    {/* Date */}
-                    {!isSplitView && (
-                      <span className="text-[12px] font-medium text-text-muted group-hover:opacity-0 transition-opacity">
-                        {formatDisplayDate(email.date)}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                  </HoverCardContent>
+                </HoverCard>
               );
             })}
           </div>
