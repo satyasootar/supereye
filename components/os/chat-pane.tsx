@@ -58,6 +58,7 @@ export function ChatPane() {
             </span>
           </div>
           <button 
+            type="button"
             onClick={() => setModes({ ...modes, email: false })}
             className="text-text-secondary hover:text-text-primary text-[12px] font-medium flex items-center gap-1 transition-colors"
           >
@@ -79,6 +80,7 @@ export function ChatPane() {
             <div className="grid grid-cols-2 gap-4 max-w-[600px] w-full">
               {QUICK_CARDS.map((card, idx) => (
                 <button
+                  type="button"
                   key={idx}
                   onClick={() => setInput(card.text)}
                   className="flex flex-col items-start gap-3 p-4 rounded-xl border border-border-default bg-bg-surface hover:border-accent-blue hover:bg-bg-elevated transition-all text-left group shadow-sm"
@@ -134,8 +136,8 @@ export function ChatPane() {
                         {msg.actionCard.type === 'calendar' ? 'New Event' : 'Draft Email'}
                       </div>
                       <div className="flex items-center gap-2">
-                        <button className="px-2 py-1 rounded text-[12px] font-medium text-text-secondary hover:bg-bg-overlay hover:text-text-primary transition-colors">Edit</button>
-                        <button className="px-2 py-1 rounded text-[12px] font-medium text-text-secondary hover:bg-bg-overlay hover:text-text-primary transition-colors">Send</button>
+                        <button type="button" className="px-2 py-1 rounded text-[12px] font-medium text-text-secondary hover:bg-bg-overlay hover:text-text-primary transition-colors">Edit</button>
+                        <button type="button" className="px-2 py-1 rounded text-[12px] font-medium text-text-secondary hover:bg-bg-overlay hover:text-text-primary transition-colors">Send</button>
                       </div>
                     </div>
                     <div className="px-4 py-3 text-[13.5px]">
