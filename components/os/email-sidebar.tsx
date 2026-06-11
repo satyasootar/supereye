@@ -11,12 +11,7 @@ import { useState } from 'react';
 
 const primaryNav = [
   { icon: Inbox, label: 'Inbox', count: 12, active: true },
-  { icon: Star, label: 'Starred' },
-  { icon: Clock, label: 'Snoozed' },
   { icon: Send, label: 'Sent' },
-  { icon: FileText, label: 'Drafts', count: 3 },
-  { icon: Mail, label: 'All Mail' },
-  { icon: AlertOctagon, label: 'Spam' },
   { icon: Trash2, label: 'Trash' },
 ];
 
@@ -28,21 +23,7 @@ const labels = [
   { color: 'bg-gray-500', label: 'GitHub', count: '99+' },
 ];
 
-const views = [
-  { icon: BarChart, label: 'Priority Inbox', count: 'AI' },
-  { icon: Flame, label: 'Needs Reply' },
-  { icon: Paperclip, label: 'Has Attachments' },
-  { icon: Users, label: 'From: People' },
-];
-
 import { useAppStore } from '@/lib/store/app-store';
-
-const triage = [
-  { color: 'bg-red-500', label: 'Urgent', count: '2' },
-  { color: 'bg-orange-500', label: 'High', count: '5' },
-  { color: 'bg-yellow-500', label: 'Medium', count: '18' },
-  { color: 'bg-gray-400', label: 'Low', count: '74' },
-];
 
 export function EmailSidebar() {
   const { data: session } = useSession();

@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   
@@ -15,12 +15,15 @@ export async function GET(
   }
 
   try {
-    const id = params.id;
+    const { id } = await params;
     
     // Fetch from our local DB cache first
-    const emailData = await db.query.emails.findFirst({
-      where: eq(emails.googleMessageId, id)
-    });
+    const emailResults = await db.select()
+      .from(emails)
+      .where(eq(emails.googleMessageId, id))
+      .limit(1);
+
+    const emailData = emailResults[0];
 
     if (!emailData) {
       return NextResponse.json({ error: 'Email not found' }, { status: 404 });

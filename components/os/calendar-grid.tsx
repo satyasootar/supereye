@@ -2,6 +2,8 @@
 
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, Search, Settings } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -12,27 +14,58 @@ const monthCells = Array.from({ length: 35 }, (_, i) => {
   return date;
 });
 
-const eventsByDate: Record<number, any[]> = {
-  2: [
-    { title: 'Project Kickoff', time: '10:00 AM', color: 'bg-blue-500' }
-  ],
-  11: [
-    { title: 'Team standup', time: '3:00 PM', color: 'bg-red-500' }
-  ],
-  12: [
-    { title: 'Meeting — friend@corsair.dev', time: '9:00 AM', color: 'bg-teal-500' },
-    { title: 'Design Sync', time: '1:00 PM', color: 'bg-blue-500' }
-  ],
-  14: [
-    { title: 'Weekly Planning', time: '10:00 AM', color: 'bg-blue-500' },
-    { title: 'Lunch with Sarah', time: '12:30 PM', color: 'bg-green-500' }
-  ],
-  26: [
-    { title: 'Muharram/Ashura', isAllDay: true, color: 'bg-green-500' }
-  ]
+type CalendarEvent = {
+  id: string;
+  summary: string;
+  start: { dateTime?: string; date?: string };
+  end: { dateTime?: string; date?: string };
+  location?: string;
+  linkedEmailId?: string;
 };
 
 export function CalendarGrid() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['calendar', 'events'],
+    queryFn: async () => {
+      const res = await fetch('/api/calendar/events');
+      if (!res.ok) throw new Error('Failed to fetch calendar events');
+      const json = await res.json();
+      return json.events as CalendarEvent[];
+    }
+  });
+
+  const eventsByDate = useMemo(() => {
+    const map: Record<number, any[]> = {};
+    if (!data) return map;
+
+    const colors = ['bg-blue-500', 'bg-red-500', 'bg-teal-500', 'bg-green-500', 'bg-orange-500'];
+
+    data.forEach((evt, idx) => {
+      // Find the day of the month this event falls on.
+      // E.g. "2026-06-11T10:00:00Z"
+      const dateStr = evt.start.dateTime || evt.start.date;
+      if (!dateStr) return;
+
+      const dateObj = new Date(dateStr);
+      // If it's June 2026, we map it to the day
+      if (dateObj.getFullYear() === 2026 && dateObj.getMonth() === 5) {
+        const day = dateObj.getDate();
+        if (!map[day]) map[day] = [];
+        
+        map[day].push({
+          title: evt.summary || '(No Title)',
+          time: evt.start.dateTime 
+            ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+            : '',
+          isAllDay: !!evt.start.date,
+          color: colors[idx % colors.length]
+        });
+      }
+    });
+
+    return map;
+  }, [data]);
+
   return (
     <div className="flex flex-1 flex-col h-full bg-bg-app overflow-hidden">
       {/* Top Action Bar */}
@@ -118,7 +151,9 @@ export function CalendarGrid() {
 
                 {/* Events Container */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar px-1 pb-1 flex flex-col gap-1">
-                  {events.map((evt, evtIndex) => (
+                  {isLoading && date === 1 ? (
+                    <div className="text-[10px] text-text-muted text-center py-2">Loading...</div>
+                  ) : events.map((evt, evtIndex) => (
                     <div 
                       key={evtIndex}
                       className={cn(
@@ -137,7 +172,7 @@ export function CalendarGrid() {
                         !evt.isAllDay && "text-text-primary group-hover:text-accent-blue"
                       )}>
                         {!evt.isAllDay && (
-                          <span className="font-semibold">{evt.time.split(' ')[0]}</span>
+                          <span className="font-semibold flex-shrink-0">{evt.time}</span>
                         )}
                         <span className="truncate">{evt.title}</span>
                       </div>

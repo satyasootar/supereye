@@ -19,12 +19,17 @@ export function EmailReader() {
     queryKey: ['email', selectedEmailId],
     queryFn: async () => {
       if (!selectedEmailId) return null;
-      const res = await fetch(`/api/mail/${selectedEmailId}`);
-      if (!res.ok) throw new Error('Failed to fetch email details');
+      const res = await fetch(`/api/mail/${encodeURIComponent(selectedEmailId)}`);
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('Email fetch failed:', res.status, errText);
+        throw new Error('Failed to fetch email details');
+      }
       const json = await res.json();
       return json.message;
     },
-    enabled: !!selectedEmailId
+    enabled: !!selectedEmailId,
+    retry: false
   });
 
   if (!selectedEmailId) {
