@@ -14,8 +14,20 @@ export async function GET() {
 
     // Use the live API since local DB requires webhook setup which may not be running
     const gmailResult = await t.gmail.api.messages.list({ maxResults: 10 });
+    const messageIds = gmailResult.messages || [];
 
-    return NextResponse.json({ messages: gmailResult.messages || [] });
+    // Fetch the full message data for each ID so we get subject, sender, and snippet
+    const fullMessages = await Promise.all(
+      messageIds.map(async (msg: any) => {
+        try {
+          return await t.gmail.api.messages.get({ id: msg.id, format: 'metadata', metadataHeaders: ['Subject', 'From'] });
+        } catch (e) {
+          return msg;
+        }
+      })
+    );
+
+    return NextResponse.json({ messages: fullMessages });
   } catch (error: any) {
     console.error('Failed to fetch emails:', error);
     return NextResponse.json({ 

@@ -16,14 +16,16 @@ export async function GET() {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    // Get the end of today
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    // Get the end of next 7 days
+    const endOfWindow = new Date();
+    endOfWindow.setDate(endOfWindow.getDate() + 7);
+    endOfWindow.setHours(23, 59, 59, 999);
 
     // Fetch from Calendar API via Corsair
     const calendarResult = await t.googlecalendar.api.events.getMany({
+      calendarId: 'primary',
       timeMin: startOfDay.toISOString(),
-      timeMax: endOfDay.toISOString(),
+      timeMax: endOfWindow.toISOString(),
       maxResults: 50,
       singleEvents: true,
       orderBy: 'startTime'
