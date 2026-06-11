@@ -5,14 +5,20 @@ export type TabId = 'chat' | 'email' | 'calendar';
 interface AppState {
   activeTabs: TabId[];
   splitRatio: number; // 50 for 50/50 split
+  selectedEmailId: string | null;
+  isCommandPaletteOpen: boolean;
   openTab: (tabId: TabId, multiSelect?: boolean) => void;
   closeTab: (tabId: TabId) => void;
   setSplitRatio: (ratio: number) => void;
+  setSelectedEmailId: (id: string | null) => void;
+  setCommandPaletteOpen: (isOpen: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
   activeTabs: ['chat'], // Default tab
   splitRatio: 50,
+  selectedEmailId: null,
+  isCommandPaletteOpen: false,
   openTab: (tabId, multiSelect = false) => set((state) => {
     if (multiSelect) {
       // Cannot have more than 2 tabs open
@@ -32,5 +38,7 @@ export const useAppStore = create<AppState>((set) => ({
   closeTab: (tabId) => set((state) => ({
     activeTabs: state.activeTabs.filter(id => id !== tabId)
   })),
-  setSplitRatio: (ratio) => set({ splitRatio: ratio })
+  setSplitRatio: (ratio) => set({ splitRatio: ratio }),
+  setSelectedEmailId: (id) => set({ selectedEmailId: id }),
+  setCommandPaletteOpen: (isOpen) => set({ isCommandPaletteOpen: isOpen }),
 }));
