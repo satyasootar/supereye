@@ -4,20 +4,69 @@ import {
   ArrowLeft, Archive, Trash2, MoreVertical, Sparkles, 
   CornerUpLeft, CornerUpRight, Reply, Forward, Download,
   Bold, Italic, Underline, Link, List, Quote, Code, Heading,
-  Paperclip, Calendar as CalendarIcon, Send, X
+  Paperclip, Calendar as CalendarIcon, Send, X, MailOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { useAppStore } from '@/lib/store/app-store';
+import { useQuery } from '@tanstack/react-query';
 
 export function EmailReader() {
+  const { selectedEmailId, setSelectedEmailId } = useAppStore();
   const [showComposer, setShowComposer] = useState(false);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['email', selectedEmailId],
+    queryFn: async () => {
+      if (!selectedEmailId) return null;
+      const res = await fetch(`/api/mail/${selectedEmailId}`);
+      if (!res.ok) throw new Error('Failed to fetch email details');
+      const json = await res.json();
+      return json.message;
+    },
+    enabled: !!selectedEmailId
+  });
+
+  if (!selectedEmailId) {
+    return (
+      <div className="flex h-full flex-1 flex-col items-center justify-center bg-bg-app overflow-hidden min-w-[400px]">
+        <div className="text-center text-text-muted flex flex-col items-center gap-4">
+          <div className="h-16 w-16 rounded-full bg-bg-surface flex items-center justify-center">
+            <MailOpen className="h-8 w-8 text-border-strong" />
+          </div>
+          <p>Select an email to read</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full flex-1 flex-col items-center justify-center bg-bg-app overflow-hidden min-w-[400px]">
+        <div className="text-center text-text-muted">Loading email...</div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex h-full flex-1 flex-col items-center justify-center bg-bg-app overflow-hidden min-w-[400px]">
+        <div className="text-center text-red-500">Failed to load email.</div>
+      </div>
+    );
+  }
+
+  const email = data;
 
   return (
     <div className="flex h-full flex-1 flex-col bg-bg-app overflow-hidden min-w-[400px]">
       {/* Thread Header */}
       <div className="flex flex-col border-b border-border-subtle bg-bg-base px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
-          <button className="flex items-center gap-1.5 text-text-secondary hover:text-text-primary text-[13px] font-medium transition-colors">
+          <button 
+            onClick={() => setSelectedEmailId(null)}
+            className="flex items-center gap-1.5 text-text-secondary hover:text-text-primary text-[13px] font-medium transition-colors"
+          >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Back</span>
           </button>
@@ -39,10 +88,10 @@ export function EmailReader() {
 
         <div>
           <h1 className="font-heading text-[22px] font-semibold text-text-primary mb-1">
-            New formula editor in Tally
+            {email.subject || '(No Subject)'}
           </h1>
           <div className="flex items-center gap-2 text-[13px] text-text-secondary">
-            <span>2 messages</span>
+            <span>{email.fromName || email.fromAddress}</span>
             <span>•</span>
             <span className="flex items-center gap-1.5">
               <div className="h-2 w-2 rounded-full bg-blue-500" />
@@ -56,41 +105,28 @@ export function EmailReader() {
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
         <div className="max-w-[700px] mx-auto flex flex-col gap-6">
           
-          {/* AI Summary Banner */}
-          <div className="flex items-start gap-3 rounded-lg bg-indigo-500/10 border-l-[3px] border-indigo-500 p-4">
-            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-500">
-              <Sparkles className="h-3.5 w-3.5" />
-            </div>
-            <div className="flex-1">
-              <p className="text-[13.5px] text-text-primary leading-relaxed font-medium">
-                <span className="font-bold mr-1">AI Summary:</span>
-                Tally released a new formula editor that enables complex expressions in conditional logic fields. Submission PDFs now auto-attach to email notifications.
-              </p>
-              <div className="mt-3 flex items-center gap-3">
-                <button className="text-[12px] font-semibold text-text-secondary hover:text-text-primary">Dismiss</button>
-                <button className="text-[12px] font-semibold text-indigo-500 hover:text-indigo-400 flex items-center gap-1">Ask AI more <span className="text-[10px]">▶</span></button>
-              </div>
-            </div>
-          </div>
-
-          {/* Email Message Bubble 1 */}
+          {/* Email Message Bubble */}
           <div className="flex flex-col rounded-xl bg-bg-surface border border-border-default overflow-hidden">
             {/* Message Header */}
             <div className="flex items-start justify-between px-5 py-4 border-b border-border-subtle bg-bg-base/50">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-bg-elevated border border-border-strong text-text-primary font-bold text-[14px]">
-                  M
+                  {email.fromName ? email.fromName.charAt(0).toUpperCase() : email.fromAddress.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
-                    <span className="text-[14px] font-semibold text-text-primary">Marie at Tally</span>
-                    <span className="text-[12px] text-text-secondary">&lt;marie@tally.so&gt;</span>
+                    <span className="text-[14px] font-semibold text-text-primary">{email.fromName || email.fromAddress}</span>
+                    <span className="text-[12px] text-text-secondary">&lt;{email.fromAddress}&gt;</span>
                   </div>
-                  <span className="text-[12.5px] text-text-secondary">To: Satya Sootar</span>
+                  <span className="text-[12.5px] text-text-secondary">
+                    To: {email.toAddresses?.map((t: any) => t.email).join(', ') || 'Me'}
+                  </span>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
-                <span className="font-mono text-[12px] text-text-secondary">Jun 11, 9:00 PM</span>
+                <span className="font-mono text-[12px] text-text-secondary">
+                  {new Date(email.internalDate).toLocaleString()}
+                </span>
                 <div className="flex items-center gap-1">
                   <button className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors" title="Reply">
                     <CornerUpLeft className="h-3.5 w-3.5" />
@@ -107,15 +143,11 @@ export function EmailReader() {
             
             {/* Message Body */}
             <div className="px-5 py-6 text-[14px] leading-[1.6] text-text-primary font-sans bg-bg-base">
-              <p className="mb-4">Hi Satya,</p>
-              <p className="mb-4">The updates we're proudest of are often the ones that quietly remove friction from your workflow.</p>
-              
-              <h3 className="font-bold text-[16px] mb-2 mt-6">Formula editor</h3>
-              <p className="mb-4">Until now, conditional logic calculations were limited to basic operations. Today we're introducing a fully-featured formula editor that supports complex math, string manipulation, and nested logic.</p>
-              
-              <p className="mb-4 text-text-secondary italic">This feature is rolling out over the next 48 hours to all Pro workspaces.</p>
-              
-              <p className="mt-8">Best,<br/>Marie & The Tally Team</p>
+              {email.body ? (
+                <div dangerouslySetInnerHTML={{ __html: email.body }} className="prose prose-sm dark:prose-invert max-w-none" />
+              ) : (
+                <p>{email.snippet}</p>
+              )}
             </div>
             
             {/* Reply Bar (Trigger) */}
@@ -126,7 +158,7 @@ export function EmailReader() {
                   className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md bg-bg-elevated border border-border-default text-text-secondary text-[13.5px] hover:border-accent-blue transition-colors text-left"
                 >
                   <Reply className="h-4 w-4" />
-                  Reply to Marie...
+                  Reply to {email.fromName || email.fromAddress}...
                 </button>
                 <button className="flex items-center gap-2 px-3 py-2 rounded-md bg-bg-elevated border border-border-default text-text-secondary text-[13.5px] hover:border-accent-blue transition-colors">
                   <Forward className="h-4 w-4" />
@@ -142,7 +174,9 @@ export function EmailReader() {
               <div className="flex items-center justify-between px-4 py-2 border-b border-border-subtle bg-bg-surface">
                 <div className="flex items-center gap-2 text-[13px]">
                   <span className="font-medium text-text-secondary">To:</span>
-                  <span className="font-medium text-text-primary px-2 py-0.5 rounded bg-bg-base border border-border-default">Marie at Tally &lt;marie@tally.so&gt;</span>
+                  <span className="font-medium text-text-primary px-2 py-0.5 rounded bg-bg-base border border-border-default">
+                    {email.fromName || email.fromAddress} &lt;{email.fromAddress}&gt;
+                  </span>
                 </div>
                 <button 
                   onClick={() => setShowComposer(false)}

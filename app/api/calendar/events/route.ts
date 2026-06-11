@@ -16,7 +16,7 @@ export async function GET() {
     startOfDay.setHours(0, 0, 0, 0);
 
     const endOfWindow = new Date();
-    endOfWindow.setDate(endOfWindow.getDate() + 7);
+    endOfWindow.setDate(endOfWindow.getDate() + 35);
     endOfWindow.setHours(23, 59, 59, 999);
 
     const cachedEvents = await db.select({
