@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { calendarEvents } from '@/lib/db/schema';
+import { eq, gte, lte, and, asc } from 'drizzle-orm';
 
 export async function GET() {
   const session = await auth();
@@ -9,43 +12,42 @@ export async function GET() {
   }
 
   try {
-    const { corsair } = await import('@/lib/corsair');
-    const t = corsair.withTenant(session.user.id) as any;
-
-    // Get the start of today
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    // Get the end of next 7 days
     const endOfWindow = new Date();
     endOfWindow.setDate(endOfWindow.getDate() + 7);
     endOfWindow.setHours(23, 59, 59, 999);
 
-    // Fetch from Calendar API via Corsair
-    const calendarResult = await t.googlecalendar.api.events.getMany({
-      calendarId: 'primary',
-      timeMin: startOfDay.toISOString(),
-      timeMax: endOfWindow.toISOString(),
-      maxResults: 10,
-      singleEvents: true,
-      orderBy: 'startTime'
-    });
+    const cachedEvents = await db.select()
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.userId, session.user.id),
+          gte(calendarEvents.startTime, startOfDay),
+          lte(calendarEvents.startTime, endOfWindow)
+        )
+      )
+      .orderBy(asc(calendarEvents.startTime));
 
-    const safeEvents = (calendarResult.items || []).map((event: any) => ({
-      id: event.id,
-      summary: event.summary,
-      start: event.start,
-      end: event.end,
+    const safeEvents = cachedEvents.map(event => ({
+      id: event.googleEventId,
+      summary: event.title,
+      start: {
+        dateTime: event.startTime?.toISOString(),
+        date: event.isAllDay ? event.startTime?.toISOString().split('T')[0] : undefined
+      },
+      end: {
+        dateTime: event.endTime?.toISOString(),
+        date: event.isAllDay ? event.endTime?.toISOString().split('T')[0] : undefined
+      },
       location: event.location,
-      attendees: event.attendees ? event.attendees.map((a: any) => ({
-        email: a.email,
-        displayName: a.displayName
-      })) : []
+      attendees: event.attendees || []
     }));
 
     return NextResponse.json({ events: safeEvents });
   } catch (error: any) {
-    console.error('Failed to fetch calendar events:', error);
+    console.error('Failed to fetch calendar events from DB:', error);
     return NextResponse.json({ 
       error: 'Failed to fetch calendar events',
       details: error?.message 

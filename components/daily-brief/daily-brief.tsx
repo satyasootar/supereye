@@ -3,6 +3,8 @@
 import { SchedulePanel } from './schedule-panel';
 import { InboxPanel } from './inbox-panel';
 import { Mail, Calendar } from 'lucide-react';
+import { useSSE } from '@/hooks/use-sse';
+import { useEffect } from 'react';
 
 interface DailyBriefProps {
   isGmailConnected: boolean;
@@ -10,6 +12,19 @@ interface DailyBriefProps {
 }
 
 export function DailyBrief({ isGmailConnected, isCalendarConnected }: DailyBriefProps) {
+  // Mount the SSE listener for real-time updates
+  useSSE();
+
+  // Trigger initial background syncs so the Postgres cache gets populated
+  useEffect(() => {
+    if (isGmailConnected) {
+      fetch('/api/mail/sync', { method: 'POST' }).catch(console.error);
+    }
+    if (isCalendarConnected) {
+      fetch('/api/calendar/sync', { method: 'POST' }).catch(console.error);
+    }
+  }, [isGmailConnected, isCalendarConnected]);
+
   return (
     <div className="mt-4 flex flex-1 overflow-hidden rounded-2xl border border-border/50 bg-card/50 shadow-sm">
       {/* Inbox Panel */}

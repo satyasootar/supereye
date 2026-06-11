@@ -377,12 +377,12 @@ export const config = {
 ```
 
 ### 1.6 Verification
-- [ ] User can click "Sign in with Google"
-- [ ] Google OAuth flow completes, user redirected back
-- [ ] User record created in `users` table
-- [ ] Access and refresh tokens stored in `accounts` table
-- [ ] Session persisted in `sessions` table
-- [ ] Protected routes redirect to login when unauthenticated
+- [x] User can click "Sign in with Google"
+- [x] Google OAuth flow completes, user redirected back
+- [x] User record created in `users` table
+- [x] Access and refresh tokens stored in `accounts` table
+- [x] Session persisted in `sessions` table
+- [x] Protected routes redirect to login when unauthenticated
 
 ---
 
@@ -945,22 +945,22 @@ NODE_ENV=development
 - [x] This plan document created
 
 ### 🔜 Next (Phase 0 — You)
-- [ ] Install Docker Desktop (if not already)
-- [ ] Create `docker-compose.dev.yml` → start PostgreSQL 17
-- [ ] Install npm dependencies (listed above)
-- [ ] Set up Google Cloud Console project & OAuth credentials
-- [ ] Create `.env.local` with all variables
-- [ ] Do basic Corsair integration with Gmail + Calendar
-- [ ] Share your Corsair integration code with me
+- [x] Install Docker Desktop (if not already)
+- [x] Create `docker-compose.dev.yml` → start PostgreSQL 17
+- [x] Install npm dependencies (listed above)
+- [x] Set up Google Cloud Console project & OAuth credentials
+- [x] Create `.env.local` with all variables
+- [x] Do basic Corsair integration with Gmail + Calendar
+- [x] Share your Corsair integration code with me
 
 ### 🔜 Next (Phase 0 — Me)
-- [ ] Verify all installed package versions
-- [ ] Create `drizzle.config.ts`
-- [ ] Create database schema (`lib/db/schema.ts`)
-- [ ] Create database connection (`lib/db/index.ts`)
-- [ ] Set up NextAuth v5 with Drizzle adapter
-- [ ] Create initial migration and push schema
-- [ ] Build the auth flow (login page, middleware, session)
+- [x] Verify all installed package versions
+- [x] Create `drizzle.config.ts`
+- [x] Create database schema (`lib/db/schema.ts`)
+- [x] Create database connection (`lib/db/index.ts`)
+- [x] Set up NextAuth v5 with Drizzle adapter
+- [x] Create initial migration and push schema
+- [x] Build the auth flow (login page, middleware, session)
 
 ---
 
