@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { calendarEvents } from '@/lib/db/schema';
+import { calendarEvents, emailEventLinks, emails } from '@/lib/db/schema';
 import { eq, gte, lte, and, asc } from 'drizzle-orm';
 
 export async function GET() {
@@ -19,8 +19,13 @@ export async function GET() {
     endOfWindow.setDate(endOfWindow.getDate() + 7);
     endOfWindow.setHours(23, 59, 59, 999);
 
-    const cachedEvents = await db.select()
+    const cachedEvents = await db.select({
+      event: calendarEvents,
+      emailId: emails.googleMessageId
+    })
       .from(calendarEvents)
+      .leftJoin(emailEventLinks, eq(calendarEvents.id, emailEventLinks.eventId))
+      .leftJoin(emails, eq(emailEventLinks.emailId, emails.id))
       .where(
         and(
           eq(calendarEvents.userId, session.user.id),
@@ -30,19 +35,20 @@ export async function GET() {
       )
       .orderBy(asc(calendarEvents.startTime));
 
-    const safeEvents = cachedEvents.map(event => ({
-      id: event.googleEventId,
-      summary: event.title,
+    const safeEvents = cachedEvents.map(row => ({
+      id: row.event.googleEventId,
+      summary: row.event.title,
       start: {
-        dateTime: event.startTime?.toISOString(),
-        date: event.isAllDay ? event.startTime?.toISOString().split('T')[0] : undefined
+        dateTime: row.event.startTime?.toISOString(),
+        date: row.event.isAllDay ? row.event.startTime?.toISOString().split('T')[0] : undefined
       },
       end: {
-        dateTime: event.endTime?.toISOString(),
-        date: event.isAllDay ? event.endTime?.toISOString().split('T')[0] : undefined
+        dateTime: row.event.endTime?.toISOString(),
+        date: row.event.isAllDay ? row.event.endTime?.toISOString().split('T')[0] : undefined
       },
-      location: event.location,
-      attendees: event.attendees || []
+      location: row.event.location,
+      attendees: row.event.attendees || [],
+      linkedEmailId: row.emailId
     }));
 
     return NextResponse.json({ events: safeEvents });

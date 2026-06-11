@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
-import { Calendar, Clock, MapPin } from 'lucide-react';
+import { Calendar, Clock, MapPin, Video, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Event {
@@ -15,9 +15,14 @@ interface Event {
   attendees?: any[];
   htmlLink?: string;
   status?: string;
+  linkedEmailId?: string;
 }
 
-export function SchedulePanel() {
+interface SchedulePanelProps {
+  onOpenEmail?: (emailId: string) => void;
+}
+
+export function SchedulePanel({ onOpenEmail }: SchedulePanelProps = {}) {
   const { data, isLoading, error } = useQuery<{ events: Event[] }>({
     queryKey: ['calendar-events'],
     queryFn: async () => {
@@ -25,7 +30,7 @@ export function SchedulePanel() {
       if (!res.ok) throw new Error('Failed to fetch events');
       return res.json();
     },
-    refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
+    refetchInterval: 1000 * 60 * 5,
   });
 
   if (isLoading) {
@@ -70,7 +75,7 @@ export function SchedulePanel() {
             {format(today, 'EEEE, MMMM do')}
           </p>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 text-blue-500">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Calendar className="h-5 w-5" />
         </div>
       </div>
@@ -90,38 +95,40 @@ export function SchedulePanel() {
               
               const isPast = endTime && endTime < today;
               const isCurrent = startTime && endTime && startTime <= today && endTime > today;
+              
+              const isVideoCall = event.location?.includes('meet.google.com') || event.location?.includes('zoom.us');
 
               return (
-                <div key={event.id} className={cn("relative pl-6 transition-all", isPast ? "opacity-50" : "")}>
+                <div key={event.id} className={cn("relative pl-6 transition-all", isPast ? "opacity-40 grayscale-[50%]" : "")}>
                   {/* Timeline Node */}
                   <div className={cn(
-                    "absolute -left-1.5 top-1 h-3 w-3 rounded-full border-2 border-background",
-                    isCurrent ? "bg-blue-500" : isPast ? "bg-muted-foreground" : "bg-blue-500/50"
+                    "absolute -left-1.5 top-2 h-3 w-3 rounded-full border-2 border-background",
+                    isCurrent ? "bg-primary shadow-[0_0_12px_var(--color-primary)]" : isPast ? "bg-muted-foreground" : "bg-primary/50"
                   )} />
 
-                  <div className={cn(
-                    "group flex flex-col gap-2 rounded-2xl border border-border/50 p-4 transition-all hover:border-border hover:shadow-md",
-                    isCurrent ? "bg-blue-500/5 border-blue-500/20" : "bg-card"
+                  <article className={cn(
+                    "group flex flex-col gap-3 rounded-2xl p-4 transition-all hover:bg-white/5 cursor-default border border-transparent",
+                    isCurrent ? "bg-primary/5 border-primary/20 shadow-sm" : "bg-card/30"
                   )}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 space-y-1">
-                        <h3 className={cn("font-medium leading-none", isCurrent && "text-blue-500")}>
+                        <h3 className={cn("text-base", isCurrent ? "text-primary font-semibold" : "font-medium text-foreground/90")}>
                           {event.summary || '(No title)'}
                         </h3>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground pt-1">
                           {isAllDay ? (
-                            <span className="flex items-center gap-1 font-medium text-foreground/80">
-                              <Clock className="h-3 w-3" /> All Day
+                            <span className="flex items-center gap-1 font-medium text-foreground/70 bg-white/5 px-2 py-0.5 rounded-md">
+                              <Clock className="h-3.5 w-3.5" /> All Day
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1 font-medium text-foreground/80">
-                              <Clock className="h-3 w-3" />
+                            <span className={cn("flex items-center gap-1 font-medium", isCurrent ? "text-primary/90" : "text-foreground/70")}>
+                              <Clock className="h-3.5 w-3.5" />
                               {startTime && format(startTime, 'h:mm a')} - {endTime && format(endTime, 'h:mm a')}
                             </span>
                           )}
-                          {event.location && (
+                          {event.location && !isVideoCall && (
                             <span className="flex items-center gap-1 truncate max-w-[150px]">
-                              <MapPin className="h-3 w-3" /> {event.location}
+                              <MapPin className="h-3.5 w-3.5" /> {event.location}
                             </span>
                           )}
                         </div>
@@ -130,19 +137,42 @@ export function SchedulePanel() {
                       {event.attendees && event.attendees.length > 0 && (
                         <div className="flex -space-x-2">
                           {event.attendees.slice(0, 3).map((a, i) => (
-                            <div key={a.email || i} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground" title={a.email}>
+                            <div key={a.email || i} className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground shadow-sm" title={a.email}>
                               {a.displayName?.[0] || a.email?.[0]?.toUpperCase() || '?'}
                             </div>
                           ))}
                           {event.attendees.length > 3 && (
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium text-muted-foreground shadow-sm">
                               +{event.attendees.length - 3}
                             </div>
                           )}
                         </div>
                       )}
                     </div>
-                  </div>
+
+                    {/* Actions Row */}
+                    {(isVideoCall || event.htmlLink || event.linkedEmailId) && (
+                      <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-white/5 mt-1">
+                        {isVideoCall && (
+                          <a href={event.location} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-full transition-colors active:scale-95">
+                            <Video className="h-3.5 w-3.5" />
+                            Join Video Call
+                          </a>
+                        )}
+                        {!isVideoCall && event.htmlLink && (
+                          <a href={event.htmlLink} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/10 px-3 py-1.5 rounded-full transition-colors active:scale-95">
+                            View Event
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        {event.linkedEmailId && onOpenEmail && (
+                          <button onClick={() => onOpenEmail(event.linkedEmailId!)} className="flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-full transition-colors active:scale-95">
+                            View Source Email
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </article>
                 </div>
               );
             })}

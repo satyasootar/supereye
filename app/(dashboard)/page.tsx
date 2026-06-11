@@ -29,96 +29,47 @@ export default async function DashboardPage() {
   const isCalendarConnected = connectedPlugins.includes('googlecalendar');
 
   return (
-    <div className="flex flex-col gap-8 p-6">
-      {/* Welcome header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">
-          Good{' '}
-          {new Date().getHours() < 12
-            ? 'morning'
-            : new Date().getHours() < 18
-              ? 'afternoon'
-              : 'evening'}
-          , {session.user.name?.split(' ')[0] ?? 'there'}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Here&apos;s your daily brief — everything in one place.
-        </p>
-      </div>
-
-      {/* Connection cards */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* Gmail connection card */}
-        <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card p-6 transition-all hover:border-border hover:shadow-lg">
-          <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-transparent" />
-          <div className="relative flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10">
-                  <Mail className="h-5 w-5 text-red-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Gmail</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Connect to see your inbox
-                  </p>
-                </div>
-              </div>
-              {isGmailConnected && <CheckCircle2 className="h-5 w-5 text-green-500" />}
-            </div>
-            
-            {isGmailConnected ? (
-              <div className="rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-center text-sm font-medium text-muted-foreground">
-                Connected
-              </div>
-            ) : (
-              <form action="/api/integrations/connect" method="post">
-                <input type="hidden" name="plugin" value="gmail" />
-                <button
-                  type="submit"
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium transition-all hover:bg-accent active:scale-[0.98]"
-                >
-                  Connect Gmail
-                </button>
-              </form>
-            )}
-          </div>
+    <div className="flex flex-col gap-10 p-8 max-w-7xl mx-auto w-full">
+      {/* Header & Connections Bento */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-4xl font-bold tracking-tight font-heading text-foreground">
+            Good{' '}
+            {new Date().getHours() < 12
+              ? 'morning'
+              : new Date().getHours() < 18
+                ? 'afternoon'
+                : 'evening'}
+            , {session.user.name?.split(' ')[0] ?? 'there'}.
+          </h1>
+          <p className="text-base text-muted-foreground">
+            Your unified view for today. Focus on what matters.
+          </p>
         </div>
 
-        {/* Calendar connection card */}
-        <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card p-6 transition-all hover:border-border hover:shadow-lg">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent" />
-          <div className="relative flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
-                  <Calendar className="h-5 w-5 text-blue-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Google Calendar</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Connect to see your schedule
-                  </p>
-                </div>
-              </div>
-              {isCalendarConnected && <CheckCircle2 className="h-5 w-5 text-green-500" />}
-            </div>
-
-            {isCalendarConnected ? (
-              <div className="rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-center text-sm font-medium text-muted-foreground">
-                Connected
-              </div>
-            ) : (
-              <form action="/api/integrations/connect" method="post">
-                <input type="hidden" name="plugin" value="googlecalendar" />
-                <button
-                  type="submit"
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium transition-all hover:bg-accent active:scale-[0.98]"
-                >
-                  Connect Calendar
-                </button>
-              </form>
-            )}
+        {/* Minimal Connections Status */}
+        <div className="flex items-center gap-4 bg-card/40 backdrop-blur-md px-5 py-3 rounded-2xl">
+          <div className="flex items-center gap-3 pr-4 border-r border-border/50">
+            <Mail className={`h-4 w-4 ${isGmailConnected ? 'text-green-500' : 'text-muted-foreground'}`} />
+            <span className="text-sm font-medium">
+              {isGmailConnected ? 'Gmail Active' : (
+                <form action="/api/integrations/connect" method="post" className="inline">
+                  <input type="hidden" name="plugin" value="gmail" />
+                  <button type="submit" className="text-primary hover:underline underline-offset-4">Connect Gmail</button>
+                </form>
+              )}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Calendar className={`h-4 w-4 ${isCalendarConnected ? 'text-green-500' : 'text-muted-foreground'}`} />
+            <span className="text-sm font-medium">
+              {isCalendarConnected ? 'Calendar Active' : (
+                <form action="/api/integrations/connect" method="post" className="inline">
+                  <input type="hidden" name="plugin" value="googlecalendar" />
+                  <button type="submit" className="text-primary hover:underline underline-offset-4">Connect Calendar</button>
+                </form>
+              )}
+            </span>
           </div>
         </div>
       </div>

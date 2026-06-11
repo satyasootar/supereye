@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { emails } from '@/lib/db/schema';
+import { emails, emailEventLinks } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET() {
@@ -12,19 +12,24 @@ export async function GET() {
   }
 
   try {
-    const cachedEmails = await db.select()
+    const cachedEmails = await db.select({
+      email: emails,
+      linkId: emailEventLinks.id
+    })
       .from(emails)
+      .leftJoin(emailEventLinks, eq(emails.id, emailEventLinks.emailId))
       .where(eq(emails.userId, session.user.id))
       .orderBy(desc(emails.internalDate))
       .limit(20);
 
     const fullMessages = cachedEmails.map(m => ({
-      id: m.googleMessageId,
-      snippet: m.snippet,
-      subject: m.subject,
-      sender: m.fromAddress,
-      isRead: m.isRead,
-      isStarred: m.isStarred
+      id: m.email.googleMessageId,
+      snippet: m.email.snippet,
+      subject: m.email.subject,
+      sender: m.email.fromAddress,
+      isRead: m.email.isRead,
+      isStarred: m.email.isStarred,
+      isLinkedToEvent: !!m.linkId
     }));
 
     return NextResponse.json({ messages: fullMessages });

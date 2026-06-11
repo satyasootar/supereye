@@ -1,10 +1,11 @@
-import { Geist, Geist_Mono, Inter } from "next/font/google"
+import { Geist, Geist_Mono, Inter, Space_Grotesk } from "next/font/google"
 
 import "./globals.css"
 import { Providers } from "@/app/providers"
 import { cn } from "@/lib/utils";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'})
+const spaceGrotesk = Space_Grotesk({subsets:['latin'],variable:'--font-heading'})
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -20,7 +21,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", inter.variable)}
+      className={cn("antialiased", fontMono.variable, spaceGrotesk.variable, inter.variable)}
     >
       <body suppressHydrationWarning>
         <Providers>{children}</Providers>

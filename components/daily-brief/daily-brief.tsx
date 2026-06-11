@@ -4,7 +4,7 @@ import { SchedulePanel } from './schedule-panel';
 import { InboxPanel } from './inbox-panel';
 import { Mail, Calendar } from 'lucide-react';
 import { useSSE } from '@/hooks/use-sse';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface DailyBriefProps {
   isGmailConnected: boolean;
@@ -12,6 +12,8 @@ interface DailyBriefProps {
 }
 
 export function DailyBrief({ isGmailConnected, isCalendarConnected }: DailyBriefProps) {
+  const [openEmailId, setOpenEmailId] = useState<string | null>(null);
+
   // Mount the SSE listener for real-time updates
   useSSE();
 
@@ -26,11 +28,11 @@ export function DailyBrief({ isGmailConnected, isCalendarConnected }: DailyBrief
   }, [isGmailConnected, isCalendarConnected]);
 
   return (
-    <div className="mt-4 flex flex-1 overflow-hidden rounded-2xl border border-border/50 bg-card/50 shadow-sm">
+    <div className="mt-8 flex flex-1 overflow-hidden rounded-3xl bg-card/20 backdrop-blur-3xl shadow-2xl border border-white/5">
       {/* Inbox Panel */}
-      <div className="flex w-2/3 flex-col border-r border-border/50 bg-card/30">
+      <div className="flex w-2/3 flex-col border-r border-white/5 bg-background/40">
         {isGmailConnected ? (
-          <InboxPanel />
+          <InboxPanel openEmailId={openEmailId} setOpenEmailId={setOpenEmailId} />
         ) : (
           <div className="flex flex-1 items-center justify-center text-muted-foreground p-12 text-sm">
             <div className="flex flex-col items-center gap-3 text-center">
@@ -42,9 +44,9 @@ export function DailyBrief({ isGmailConnected, isCalendarConnected }: DailyBrief
       </div>
 
       {/* Schedule Panel */}
-      <div className="flex w-1/3 flex-col bg-background/50">
+      <div className="flex w-1/3 flex-col bg-card/10">
         {isCalendarConnected ? (
-          <SchedulePanel />
+          <SchedulePanel onOpenEmail={setOpenEmailId} />
         ) : (
           <div className="flex flex-1 items-center justify-center text-muted-foreground p-12 text-sm">
             <div className="flex flex-col items-center gap-3 text-center">
