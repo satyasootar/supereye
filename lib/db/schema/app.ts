@@ -1,0 +1,153 @@
+/**
+ * Application-specific tables for Supereye.
+ * These tables cache Gmail/Calendar data locally and track sync state.
+ * The email-event link table powers the killer feature: one-click calendar invite from email.
+ */
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  jsonb,
+  uuid,
+  index,
+  unique,
+} from 'drizzle-orm/pg-core';
+import { users } from './auth';
+
+// ─── Cached Gmail Messages ──────────────────────────────────────────────
+export const emails = pgTable(
+  'emails',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    googleMessageId: text('google_message_id').notNull(),
+    threadId: text('thread_id'),
+    fromAddress: text('from_address'),
+    fromName: text('from_name'),
+    toAddresses: jsonb('to_addresses').$type<
+      { email: string; name?: string }[]
+    >(),
+    ccAddresses: jsonb('cc_addresses').$type<
+      { email: string; name?: string }[]
+    >(),
+    subject: text('subject'),
+    snippet: text('snippet'),
+    body: text('body'),
+    labelIds: jsonb('label_ids').$type<string[]>(),
+    isRead: boolean('is_read').notNull().default(false),
+    isStarred: boolean('is_starred').notNull().default(false),
+    isArchived: boolean('is_archived').notNull().default(false),
+    internalDate: timestamp('internal_date', { withTimezone: true }),
+    historyId: text('history_id'),
+    syncedAt: timestamp('synced_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('idx_emails_user_id').on(table.userId),
+    index('idx_emails_thread_id').on(table.threadId),
+    index('idx_emails_internal_date').on(table.internalDate),
+    unique('uq_emails_user_google_msg').on(
+      table.userId,
+      table.googleMessageId
+    ),
+  ]
+);
+
+// ─── Cached Calendar Events ─────────────────────────────────────────────
+export const calendarEvents = pgTable(
+  'calendar_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    googleEventId: text('google_event_id').notNull(),
+    calendarId: text('calendar_id').notNull().default('primary'),
+    title: text('title'),
+    description: text('description'),
+    location: text('location'),
+    startTime: timestamp('start_time', { withTimezone: true }),
+    endTime: timestamp('end_time', { withTimezone: true }),
+    isAllDay: boolean('is_all_day').notNull().default(false),
+    status: text('status').notNull().default('confirmed'),
+    attendees: jsonb('attendees').$type<
+      { email: string; displayName?: string; responseStatus?: string }[]
+    >(),
+    organizer: jsonb('organizer').$type<{
+      email: string;
+      displayName?: string;
+      self?: boolean;
+    }>(),
+    htmlLink: text('html_link'),
+    sourceEmailId: uuid('source_email_id').references(() => emails.id, {
+      onDelete: 'set null',
+    }),
+    syncedAt: timestamp('synced_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('idx_calendar_events_user_id').on(table.userId),
+    index('idx_calendar_events_start_time').on(table.startTime),
+    index('idx_calendar_events_source_email').on(table.sourceEmailId),
+    unique('uq_calendar_events_user_google').on(
+      table.userId,
+      table.googleEventId
+    ),
+  ]
+);
+
+// ─── Email ↔ Calendar Event Links ───────────────────────────────────────
+// Powers the killer feature: see which email spawned a meeting and vice versa
+export const emailEventLinks = pgTable(
+  'email_event_links',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    emailId: uuid('email_id')
+      .notNull()
+      .references(() => emails.id, { onDelete: 'cascade' }),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => calendarEvents.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique('uq_email_event_link').on(table.emailId, table.eventId),
+  ]
+);
+
+// ─── Sync State ─────────────────────────────────────────────────────────
+// Tracks incremental sync tokens per user per provider
+export const syncState = pgTable(
+  'sync_state',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull(), // 'gmail' | 'googlecalendar'
+    lastSyncToken: text('last_sync_token'),
+    lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
+  },
+  (table) => [
+    unique('uq_sync_state_user_provider').on(table.userId, table.provider),
+  ]
+);

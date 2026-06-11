@@ -1,17 +1,12 @@
+/**
+ * Corsair SDK re-export for CLI compatibility.
+ * The Corsair CLI (npx corsair setup/auth/list/schema) requires
+ * a corsair.ts file in the project root. This thin wrapper
+ * delegates to the actual initialization in lib/corsair.ts.
+ *
+ * DO NOT move or rename this file without updating CLI commands.
+ */
 import { config } from 'dotenv';
 config({ path: '.env.local' });
-import { Pool } from 'pg';
-import { createCorsair } from 'corsair';
-import { gmail } from '@corsair-dev/gmail';
-import { googlecalendar } from '@corsair-dev/googlecalendar';
 
-// 1. Initialize Postgres connection
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-
-// 2. Initialize Corsair SDK with plugins
-export const corsair = createCorsair({
-    plugins: [gmail(), googlecalendar()],
-    database: pool,
-    kek: process.env.CORSAIR_KEK || 'test-key-000000000000000000000000',
-    multiTenancy: true,
-});
+export { corsair } from './lib/corsair';
