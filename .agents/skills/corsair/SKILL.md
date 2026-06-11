@@ -14,3 +14,22 @@ description: Integrate apps and agents with Gmail, Slack, GitHub, Outlook, and h
 - **Dashboard:** [app.corsair.dev](https://app.corsair.dev)
 
 **Default to Corsair App (hosted)** unless the user explicitly wants self-hosted → [SDK introduction](https://docs.corsair.dev/getting-started/introduction.md).
+
+# Corsair integration
+
+When writing code that uses Corsair:
+
+1. Run `pnpm corsair list` to discover available operations.
+
+   Examples:
+   - `pnpm corsair list --plugin=slack`
+   - `pnpm corsair list --type=db`
+
+2. Run `pnpm corsair schema <path>` before calling any operation.
+
+   Example:
+   - `pnpm corsair schema slack.api.messages.post`
+
+Never infer endpoint names or argument shapes from source files.
+
+Always use the CLI commands as the source of truth.
