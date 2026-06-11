@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useQuery } from '@tanstack/react-query';
+import { EmailComposer } from './email-composer';
 
 export function EmailReader() {
   const { selectedEmailId, setSelectedEmailId } = useAppStore();
@@ -154,86 +155,31 @@ export function EmailReader() {
                 <p>{email.snippet}</p>
               )}
             </div>
-            
-            {/* Reply Bar (Trigger) */}
-            {!showComposer && (
-              <div className="px-5 py-3 border-t border-border-subtle bg-bg-surface flex items-center gap-2">
-                <button 
-                  onClick={() => setShowComposer(true)}
-                  className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md bg-bg-elevated border border-border-default text-text-secondary text-[13.5px] hover:border-accent-blue transition-colors text-left"
-                >
-                  <Reply className="h-4 w-4" />
-                  Reply to {email.fromName || email.fromAddress}...
-                </button>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-md bg-bg-elevated border border-border-default text-text-secondary text-[13.5px] hover:border-accent-blue transition-colors">
-                  <Forward className="h-4 w-4" />
-                  Forward
-                </button>
-              </div>
-            )}
           </div>
-
-          {/* Inline Composer (Active) */}
-          {showComposer && (
-            <div className="flex flex-col rounded-xl bg-bg-elevated border border-accent-blue shadow-lg overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
-              <div className="flex items-center justify-between px-4 py-2 border-b border-border-subtle bg-bg-surface">
-                <div className="flex items-center gap-2 text-[13px]">
-                  <span className="font-medium text-text-secondary">To:</span>
-                  <span className="font-medium text-text-primary px-2 py-0.5 rounded bg-bg-base border border-border-default">
-                    {email.fromName || email.fromAddress} &lt;{email.fromAddress}&gt;
-                  </span>
-                </div>
-                <button 
-                  onClick={() => setShowComposer(false)}
-                  className="p-1 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              
-              <div className="p-4">
-                <textarea 
-                  autoFocus
-                  placeholder="Draft your reply..."
-                  className="w-full min-h-[150px] bg-transparent resize-none outline-none text-[14px] text-text-primary placeholder:text-text-muted"
-                />
-              </div>
-
-              {/* Formatting Toolbar */}
-              <div className="flex items-center px-4 py-2 border-t border-border-subtle bg-bg-surface overflow-x-auto no-scrollbar">
-                <div className="flex items-center gap-1 mr-4 border-r border-border-subtle pr-4">
-                  <button className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded"><Bold className="h-4 w-4" /></button>
-                  <button className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded"><Italic className="h-4 w-4" /></button>
-                  <button className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded"><Underline className="h-4 w-4" /></button>
-                  <button className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded"><Link className="h-4 w-4" /></button>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded"><List className="h-4 w-4" /></button>
-                  <button className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded"><Quote className="h-4 w-4" /></button>
-                  <button className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded"><Code className="h-4 w-4" /></button>
-                </div>
-              </div>
-
-              {/* Action Toolbar */}
-              <div className="flex items-center justify-between px-4 py-3 bg-bg-surface border-t border-border-subtle">
-                <div className="flex items-center gap-2">
-                  <button className="p-2 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded-md transition-colors border border-transparent hover:border-border-default" title="Attach file">
-                    <Paperclip className="h-4 w-4" />
-                  </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-md transition-colors text-[13px] font-semibold border border-indigo-500/20" title="AI Draft">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    AI Draft
-                  </button>
-                  <button className="p-2 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded-md transition-colors border border-transparent hover:border-border-default" title="Schedule send">
-                    <CalendarIcon className="h-4 w-4" />
-                  </button>
-                </div>
-                
-                <button className="flex items-center gap-2 px-4 py-1.5 rounded-md bg-accent-blue text-white text-[13px] font-bold hover:bg-accent-blue-dim transition-colors shadow-sm">
-                  Send
-                  <span className="text-[10px] bg-white/20 px-1 rounded ml-1 font-mono">⌘↵</span>
-                </button>
-              </div>
+          
+          {/* Action Triggers / Composer */}
+          {!showComposer ? (
+            <div className="flex items-center gap-3 mt-4">
+              <button 
+                onClick={() => setShowComposer(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-md border border-border-strong text-text-primary text-[14px] hover:bg-bg-surface transition-colors shadow-sm bg-bg-base"
+              >
+                <Reply className="h-4 w-4" />
+                Reply
+              </button>
+              <button 
+                className="flex items-center gap-2 px-4 py-2 rounded-md border border-border-strong text-text-primary text-[14px] hover:bg-bg-surface transition-colors shadow-sm bg-bg-base"
+              >
+                <Forward className="h-4 w-4" />
+                Forward
+              </button>
+            </div>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <EmailComposer 
+                onClose={() => setShowComposer(false)} 
+                defaultTo={email.fromAddress} 
+              />
             </div>
           )}
 
