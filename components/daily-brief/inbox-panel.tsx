@@ -2,10 +2,16 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Mail } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
+interface InboxMessage {
+  id: string;
+  snippet?: string;
+  subject?: string;
+  sender?: string;
+}
 
 export function InboxPanel() {
-  const { data, isLoading, error } = useQuery<{ messages: any[] }>({
+  const { data, isLoading, error } = useQuery<{ messages: InboxMessage[] }>({
     queryKey: ['mail-threads'],
     queryFn: async () => {
       const res = await fetch('/api/mail/threads');
@@ -66,19 +72,11 @@ export function InboxPanel() {
           </div>
         ) : (
           <div className="space-y-4 pb-4">
-            {messagesList.map((msg: any) => {
+            {messagesList.map((msg) => {
               const id = msg.id;
               const snippet = msg.snippet || "New message received";
-              
-              let subject = "Message";
-              let sender = "Sender";
-              
-              if (msg.payload?.headers) {
-                const subjectHeader = msg.payload.headers.find((h: any) => h.name.toLowerCase() === 'subject');
-                const fromHeader = msg.payload.headers.find((h: any) => h.name.toLowerCase() === 'from');
-                if (subjectHeader) subject = subjectHeader.value;
-                if (fromHeader) sender = fromHeader.value;
-              }
+              const subject = msg.subject || "Message";
+              const sender = msg.sender || "Sender";
 
               return (
                 <div key={id} className="group flex flex-col gap-2 rounded-2xl border border-border/50 p-4 transition-all hover:border-border hover:shadow-md bg-card">

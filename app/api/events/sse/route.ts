@@ -12,7 +12,7 @@ import { sseEmitter } from '@/lib/sse/emitter';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -22,8 +22,23 @@ export async function GET() {
   const userId = session.user.id;
   const encoder = new TextEncoder();
 
+  let heartbeat: ReturnType<typeof setInterval>;
+  let unsubscribe: () => void;
+
   const stream = new ReadableStream({
     start(controller) {
+      const cleanup = () => {
+        if (heartbeat) clearInterval(heartbeat);
+        if (unsubscribe) unsubscribe();
+        req.signal.removeEventListener('abort', cleanup);
+      };
+
+      if (req.signal.aborted) {
+        return cleanup();
+      }
+
+      req.signal.addEventListener('abort', cleanup);
+
       // Send initial connection event
       controller.enqueue(
         encoder.encode(
@@ -32,30 +47,30 @@ export async function GET() {
       );
 
       // Subscribe to events for this user
-      const unsubscribe = sseEmitter.on(userId, (event) => {
+      unsubscribe = sseEmitter.on(userId, (event) => {
         try {
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
           );
         } catch {
           // Stream might be closed
-          unsubscribe();
+          cleanup();
         }
       });
 
       // Send heartbeat every 30 seconds to keep connection alive
-      const heartbeat = setInterval(() => {
+      heartbeat = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(': heartbeat\n\n'));
         } catch {
-          clearInterval(heartbeat);
-          unsubscribe();
+          cleanup();
         }
       }, 30_000);
-
-      // Cleanup when client disconnects — not available in all runtimes,
-      // but the heartbeat catch will handle cleanup as a fallback
     },
+    cancel() {
+      if (heartbeat) clearInterval(heartbeat);
+      if (unsubscribe) unsubscribe();
+    }
   });
 
   return new Response(stream, {

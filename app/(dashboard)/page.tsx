@@ -3,10 +3,8 @@ import { Mail, Calendar, CheckCircle2 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { corsairAccounts, corsairIntegrations } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { corsair } from '@/lib/corsair';
 import { redirect } from 'next/navigation';
 import { DailyBrief } from '@/components/daily-brief/daily-brief';
-import { generateOAuthUrl } from 'corsair/oauth';
 
 /**
  * Daily Brief — the main dashboard page.
@@ -29,24 +27,6 @@ export default async function DashboardPage() {
   const connectedPlugins = accounts.map((a) => a.name);
   const isGmailConnected = connectedPlugins.includes('gmail');
   const isCalendarConnected = connectedPlugins.includes('googlecalendar');
-
-  // 2. Define the server action for connecting a plugin
-  async function connectIntegration(formData: FormData) {
-    'use server';
-    const plugin = formData.get('plugin') as string;
-    const authSession = await auth();
-    
-    if (!authSession?.user?.id || !plugin) {
-      throw new Error('Unauthorized or invalid plugin');
-    }
-
-    const { url: authUrl } = await generateOAuthUrl(corsair, plugin, {
-      tenantId: authSession.user.id,
-      redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/corsair/callback`,
-    });
-
-    redirect(authUrl);
-  }
 
   return (
     <div className="flex flex-col gap-8 p-6">
@@ -92,7 +72,7 @@ export default async function DashboardPage() {
                 Connected
               </div>
             ) : (
-              <form action={connectIntegration}>
+              <form action="/api/integrations/connect" method="post">
                 <input type="hidden" name="plugin" value="gmail" />
                 <button
                   type="submit"
@@ -129,7 +109,7 @@ export default async function DashboardPage() {
                 Connected
               </div>
             ) : (
-              <form action={connectIntegration}>
+              <form action="/api/integrations/connect" method="post">
                 <input type="hidden" name="plugin" value="googlecalendar" />
                 <button
                   type="submit"

@@ -1,21 +1,19 @@
 /**
  * Route protection middleware.
  * Redirects unauthenticated users to /login.
- * Excludes auth routes, Corsair routes, webhooks, and static assets.
+ * Limits auth checks to app pages and skips API routes plus Next internals.
  */
 export { auth as proxy } from '@/lib/auth';
 
 export const config = {
   matcher: [
     /*
-     * Match all paths except:
-     * - /login (auth page)
-     * - /api/auth (NextAuth routes)
-     * - /api/corsair (Corsair OAuth callback)
-     * - /api/webhooks (incoming webhooks from Google)
-     * - /_next (Next.js internals)
-     * - /favicon.ico, /public assets
+     * Match app pages only.
+     * Skip:
+     * - /api (route handlers do their own auth checks)
+     * - /_next (Next.js internals, HMR, assets)
+     * - metadata files and other file-extension assets
      */
-    '/((?!login|api/auth|api/corsair|api/webhooks|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next|favicon.ico|sitemap.xml|robots.txt|.*\\..*).*)',
   ],
 };

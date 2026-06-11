@@ -3,8 +3,8 @@
  * Called when user clicks "Connect Gmail" or "Connect Calendar" in the dashboard.
  */
 import { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { corsair } from '@/lib/corsair';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -13,8 +13,16 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
-  const plugin = body.plugin as 'gmail' | 'googlecalendar';
+  const contentType = request.headers.get('content-type') ?? '';
+  const isFormRequest =
+    contentType.includes('application/x-www-form-urlencoded') ||
+    contentType.includes('multipart/form-data');
+  const body = isFormRequest
+    ? await request.formData()
+    : await request.json();
+  const plugin = body.get
+    ? (body.get('plugin') as 'gmail' | 'googlecalendar' | null)
+    : (body.plugin as 'gmail' | 'googlecalendar');
 
   if (!plugin || !['gmail', 'googlecalendar'].includes(plugin)) {
     return Response.json(
@@ -24,11 +32,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const { corsair } = await import('@/lib/corsair');
+
     // Generate OAuth URL scoped to this specific user
     const authUrl = await (corsair as any)[plugin].oauth.getAuthUrl({
       tenantId: session.user.id,
       redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/corsair/callback`,
     });
+
+    if (isFormRequest) {
+      return NextResponse.redirect(new URL(authUrl), 303);
+    }
 
     return Response.json({ authUrl });
   } catch (error) {

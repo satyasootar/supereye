@@ -1,8 +1,8 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { format, isSameDay, parseISO } from 'date-fns';
-import { Calendar, Clock, MapPin, Users } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { Calendar, Clock, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Event {

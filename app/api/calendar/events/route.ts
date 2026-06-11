@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { corsair } from '@/lib/corsair';
 
 export async function GET() {
   const session = await auth();
@@ -10,6 +9,7 @@ export async function GET() {
   }
 
   try {
+    const { corsair } = await import('@/lib/corsair');
     const t = corsair.withTenant(session.user.id) as any;
 
     // Get the start of today
@@ -26,12 +26,24 @@ export async function GET() {
       calendarId: 'primary',
       timeMin: startOfDay.toISOString(),
       timeMax: endOfWindow.toISOString(),
-      maxResults: 50,
+      maxResults: 10,
       singleEvents: true,
       orderBy: 'startTime'
     });
 
-    return NextResponse.json({ events: calendarResult.items || [] });
+    const safeEvents = (calendarResult.items || []).map((event: any) => ({
+      id: event.id,
+      summary: event.summary,
+      start: event.start,
+      end: event.end,
+      location: event.location,
+      attendees: event.attendees ? event.attendees.map((a: any) => ({
+        email: a.email,
+        displayName: a.displayName
+      })) : []
+    }));
+
+    return NextResponse.json({ events: safeEvents });
   } catch (error: any) {
     console.error('Failed to fetch calendar events:', error);
     return NextResponse.json({ 
