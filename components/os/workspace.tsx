@@ -5,19 +5,8 @@ import { cn } from '@/lib/utils';
 import { useState, useRef } from 'react';
 import { EmailPane } from './email-pane';
 import { CalendarPane } from './calendar-pane';
+import { ChatPane } from './chat-pane';
 import { useGlobalShortcuts } from '@/hooks/use-global-shortcuts';
-
-// Placeholder components for the 3 main views
-function ChatPane() {
-  return (
-    <div className="flex h-full w-full items-center justify-center bg-bg-base text-text-primary">
-      <div className="text-center">
-        <h2 className="text-2xl font-heading text-accent-blue mb-2">AI Chat</h2>
-        <p className="text-text-muted">Corsair Agent Canvas</p>
-      </div>
-    </div>
-  );
-}
 
 export function Workspace() {
   useGlobalShortcuts();
