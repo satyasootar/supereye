@@ -35,6 +35,8 @@ const views = [
   { icon: Users, label: 'From: People' },
 ];
 
+import { useAppStore } from '@/lib/store/app-store';
+
 const triage = [
   { color: 'bg-red-500', label: 'Urgent', count: '2' },
   { color: 'bg-orange-500', label: 'High', count: '5' },
@@ -44,9 +46,36 @@ const triage = [
 
 export function EmailSidebar() {
   const { data: session } = useSession();
+  const { activeTabs } = useAppStore();
+  const isSplit = activeTabs.length > 1;
+
   const [labelsExpanded, setLabelsExpanded] = useState(true);
   const [viewsExpanded, setViewsExpanded] = useState(true);
   const [triageExpanded, setTriageExpanded] = useState(false);
+
+  if (isSplit) {
+    return (
+      <div className="flex h-full w-[48px] flex-col items-center border-r border-border-subtle bg-bg-surface text-text-primary py-4 gap-4 flex-shrink-0">
+        <button className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-blue text-white hover:bg-accent-blue-dim transition-colors" title="Compose">
+          <Edit className="h-4 w-4" />
+        </button>
+        <div className="flex flex-col gap-2 mt-4">
+          {primaryNav.map((item) => (
+            <button 
+              key={item.label}
+              title={item.label}
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+                item.active ? "bg-bg-highlight text-accent-blue" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary"
+              )}
+            >
+              <item.icon className="h-4 w-4" />
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full w-[220px] flex-col border-r border-border-subtle bg-bg-surface text-text-primary overflow-y-auto custom-scrollbar">

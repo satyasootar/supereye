@@ -23,6 +23,8 @@ const myCalendars = [
   { name: 'Tasks', color: 'bg-blue-500', active: false },
 ];
 
+import { useAppStore } from '@/lib/store/app-store';
+
 const upcomingEvents = [
   { title: 'Team standup', date: 'Today, 3:00 PM', color: 'bg-red-500' },
   { title: 'Meeting — friend@corsair.dev', date: 'Tomorrow, 9:00 AM', color: 'bg-teal-500' },
@@ -30,9 +32,27 @@ const upcomingEvents = [
 ];
 
 export function CalendarSidebar() {
+  const { activeTabs } = useAppStore();
+  const isSplit = activeTabs.length > 1;
+
   const [calsExpanded, setCalsExpanded] = useState(true);
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
   const [activeView, setActiveView] = useState('Month');
+
+  if (isSplit) {
+    return (
+      <div className="flex h-full w-[48px] flex-col items-center border-r border-border-subtle bg-bg-surface text-text-primary py-4 gap-4 flex-shrink-0">
+        <button className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-blue text-white hover:bg-accent-blue-dim transition-colors" title="New Event">
+          <Plus className="h-4 w-4" />
+        </button>
+        <div className="flex flex-col gap-2 mt-4">
+          <button title="Day View" onClick={() => setActiveView('Day')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors", activeView === 'Day' ? "bg-bg-highlight text-accent-blue" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>D</button>
+          <button title="Week View" onClick={() => setActiveView('Week')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors", activeView === 'Week' ? "bg-bg-highlight text-accent-blue" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>W</button>
+          <button title="Month View" onClick={() => setActiveView('Month')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors", activeView === 'Month' ? "bg-bg-highlight text-accent-blue" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>M</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full w-[260px] flex-col border-r border-border-subtle bg-bg-surface text-text-primary overflow-y-auto custom-scrollbar flex-shrink-0">

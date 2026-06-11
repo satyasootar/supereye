@@ -4,6 +4,8 @@ import { useAppStore } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
 import { useState, useRef } from 'react';
 import { EmailPane } from './email-pane';
+import { CalendarPane } from './calendar-pane';
+import { useGlobalShortcuts } from '@/hooks/use-global-shortcuts';
 
 // Placeholder components for the 3 main views
 function ChatPane() {
@@ -17,18 +19,8 @@ function ChatPane() {
   );
 }
 
-function CalendarPane() {
-  return (
-    <div className="flex h-full w-full items-center justify-center bg-bg-base text-text-primary">
-      <div className="text-center">
-        <h2 className="text-2xl font-heading text-accent-blue mb-2">Calendar</h2>
-        <p className="text-text-muted">Schedule & Events</p>
-      </div>
-    </div>
-  );
-}
-
 export function Workspace() {
+  useGlobalShortcuts();
   const { activeTabs, splitRatio, setSplitRatio } = useAppStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
