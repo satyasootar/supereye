@@ -1,0 +1,36 @@
+import { create } from 'zustand';
+
+export type TabId = 'chat' | 'email' | 'calendar';
+
+interface AppState {
+  activeTabs: TabId[];
+  splitRatio: number; // 50 for 50/50 split
+  openTab: (tabId: TabId, multiSelect?: boolean) => void;
+  closeTab: (tabId: TabId) => void;
+  setSplitRatio: (ratio: number) => void;
+}
+
+export const useAppStore = create<AppState>((set) => ({
+  activeTabs: ['chat'], // Default tab
+  splitRatio: 50,
+  openTab: (tabId, multiSelect = false) => set((state) => {
+    if (multiSelect) {
+      // Cannot have more than 2 tabs open
+      if (state.activeTabs.length >= 2 && !state.activeTabs.includes(tabId)) {
+        return { activeTabs: [state.activeTabs[1], tabId] };
+      }
+      return { 
+        activeTabs: Array.from(new Set([...state.activeTabs, tabId]))
+      };
+    }
+    // If not multi-select, just replace the active tab, unless the tab is already active and we are trying to collapse a split
+    if (!multiSelect && state.activeTabs.length > 1 && state.activeTabs.includes(tabId)) {
+       return { activeTabs: [tabId] };
+    }
+    return { activeTabs: [tabId] };
+  }),
+  closeTab: (tabId) => set((state) => ({
+    activeTabs: state.activeTabs.filter(id => id !== tabId)
+  })),
+  setSplitRatio: (ratio) => set({ splitRatio: ratio })
+}));

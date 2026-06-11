@@ -1,0 +1,106 @@
+'use client';
+
+import { useAppStore, TabId } from '@/lib/store/app-store';
+import { Bell, Keyboard, Moon, Sun, Search, User } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { useSession } from 'next-auth/react';
+import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+
+export function TopBar() {
+  const { activeTabs, openTab } = useAppStore();
+  const { theme, setTheme } = useTheme();
+  const { data: session } = useSession();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleTabClick = (e: React.MouseEvent, tab: TabId) => {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) {
+      openTab(tab, true);
+    } else {
+      openTab(tab, false);
+    }
+  };
+
+  const tabs: { id: TabId; label: string }[] = [
+    { id: 'chat', label: 'Chat' },
+    { id: 'email', label: 'Email' },
+    { id: 'calendar', label: 'Calendar' }
+  ];
+
+  return (
+    <header className="sticky top-0 z-50 flex h-12 w-full items-center justify-between border-b border-border bg-base/80 px-4 backdrop-blur-md">
+      {/* Left: Logo */}
+      <div className="flex items-center gap-2 w-[200px]">
+        <div className="flex h-7 w-7 items-center justify-center rounded bg-primary/10 text-primary">
+          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg>
+        </div>
+        <span className="font-heading text-[15px] font-semibold text-foreground">Corsair</span>
+      </div>
+
+      {/* Center: Tabs */}
+      <nav className="flex items-center gap-1 flex-1 justify-center">
+        {tabs.map(tab => {
+          const isActive = activeTabs.includes(tab.id);
+          const isSplit = activeTabs.length > 1 && isActive;
+
+          return (
+            <button
+              key={tab.id}
+              onClick={(e) => handleTabClick(e, tab.id)}
+              className={cn(
+                "relative px-4 py-1.5 text-[13.5px] font-medium transition-colors rounded-md select-none flex items-center gap-1.5",
+                isActive 
+                  ? "bg-highlight text-foreground" 
+                  : "text-secondary hover:bg-overlay hover:text-foreground"
+              )}
+            >
+              {tab.label}
+              {isSplit && (
+                <div className="flex gap-[1px]">
+                  <div className="h-2.5 w-1 bg-primary/50 rounded-[1px]" />
+                  <div className="h-2.5 w-1 bg-primary/50 rounded-[1px]" />
+                </div>
+              )}
+              {/* Active Tab Underline Indicator */}
+              {isActive && !isSplit && activeTabs.length === 1 && (
+                <div className="absolute bottom-[-10px] left-1/2 h-[2px] w-1/2 -translate-x-1/2 bg-primary rounded-t-full" />
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Right: Utilities */}
+      <div className="flex items-center justify-end gap-3 w-[200px]">
+        <button className="text-secondary hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-overlay" title="Search (⌘K)">
+          <Search className="h-[18px] w-[18px]" />
+        </button>
+        <button className="relative text-secondary hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-overlay" title="Notifications">
+          <Bell className="h-[18px] w-[18px]" />
+          <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-destructive" />
+        </button>
+        <button 
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="text-secondary hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-overlay" 
+          title="Toggle Theme"
+        >
+          {mounted && theme === 'dark' ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+        </button>
+        <button className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-accent-foreground ml-1 border border-border/50 hover:bg-overlay overflow-hidden">
+          {session?.user?.image ? (
+            <img src={session.user.image} alt="User" className="h-full w-full object-cover" />
+          ) : (
+            <User className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+    </header>
+  );
+}
