@@ -2,30 +2,13 @@
 
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
-import dynamic from "next/dynamic"
-
-// Dynamically import next-themes provider to avoid React 19 script tag errors during SSR
-const DynamicThemeProvider = dynamic(
-  () => Promise.resolve(({ children, ...props }: any) => <NextThemesProvider {...props}>{children}</NextThemesProvider>),
-  { ssr: false }
-)
 
 function ThemeProvider({
   children,
   ...props
 }: React.ComponentProps<typeof NextThemesProvider>) {
-  const [mounted, setMounted] = React.useState(false)
-
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return <>{children}</>
-  }
-
   return (
-    <DynamicThemeProvider
+    <NextThemesProvider
       attribute="class"
       defaultTheme="dark"
       enableSystem={false}
@@ -34,7 +17,7 @@ function ThemeProvider({
     >
       <ThemeHotkey />
       {children}
-    </DynamicThemeProvider>
+    </NextThemesProvider>
   )
 }
 

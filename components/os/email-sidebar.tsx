@@ -140,60 +140,6 @@ export function EmailSidebar() {
         )}
       </div>
 
-      {/* Views */}
-      <div className="mt-4 px-2">
-        <button 
-          onClick={() => setViewsExpanded(!viewsExpanded)}
-          className="flex w-full items-center justify-between px-3 py-1.5 text-[12px] font-semibold text-text-secondary hover:text-text-primary uppercase tracking-wider"
-        >
-          <div className="flex items-center gap-1">
-            <ChevronDown className={cn("h-3 w-3 transition-transform", !viewsExpanded && "-rotate-90")} />
-            Views
-          </div>
-        </button>
-        
-        {viewsExpanded && (
-          <div className="mt-1 flex flex-col gap-0.5">
-            {views.map((view) => (
-              <button key={view.label} className="flex items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-text-secondary hover:bg-bg-overlay hover:text-text-primary">
-                <div className="flex items-center gap-3">
-                  <view.icon className="h-4 w-4" />
-                  {view.label}
-                </div>
-                {view.count && <span className="text-[11px] bg-bg-highlight text-accent-blue px-1.5 py-0.5 rounded font-mono">{view.count}</span>}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* AI Triage */}
-      <div className="mt-4 px-2 mb-6">
-        <button 
-          onClick={() => setTriageExpanded(!triageExpanded)}
-          className="flex w-full items-center justify-between px-3 py-1.5 text-[12px] font-semibold text-accent-blue hover:text-accent-blue-dim uppercase tracking-wider bg-accent-blue-glow/30 rounded-md"
-        >
-          <div className="flex items-center gap-1">
-            <ChevronDown className={cn("h-3 w-3 transition-transform", !triageExpanded && "-rotate-90")} />
-            AI Triage
-          </div>
-        </button>
-        
-        {triageExpanded && (
-          <div className="mt-1 flex flex-col gap-0.5">
-            {triage.map((item) => (
-              <button key={item.label} className="flex items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-text-secondary hover:bg-bg-overlay hover:text-text-primary">
-                <div className="flex items-center gap-3">
-                  <div className={cn("h-2.5 w-2.5 rounded-full", item.color)} />
-                  {item.label}
-                </div>
-                {item.count && <span className="text-[11px] text-text-muted">{item.count}</span>}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Spacer */}
       <div className="flex-1" />
 
