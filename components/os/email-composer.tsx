@@ -1,9 +1,7 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, KeyboardEvent } from 'react';
 import { 
   CornerUpLeft, X, MoreHorizontal, ChevronDown,
-  Wand2, Paperclip, Code, Calendar as CalendarIcon, Trash2 
+  Wand2, Paperclip, Calendar as CalendarIcon, Trash2, CodeXml
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -12,108 +10,163 @@ interface EmailComposerProps {
   defaultTo: string;
 }
 
-export function EmailComposer({ onClose, defaultTo }: EmailComposerProps) {
-  const [showCcBcc, setShowCcBcc] = useState(false);
+function RecipientInput({ 
+  recipients, 
+  onChange, 
+  placeholder 
+}: { 
+  recipients: string[], 
+  onChange: (r: string[]) => void,
+  placeholder?: string
+}) {
+  const [inputValue, setInputValue] = useState('');
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (['Enter', ' ', ','].includes(e.key)) {
+      e.preventDefault();
+      const val = inputValue.trim().replace(/,/g, '');
+      if (val && !recipients.includes(val)) {
+        onChange([...recipients, val]);
+        setInputValue('');
+      }
+    } else if (e.key === 'Backspace' && !inputValue && recipients.length > 0) {
+      onChange(recipients.slice(0, -1));
+    }
+  };
+
+  const removeRecipient = (indexToRemove: number) => {
+    onChange(recipients.filter((_, idx) => idx !== indexToRemove));
+  };
 
   return (
-    <div className="flex flex-col rounded-xl bg-[#2A2A2A] text-white shadow-xl overflow-hidden mt-6 mb-8 border border-white/5">
+    <div className="flex items-center gap-2 flex-wrap flex-1">
+      {recipients.map((recipient, idx) => (
+        <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#333333] text-[14px] text-white">
+          <span>{recipient}</span>
+          <button 
+            type="button"
+            aria-label="Remove recipient"
+            onClick={() => removeRecipient(idx)}
+            className="text-[#9CA3AF] hover:text-white transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ))}
+      <input 
+        type="text"
+        aria-label="Recipient email address"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={recipients.length === 0 ? placeholder : ""}
+        className="flex-1 min-w-[120px] bg-transparent text-[14px] text-white placeholder:text-[#6b7280] outline-none"
+      />
+    </div>
+  );
+}
+
+export function EmailComposer({ onClose, defaultTo }: EmailComposerProps) {
+  const [showCcBcc, setShowCcBcc] = useState(false);
+  const [toRecipients, setToRecipients] = useState<string[]>([defaultTo]);
+  const [ccRecipients, setCcRecipients] = useState<string[]>([]);
+  const [bccRecipients, setBccRecipients] = useState<string[]>([]);
+
+  return (
+    <div className="flex flex-col rounded-2xl bg-[#282828] text-white shadow-2xl overflow-hidden mt-4 mb-8">
       
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
-          <button className="text-gray-400 hover:text-white transition-colors">
-            <CornerUpLeft className="h-4 w-4" />
+      <div className="flex items-start justify-between px-6 py-5 min-h-[64px]">
+        <div className="flex items-start gap-4 flex-1 mt-1">
+          <button type="button" aria-label="Go back" className="text-[#9CA3AF] hover:text-white transition-colors flex-shrink-0 mt-1.5">
+            <CornerUpLeft className="h-5 w-5" />
           </button>
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#3A3A3A] text-[13px] text-gray-200">
-            {defaultTo}
-            <button className="ml-1 text-gray-400 hover:text-white">
-              <X className="h-3 w-3" />
-            </button>
-          </div>
+          
+          <RecipientInput 
+            recipients={toRecipients} 
+            onChange={setToRecipients} 
+            placeholder="Add recipient" 
+          />
         </div>
-        <div className="flex items-center gap-4 text-[13px] text-gray-400">
+        
+        <div className="flex items-center gap-5 text-[14px] text-[#9CA3AF] flex-shrink-0 ml-4 mt-2">
           <button 
+            type="button"
             onClick={() => setShowCcBcc(!showCcBcc)}
-            className="hover:text-white transition-colors"
+            className="hover:text-white transition-colors font-medium"
           >
             Cc / Bcc
           </button>
-          <button className="hover:text-white transition-colors">
-            <MoreHorizontal className="h-4 w-4" />
+          <button type="button" aria-label="More options" className="hover:text-white transition-colors">
+            <MoreHorizontal className="h-5 w-5" />
           </button>
         </div>
       </div>
 
       {/* Cc / Bcc Expanded Rows */}
       {showCcBcc && (
-        <div className="flex flex-col border-b border-white/5 px-4">
-          <div className="flex items-center gap-6 py-2">
-            <span className="text-[13px] text-gray-400 w-6">Cc</span>
-            <input 
-              type="text" 
+        <div className="flex flex-col px-6 pb-2">
+          <div className="flex items-center gap-4 py-2 min-h-[40px]">
+            <span className="text-[14px] text-[#9CA3AF] w-8 flex-shrink-0 font-medium">Cc</span>
+            <RecipientInput 
+              recipients={ccRecipients} 
+              onChange={setCcRecipients} 
               placeholder="Add recipient" 
-              className="flex-1 bg-transparent text-[13px] text-white placeholder:text-gray-500 outline-none"
             />
           </div>
-          <div className="flex items-center gap-6 py-2 border-t border-white/5">
-            <span className="text-[13px] text-gray-400 w-6">Bcc</span>
-            <input 
-              type="text" 
+          <div className="flex items-center gap-4 py-2 min-h-[40px]">
+            <span className="text-[14px] text-[#9CA3AF] w-8 flex-shrink-0 font-medium">Bcc</span>
+            <RecipientInput 
+              recipients={bccRecipients} 
+              onChange={setBccRecipients} 
               placeholder="Add recipient" 
-              className="flex-1 bg-transparent text-[13px] text-white placeholder:text-gray-500 outline-none"
             />
           </div>
         </div>
       )}
 
       {/* Editor Area */}
-      <div className="relative p-4">
+      <div className="relative px-6 py-2">
         <textarea 
+          aria-label="Email body"
           autoFocus
           placeholder='Write, or press "space" for AI, "/" for commands...'
-          className="w-full min-h-[250px] bg-transparent resize-none outline-none text-[14px] text-white placeholder:text-gray-500 leading-relaxed"
+          className="w-full min-h-[250px] bg-transparent resize-none outline-none text-[15px] text-white placeholder:text-[#6A7382] leading-relaxed"
         />
-        
-        {/* Floating AI Action */}
-        <button className="absolute right-4 top-4 flex items-center justify-center bg-white rounded-full px-2 py-1 shadow-lg group hover:scale-105 transition-transform">
-          <div className="flex items-center gap-1">
-            <Wand2 className="h-3.5 w-3.5 text-teal-600" />
-            <div className="h-4 w-4 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-[10px]">
-              G
-            </div>
-          </div>
-        </button>
       </div>
 
       {/* Bottom Toolbar */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center">
-          <button className="flex items-center gap-2 px-4 py-1.5 rounded-l-md bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[14px] font-medium transition-colors">
+      <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center shadow-sm rounded-lg overflow-hidden">
+          <button type="button" className="flex items-center gap-2 px-6 py-2 bg-[#3B82F6] hover:bg-[#2563EB] text-white text-[15px] font-medium transition-colors">
             Send
           </button>
-          <button className="flex items-center justify-center px-2 py-1.5 rounded-r-md bg-[#2563EB] hover:bg-[#1D4ED8] text-white border-l border-white/20 transition-colors">
+          <div className="w-[1px] bg-white/20 h-full"></div>
+          <button type="button" aria-label="Send options" className="flex items-center justify-center px-3 py-2 bg-[#3B82F6] hover:bg-[#2563EB] text-white transition-colors">
             <ChevronDown className="h-5 w-5" />
           </button>
         </div>
         
-        <div className="flex items-center gap-3 text-gray-400">
-          <button className="p-1.5 hover:bg-white/10 hover:text-white rounded-md transition-colors">
-            <Wand2 className="h-4 w-4" />
+        <div className="flex items-center gap-4 text-[#9CA3AF]">
+          <button type="button" aria-label="AI Assistant" className="hover:text-white transition-colors">
+            <Wand2 className="h-5 w-5" />
           </button>
-          <button className="p-1.5 hover:bg-white/10 hover:text-white rounded-md transition-colors">
-            <Paperclip className="h-4 w-4" />
+          <button type="button" aria-label="Attach file" className="hover:text-white transition-colors">
+            <Paperclip className="h-5 w-5" />
           </button>
-          <button className="p-1.5 hover:bg-white/10 hover:text-white rounded-md transition-colors">
-            <Code className="h-4 w-4" />
+          <button type="button" aria-label="Insert code" className="hover:text-white transition-colors font-mono text-lg font-bold tracking-tighter relative -top-[1px]">
+            &lt;&gt;
           </button>
-          <button className="p-1.5 hover:bg-white/10 hover:text-white rounded-md transition-colors">
-            <CalendarIcon className="h-4 w-4" />
+          <button type="button" aria-label="Insert calendar event" className="hover:text-white transition-colors">
+            <CalendarIcon className="h-5 w-5" />
           </button>
           <button 
+            type="button"
+            aria-label="Discard draft"
             onClick={onClose}
-            className="p-1.5 hover:bg-white/10 hover:text-red-400 rounded-md transition-colors ml-2"
+            className="hover:text-white transition-colors ml-2"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-5 w-5" />
           </button>
         </div>
       </div>

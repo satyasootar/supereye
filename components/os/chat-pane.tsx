@@ -164,24 +164,28 @@ export function ChatPane() {
           {/* Modes Row */}
           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border-subtle bg-bg-surface/50 overflow-x-auto no-scrollbar">
             <button 
+              type="button"
               onClick={() => setModes({ ...modes, agent: !modes.agent })}
               className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-colors flex-shrink-0", modes.agent ? "bg-accent-blue text-white" : "bg-bg-overlay text-text-secondary hover:text-text-primary")}
             >
               <Bot className="h-3.5 w-3.5" /> Agent Mode
             </button>
             <button 
+              type="button"
               onClick={() => setModes({ ...modes, email: !modes.email })}
               className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-colors flex-shrink-0", modes.email ? "bg-accent-blue text-white" : "bg-bg-overlay text-text-secondary hover:text-text-primary")}
             >
               <Mail className="h-3.5 w-3.5" /> Email Context
             </button>
             <button 
+              type="button"
               onClick={() => setModes({ ...modes, calendar: !modes.calendar })}
               className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-colors flex-shrink-0", modes.calendar ? "bg-accent-blue text-white" : "bg-bg-overlay text-text-secondary hover:text-text-primary")}
             >
               <Calendar className="h-3.5 w-3.5" /> Calendar Context
             </button>
             <button 
+              type="button"
               onClick={() => setModes({ ...modes, web: !modes.web })}
               className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-colors flex-shrink-0", modes.web ? "bg-accent-blue text-white" : "bg-bg-overlay text-text-secondary hover:text-text-primary")}
             >
@@ -191,6 +195,7 @@ export function ChatPane() {
 
           {/* Text Area */}
           <textarea 
+            aria-label="Ask Corsair a question"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask Corsair anything... Schedule meetings, reply to email, summarize threads..."
@@ -207,18 +212,20 @@ export function ChatPane() {
           {/* Action Row */}
           <div className="flex items-center justify-between px-3 py-2 bg-bg-surface/50">
             <div className="flex items-center gap-1">
-              <button className="p-2 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded-md transition-colors" title="Attach">
+              <button type="button" aria-label="Attach file" className="p-2 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded-md transition-colors" title="Attach">
                 <Paperclip className="h-4 w-4" />
               </button>
-              <button className="p-2 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded-md transition-colors" title="Paste Context">
+              <button type="button" aria-label="Paste context" className="p-2 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded-md transition-colors" title="Paste Context">
                 <ClipboardPaste className="h-4 w-4" />
               </button>
-              <button className="px-2 py-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded-md transition-colors text-[12.5px] font-medium font-mono">
+              <button type="button" className="px-2 py-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded-md transition-colors text-[12.5px] font-medium font-mono">
                 /cmds
               </button>
             </div>
             
             <button 
+              type="button"
+              aria-label="Send message"
               disabled={!input.trim()}
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-md transition-colors",

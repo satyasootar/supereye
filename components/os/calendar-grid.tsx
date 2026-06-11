@@ -71,14 +71,14 @@ export function CalendarGrid() {
       {/* Top Action Bar */}
       <div className="flex h-14 items-center justify-between px-6 border-b border-border-subtle bg-bg-base flex-shrink-0">
         <div className="flex items-center gap-4">
-          <button className="px-3 py-1.5 rounded-md border border-border-default hover:bg-bg-overlay text-[13px] font-medium text-text-primary transition-colors shadow-sm">
+          <button type="button" className="px-3 py-1.5 rounded-md border border-border-default hover:bg-bg-overlay text-[13px] font-medium text-text-primary transition-colors shadow-sm">
             Today
           </button>
           <div className="flex items-center gap-2">
-            <button className="p-1.5 rounded hover:bg-bg-overlay text-text-secondary transition-colors">
+            <button type="button" aria-label="Previous month" className="p-1.5 rounded hover:bg-bg-overlay text-text-secondary transition-colors">
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <button className="p-1.5 rounded hover:bg-bg-overlay text-text-secondary transition-colors">
+            <button type="button" aria-label="Next month" className="p-1.5 rounded hover:bg-bg-overlay text-text-secondary transition-colors">
               <ChevronRight className="h-5 w-5" />
             </button>
           </div>
@@ -92,11 +92,12 @@ export function CalendarGrid() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
             <input 
               type="text" 
+              aria-label="Search events"
               placeholder="Search..." 
               className="h-8 w-48 rounded-full bg-bg-overlay border-none pl-9 pr-3 text-[13px] outline-none focus:ring-1 focus:ring-accent-blue transition-shadow text-text-primary placeholder:text-text-muted"
             />
           </div>
-          <button className="p-2 rounded hover:bg-bg-overlay text-text-secondary transition-colors ml-2">
+          <button type="button" aria-label="Settings" className="p-2 rounded hover:bg-bg-overlay text-text-secondary transition-colors ml-2">
             <Settings className="h-4 w-4" />
           </button>
         </div>
