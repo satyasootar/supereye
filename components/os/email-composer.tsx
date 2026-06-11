@@ -1,7 +1,7 @@
 import { useState, KeyboardEvent } from 'react';
 import { 
   CornerUpLeft, X, MoreHorizontal, ChevronDown,
-  Wand2, Paperclip, Calendar as CalendarIcon, Trash2, CodeXml
+  Sparkles, Paperclip, Calendar as CalendarIcon, Trash2, Code
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -41,13 +41,13 @@ function RecipientInput({
   return (
     <div className="flex items-center gap-2 flex-wrap flex-1">
       {recipients.map((recipient, idx) => (
-        <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#333333] text-[14px] text-white">
+        <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-bg-overlay text-[14px] text-text-primary border border-border-subtle">
           <span>{recipient}</span>
           <button 
             type="button"
             aria-label="Remove recipient"
             onClick={() => removeRecipient(idx)}
-            className="text-[#9CA3AF] hover:text-white transition-colors"
+            className="text-text-muted hover:text-text-primary transition-colors"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -60,7 +60,7 @@ function RecipientInput({
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={recipients.length === 0 ? placeholder : ""}
-        className="flex-1 min-w-[120px] bg-transparent text-[14px] text-white placeholder:text-[#6b7280] outline-none"
+        className="flex-1 min-w-[120px] bg-transparent text-[14px] text-text-primary placeholder:text-text-muted outline-none"
       />
     </div>
   );
@@ -73,12 +73,12 @@ export function EmailComposer({ onClose, defaultTo }: EmailComposerProps) {
   const [bccRecipients, setBccRecipients] = useState<string[]>([]);
 
   return (
-    <div className="flex flex-col rounded-2xl bg-[#282828] text-white shadow-2xl overflow-hidden mt-4 mb-8">
+    <div className="flex flex-col rounded-2xl bg-bg-elevated border border-border-subtle text-text-primary shadow-lg overflow-hidden mt-4 mb-8">
       
       {/* Top Bar */}
       <div className="flex items-start justify-between px-6 py-5 min-h-[64px]">
         <div className="flex items-start gap-4 flex-1 mt-1">
-          <button type="button" aria-label="Go back" className="text-[#9CA3AF] hover:text-white transition-colors flex-shrink-0 mt-1.5">
+          <button type="button" aria-label="Go back" className="text-text-muted hover:text-text-primary transition-colors flex-shrink-0 mt-1.5">
             <CornerUpLeft className="h-5 w-5" />
           </button>
           
@@ -89,15 +89,15 @@ export function EmailComposer({ onClose, defaultTo }: EmailComposerProps) {
           />
         </div>
         
-        <div className="flex items-center gap-5 text-[14px] text-[#9CA3AF] flex-shrink-0 ml-4 mt-2">
+        <div className="flex items-center gap-5 text-[14px] text-text-muted flex-shrink-0 ml-4 mt-2">
           <button 
             type="button"
             onClick={() => setShowCcBcc(!showCcBcc)}
-            className="hover:text-white transition-colors font-medium"
+            className="hover:text-text-primary transition-colors font-medium"
           >
             Cc / Bcc
           </button>
-          <button type="button" aria-label="More options" className="hover:text-white transition-colors">
+          <button type="button" aria-label="More options" className="hover:text-text-primary transition-colors">
             <MoreHorizontal className="h-5 w-5" />
           </button>
         </div>
@@ -107,7 +107,7 @@ export function EmailComposer({ onClose, defaultTo }: EmailComposerProps) {
       {showCcBcc && (
         <div className="flex flex-col px-6 pb-2">
           <div className="flex items-center gap-4 py-2 min-h-[40px]">
-            <span className="text-[14px] text-[#9CA3AF] w-8 flex-shrink-0 font-medium">Cc</span>
+            <span className="text-[14px] text-text-muted w-8 flex-shrink-0 font-medium">Cc</span>
             <RecipientInput 
               recipients={ccRecipients} 
               onChange={setCcRecipients} 
@@ -115,7 +115,7 @@ export function EmailComposer({ onClose, defaultTo }: EmailComposerProps) {
             />
           </div>
           <div className="flex items-center gap-4 py-2 min-h-[40px]">
-            <span className="text-[14px] text-[#9CA3AF] w-8 flex-shrink-0 font-medium">Bcc</span>
+            <span className="text-[14px] text-text-muted w-8 flex-shrink-0 font-medium">Bcc</span>
             <RecipientInput 
               recipients={bccRecipients} 
               onChange={setBccRecipients} 
@@ -131,40 +131,40 @@ export function EmailComposer({ onClose, defaultTo }: EmailComposerProps) {
           aria-label="Email body"
           autoFocus
           placeholder='Write, or press "space" for AI, "/" for commands...'
-          className="w-full min-h-[250px] bg-transparent resize-none outline-none text-[15px] text-white placeholder:text-[#6A7382] leading-relaxed"
+          className="w-full min-h-[250px] bg-transparent resize-none outline-none text-[15px] text-text-primary placeholder:text-text-muted leading-relaxed"
         />
       </div>
 
       {/* Bottom Toolbar */}
       <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center shadow-sm rounded-lg overflow-hidden">
-          <button type="button" className="flex items-center gap-2 px-6 py-2 bg-[#3B82F6] hover:bg-[#2563EB] text-white text-[15px] font-medium transition-colors">
+        <div className="flex items-stretch shadow-sm rounded-lg overflow-hidden">
+          <button type="button" className="flex items-center gap-2 px-6 py-2 bg-accent-blue hover:bg-accent-blue-dim text-white text-[15px] font-medium transition-colors">
             Send
           </button>
-          <div className="w-[1px] bg-white/20 h-full"></div>
-          <button type="button" aria-label="Send options" className="flex items-center justify-center px-3 py-2 bg-[#3B82F6] hover:bg-[#2563EB] text-white transition-colors">
+          <div className="w-[1px] bg-white/20"></div>
+          <button type="button" aria-label="Send options" className="flex items-center justify-center px-3 py-2 bg-accent-blue hover:bg-accent-blue-dim text-white transition-colors">
             <ChevronDown className="h-5 w-5" />
           </button>
         </div>
         
-        <div className="flex items-center gap-4 text-[#9CA3AF]">
-          <button type="button" aria-label="AI Assistant" className="hover:text-white transition-colors">
-            <Wand2 className="h-5 w-5" />
+        <div className="flex items-center gap-4 text-text-muted">
+          <button type="button" aria-label="AI Assistant" className="hover:text-text-primary transition-colors">
+            <Sparkles className="h-5 w-5" />
           </button>
-          <button type="button" aria-label="Attach file" className="hover:text-white transition-colors">
+          <button type="button" aria-label="Attach file" className="hover:text-text-primary transition-colors">
             <Paperclip className="h-5 w-5" />
           </button>
-          <button type="button" aria-label="Insert code" className="hover:text-white transition-colors font-mono text-lg font-bold tracking-tighter relative -top-[1px]">
-            &lt;&gt;
+          <button type="button" aria-label="Insert code" className="hover:text-text-primary transition-colors">
+            <Code className="h-5 w-5" />
           </button>
-          <button type="button" aria-label="Insert calendar event" className="hover:text-white transition-colors">
+          <button type="button" aria-label="Insert calendar event" className="hover:text-text-primary transition-colors">
             <CalendarIcon className="h-5 w-5" />
           </button>
           <button 
             type="button"
             aria-label="Discard draft"
             onClick={onClose}
-            className="hover:text-white transition-colors ml-2"
+            className="hover:text-text-primary transition-colors ml-2"
           >
             <Trash2 className="h-5 w-5" />
           </button>
