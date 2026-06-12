@@ -63,6 +63,7 @@ export function EmailReader() {
   }
 
   const email = data;
+  const cleanFromName = email.fromName ? email.fromName.replace(/<[^>]+>/g, '').replace(/"/g, '').trim() : email.fromAddress;
 
   return (
     <div className="flex h-full flex-1 flex-col bg-bg-app overflow-hidden min-w-[400px]">
@@ -112,16 +113,16 @@ export function EmailReader() {
         <div className="max-w-[700px] mx-auto flex flex-col gap-6">
           
           {/* Email Message Bubble */}
-          <div className="flex flex-col rounded-xl bg-bg-surface border border-border-default overflow-hidden">
+          <div className="flex flex-col">
             {/* Message Header */}
-            <div className="flex items-start justify-between px-5 py-4 border-b border-border-subtle bg-bg-base/50">
+            <div className="flex items-start justify-between py-4 border-b border-border-subtle">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-bg-elevated border border-border-strong text-text-primary font-bold text-[14px]">
                   {email.fromName ? email.fromName.charAt(0).toUpperCase() : email.fromAddress.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
-                    <span className="text-[14px] font-semibold text-text-primary">{email.fromName || email.fromAddress}</span>
+                    <span className="text-[14px] font-semibold text-text-primary">{cleanFromName || email.fromAddress}</span>
                     <span className="text-[12px] text-text-secondary">&lt;{email.fromAddress}&gt;</span>
                   </div>
                   <span className="text-[12.5px] text-text-secondary">
@@ -148,11 +149,11 @@ export function EmailReader() {
             </div>
             
             {/* Message Body */}
-            <div className="px-5 py-6 text-[14px] leading-[1.6] text-text-primary font-sans bg-bg-base">
+            <div className="py-6 text-[14px] leading-[1.6] text-text-primary font-sans">
               {email.body ? (
                 <div dangerouslySetInnerHTML={{ __html: email.body }} className="prose prose-sm dark:prose-invert max-w-none" />
               ) : (
-                <p>{email.snippet}</p>
+                <p dangerouslySetInnerHTML={{ __html: email.snippet }} />
               )}
             </div>
           </div>

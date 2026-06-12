@@ -143,24 +143,7 @@ export function EmailSidebar() {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Bottom Actions */}
-      <div className="flex flex-col gap-1 p-3 border-t border-border-subtle text-[12.5px] text-text-secondary">
-        <button className="flex items-center gap-2 hover:text-text-primary transition-colors py-1">
-          <Settings className="h-4 w-4" />
-          Settings
-        </button>
-        <button className="flex items-center gap-2 hover:text-text-primary transition-colors py-1">
-          <HelpCircle className="h-4 w-4" />
-          Help & Shortcuts
-        </button>
-        <button className="flex items-center justify-between gap-2 hover:text-text-primary transition-colors py-1 mt-2">
-          <div className="flex items-center gap-2">
-            <HardDrive className="h-4 w-4" />
-            Storage
-          </div>
-          <span className="text-[10px] text-text-muted">8.2 / 15 GB</span>
-        </button>
-      </div>
+
     </div>
   );
 }
