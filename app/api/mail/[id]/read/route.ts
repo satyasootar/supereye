@@ -19,8 +19,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const t = corsair.withTenant(userId) as any;
 
     await t.gmail.api.messages.modify({
+      userId: 'me',
       id: messageId,
-      removeLabelIds: ['UNREAD']
+      requestBody: {
+        removeLabelIds: ['UNREAD']
+      }
     });
 
     await db.update(emails)
