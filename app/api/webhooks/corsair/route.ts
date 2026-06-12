@@ -22,7 +22,27 @@ export async function POST(req: Request) {
       // Ignore parse error
     }
     
-    const userId = queryTenantId || payload.tenant_id || payload.userId;
+    let userId = queryTenantId || payload.tenant_id || payload.userId;
+
+    // If it's a Gmail Pub/Sub push, we can extract the email address from message.data
+    if (!userId && payload.message && payload.message.data) {
+      try {
+        const decoded = Buffer.from(payload.message.data, 'base64').toString('utf8');
+        const data = JSON.parse(decoded);
+        if (data.emailAddress) {
+          // Look up user by email
+          const { db } = await import('@/lib/db');
+          const { users } = await import('@/lib/db/schema');
+          const { eq } = await import('drizzle-orm');
+          const userRecords = await db.select().from(users).where(eq(users.email, data.emailAddress)).limit(1);
+          if (userRecords.length > 0) {
+            userId = userRecords[0].id;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse Gmail Pub/Sub data:', e);
+      }
+    }
 
     if (!userId) {
       console.error('[Webhook] Missing tenant_id/userId in payload or query params', payload);

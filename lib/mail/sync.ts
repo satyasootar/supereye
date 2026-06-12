@@ -3,6 +3,29 @@ import { emails, syncState } from '@/lib/db/schema';
 import { sql } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
 
+function getBody(payload: any): string {
+  if (!payload) return '';
+  let body = '';
+  
+  if (payload.body && payload.body.data) {
+    body = Buffer.from(payload.body.data, 'base64url').toString('utf8');
+  } else if (payload.parts) {
+    let plain = '';
+    for (const part of payload.parts) {
+      if (part.mimeType === 'text/html' && part.body && part.body.data) {
+        return Buffer.from(part.body.data, 'base64url').toString('utf8');
+      } else if (part.mimeType === 'text/plain' && part.body && part.body.data) {
+        plain = Buffer.from(part.body.data, 'base64url').toString('utf8');
+      } else if (part.parts) {
+        const nested = getBody(part);
+        if (nested) return nested;
+      }
+    }
+    return plain;
+  }
+  return body;
+}
+
 export async function syncGmailForUser(userId: string) {
   try {
     const { corsair } = await import('@/lib/corsair');
@@ -31,10 +54,11 @@ export async function syncGmailForUser(userId: string) {
 
     for (const msg of messageIds) {
       try {
-        const m = await t.gmail.api.messages.get({ id: msg.id, format: 'metadata' });
+        const m = await t.gmail.api.messages.get({ id: msg.id, format: 'full' });
         const headers = m.payload?.headers || [];
         const subject = headers.find((h: any) => h.name?.toLowerCase() === 'subject')?.value || '';
         const sender = headers.find((h: any) => h.name?.toLowerCase() === 'from')?.value || '';
+        const bodyStr = getBody(m.payload);
         
         toInsert.push({
           userId,
@@ -43,6 +67,7 @@ export async function syncGmailForUser(userId: string) {
           fromAddress: sender,
           subject,
           snippet: m.snippet,
+          body: bodyStr,
           internalDate: new Date(parseInt(m.internalDate || '0')),
           isRead: !m.labelIds?.includes('UNREAD'),
           isStarred: m.labelIds?.includes('STARRED'),
@@ -60,6 +85,7 @@ export async function syncGmailForUser(userId: string) {
           isRead: sql`excluded.is_read`,
           isStarred: sql`excluded.is_starred`,
           snippet: sql`excluded.snippet`,
+          body: sql`excluded.body`,
         }
       });
       

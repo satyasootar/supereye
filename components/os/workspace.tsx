@@ -7,9 +7,11 @@ import { EmailPane } from './email-pane';
 import { CalendarPane } from './calendar-pane';
 import { ChatPane } from './chat-pane';
 import { useGlobalShortcuts } from '@/hooks/use-global-shortcuts';
+import { useSSE } from '@/hooks/use-sse';
 
 export function Workspace() {
   useGlobalShortcuts();
+  useSSE();
   const { activeTabs, splitRatio, setSplitRatio } = useAppStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
