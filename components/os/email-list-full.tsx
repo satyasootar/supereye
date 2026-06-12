@@ -37,7 +37,7 @@ const CATEGORY_TABS: { id: FilterCategory; label: string }[] = [
 export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [category, setCategory] = useState<FilterCategory>('ALL');
-  const { setSelectedEmailId } = useAppStore();
+  const setSelectedEmailId = useAppStore(state => state.setSelectedEmailId);
   
   const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['emails', 'threads', category],
@@ -97,6 +97,14 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   });
 
   const emailsToMap = emails;
+
+  useEffect(() => {
+    const newIds = emailsToMap.map(e => e.id);
+    const currentIds = useAppStore.getState().currentEmailIds;
+    if (newIds.length !== currentIds.length || newIds.some((id, i) => id !== currentIds[i])) {
+      useAppStore.getState().setCurrentEmailIds(newIds);
+    }
+  }, [emailsToMap]);
 
   const toggleSelectAll = () => {
     if (selectedIds.length === emails.length && emails.length > 0) {
@@ -276,7 +284,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                     align="center" 
                     side="bottom"
                     sideOffset={-20}
-                    className="w-[380px] p-0 bg-bg-elevated border-border-subtle shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95"
+                    className="w-[380px] p-0 bg-bg-elevated border border-white/5 shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95"
                   >
                     <div className="p-5 max-h-[280px] overflow-hidden flex flex-col gap-3">
                       <div className="flex items-center gap-3 border-b border-border-subtle pb-3">
@@ -290,12 +298,17 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                           <span className="text-[12px] text-text-muted truncate">{email.sender.split('<')[0].trim()}</span>
                         </div>
                       </div>
-                      <div className="relative w-full h-[200px] bg-transparent rounded-md overflow-hidden pointer-events-none mt-2">
+                      <div className="relative w-full h-[200px] bg-bg-elevated rounded-md overflow-hidden pointer-events-none mt-2">
                         {email.body ? (
                           <div className="absolute top-0 left-0 w-[800px] h-[470px] origin-top-left" style={{ transform: 'scale(0.425)' }}>
                             <iframe 
-                              srcDoc={`<style>body, html { background-color: transparent !important; color: #F2F4F7 !important; font-family: sans-serif; } * { color: inherit !important; background-color: transparent !important; }</style>${email.body}`} 
-                              className="w-full h-full border-none"
+                              srcDoc={`<style>
+                                :root { color-scheme: dark; }
+                                body, html { background-color: #14151A !important; color: #F2F4F7 !important; font-family: sans-serif; margin: 0; padding: 0; } 
+                                * { background-color: #14151A !important; color: #F2F4F7 !important; border-color: #2A2D35 !important; }
+                                img { background-color: transparent !important; }
+                              </style>${email.body}`} 
+                              className="w-full h-full border-none bg-transparent"
                               sandbox=""
                               scrolling="no"
                             />

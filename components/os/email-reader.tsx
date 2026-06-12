@@ -4,7 +4,8 @@ import {
   ArrowLeft, Archive, Trash2, MoreVertical, Sparkles, 
   CornerUpLeft, CornerUpRight, Reply, Forward, Download,
   Bold, Italic, Underline, Link, List, Quote, Code, Heading,
-  Paperclip, Calendar as CalendarIcon, Send, X, MailOpen
+  Paperclip, Calendar as CalendarIcon, Send, X, MailOpen,
+  ChevronsRight, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -13,7 +14,9 @@ import { useQuery } from '@tanstack/react-query';
 import { EmailComposer } from './email-composer';
 
 export function EmailReader() {
-  const { selectedEmailId, setSelectedEmailId } = useAppStore();
+  const selectedEmailId = useAppStore(state => state.selectedEmailId);
+  const setSelectedEmailId = useAppStore(state => state.setSelectedEmailId);
+  const currentEmailIds = useAppStore(state => state.currentEmailIds);
   const [showComposer, setShowComposer] = useState(false);
 
   const { data, isLoading, error } = useQuery({
@@ -65,18 +68,48 @@ export function EmailReader() {
   const email = data;
   const cleanFromName = email.fromName ? email.fromName.replace(/<[^>]+>/g, '').replace(/"/g, '').trim() : email.fromAddress;
 
+  const currentIndex = currentEmailIds.indexOf(selectedEmailId);
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex !== -1 && currentIndex < currentEmailIds.length - 1;
+
+  const handlePrev = () => {
+    if (hasPrev) setSelectedEmailId(currentEmailIds[currentIndex - 1]);
+  };
+
+  const handleNext = () => {
+    if (hasNext) setSelectedEmailId(currentEmailIds[currentIndex + 1]);
+  };
+
   return (
     <div className="flex h-full flex-1 flex-col bg-bg-app overflow-hidden min-w-[400px]">
       {/* Thread Header */}
       <div className="flex flex-col border-b border-border-subtle bg-bg-base px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
-          <button 
-            onClick={() => setSelectedEmailId(null)}
-            className="flex items-center gap-1.5 text-text-secondary hover:text-text-primary text-[13px] font-medium transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back</span>
-          </button>
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => setSelectedEmailId(null)}
+              className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors"
+              title="Close pane"
+            >
+              <ChevronsRight className="h-5 w-5" />
+            </button>
+            <button 
+              onClick={handlePrev}
+              disabled={!hasPrev}
+              className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors disabled:opacity-30 disabled:pointer-events-none"
+              title="Previous email"
+            >
+              <ChevronUp className="h-5 w-5" />
+            </button>
+            <button 
+              onClick={handleNext}
+              disabled={!hasNext}
+              className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors disabled:opacity-30 disabled:pointer-events-none"
+              title="Next email"
+            >
+              <ChevronDown className="h-5 w-5" />
+            </button>
+          </div>
           
           <div className="flex items-center gap-2">
             <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-text-secondary hover:bg-bg-overlay hover:text-text-primary text-[13px] font-medium transition-colors border border-border-subtle">
@@ -151,30 +184,15 @@ export function EmailReader() {
             {/* Message Body */}
             <div className="py-6 text-[14px] leading-[1.6] text-text-primary font-sans h-full min-h-[500px]">
               {email.body ? (
-                <iframe 
-                  srcDoc={`
-                    <html>
-                      <head>
-                        <style>
-                          body {
-                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                            line-height: 1.6;
-                            word-wrap: break-word;
-                            color: #F2F4F7; /* Match dark mode text */
-                            background: transparent;
-                            margin: 0;
-                            padding: 0;
-                          }
-                          /* Ensure links are visible */
-                          a { color: #3b82f6; }
-                          /* Handle dark mode text in nested elements */
-                          * { color: inherit !important; }
-                        </style>
-                      </head>
-                      <body>${email.body}</body>
-                    </html>
-                  `}
-                  className="w-full h-full min-h-[800px] border-none bg-transparent"
+                            <iframe 
+                              srcDoc={`<style>
+                                :root { color-scheme: dark; }
+                                body, html { background-color: #0D0E12 !important; color: #F2F4F7 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; word-wrap: break-word; margin: 0; padding: 0; } 
+                                * { background-color: #0D0E12 !important; color: #F2F4F7 !important; border-color: #2A2D35 !important; }
+                                a { color: #3b82f6 !important; }
+                                img { background-color: transparent !important; }
+                              </style>${email.body}`} 
+                              className="w-full h-full min-h-[800px] border-none bg-transparent"
                   sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
                 />
               ) : (
