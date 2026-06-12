@@ -149,9 +149,34 @@ export function EmailReader() {
             </div>
             
             {/* Message Body */}
-            <div className="py-6 text-[14px] leading-[1.6] text-text-primary font-sans">
+            <div className="py-6 text-[14px] leading-[1.6] text-text-primary font-sans h-full min-h-[500px]">
               {email.body ? (
-                <div dangerouslySetInnerHTML={{ __html: email.body }} className="prose prose-sm dark:prose-invert max-w-none" />
+                <iframe 
+                  srcDoc={`
+                    <html>
+                      <head>
+                        <style>
+                          body {
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                            line-height: 1.6;
+                            word-wrap: break-word;
+                            color: #F2F4F7; /* Match dark mode text */
+                            background: transparent;
+                            margin: 0;
+                            padding: 0;
+                          }
+                          /* Ensure links are visible */
+                          a { color: #3b82f6; }
+                          /* Handle dark mode text in nested elements */
+                          * { color: inherit !important; }
+                        </style>
+                      </head>
+                      <body>${email.body}</body>
+                    </html>
+                  `}
+                  className="w-full h-full min-h-[800px] border-none bg-transparent"
+                  sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
+                />
               ) : (
                 <p dangerouslySetInnerHTML={{ __html: email.snippet }} />
               )}

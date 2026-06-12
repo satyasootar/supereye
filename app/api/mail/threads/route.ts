@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { emails, emailEventLinks } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -13,15 +13,31 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
+  const category = searchParams.get('category') || 'INBOX';
 
   try {
-    const cachedEmails = await db.select({
+    let baseQuery = db.select({
       email: emails,
       linkId: emailEventLinks.id
     })
       .from(emails)
-      .leftJoin(emailEventLinks, eq(emails.id, emailEventLinks.emailId))
-      .where(eq(emails.userId, session.user.id))
+      .leftJoin(emailEventLinks, eq(emails.id, emailEventLinks.emailId));
+
+    if (category === 'ALL') {
+      baseQuery = baseQuery.where(eq(emails.userId, session.user.id)) as any;
+    } else if (category === 'INBOX') {
+      const categoryFilter = JSON.stringify([category]);
+      baseQuery = baseQuery.where(
+        sql`${emails.userId} = ${session.user.id} AND (${emails.labelIds} @> ${categoryFilter}::jsonb OR ${emails.labelIds} IS NULL)`
+      ) as any;
+    } else {
+      const categoryFilter = JSON.stringify([category]);
+      baseQuery = baseQuery.where(
+        sql`${emails.userId} = ${session.user.id} AND ${emails.labelIds} @> ${categoryFilter}::jsonb`
+      ) as any;
+    }
+
+    const cachedEmails = await baseQuery
       .orderBy(desc(emails.internalDate))
       .limit(20)
       .offset(offset);

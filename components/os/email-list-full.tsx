@@ -24,14 +24,25 @@ type EmailMessage = {
   date: string; // ISO Date String
 };
 
+export type FilterCategory = 'INBOX' | 'CATEGORY_PROMOTIONS' | 'CATEGORY_SOCIAL' | 'CATEGORY_UPDATES' | 'ALL';
+
+const CATEGORY_TABS: { id: FilterCategory; label: string }[] = [
+  { id: 'ALL', label: 'All Mail' },
+  { id: 'INBOX', label: 'Primary' },
+  { id: 'CATEGORY_PROMOTIONS', label: 'Promotions' },
+  { id: 'CATEGORY_SOCIAL', label: 'Social' },
+  { id: 'CATEGORY_UPDATES', label: 'Updates' },
+];
+
 export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [category, setCategory] = useState<FilterCategory>('ALL');
   const { setSelectedEmailId } = useAppStore();
   
   const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['emails', 'threads'],
+    queryKey: ['emails', 'threads', category],
     queryFn: async ({ pageParam = 0 }) => {
-      const res = await fetch(`/api/mail/threads?offset=${pageParam}`);
+      const res = await fetch(`/api/mail/threads?offset=${pageParam}&category=${category}`);
       if (!res.ok) throw new Error('Failed to fetch emails');
       const json = await res.json();
       return (json.messages || []) as EmailMessage[];
@@ -169,7 +180,27 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
         </button>
       </div>
 
-      {/* Main Table */}
+      {/* Categories Toolbar */}
+      <div className="flex-none px-4 py-2 border-b border-border-subtle bg-bg-surface/50 overflow-x-auto hide-scrollbar">
+        <div className="flex items-center gap-2">
+          {CATEGORY_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setCategory(tab.id)}
+              className={cn(
+                "px-3 py-1.5 text-[13px] font-medium rounded-full whitespace-nowrap transition-colors",
+                category === tab.id 
+                  ? "bg-accent-blue/10 text-accent-blue" 
+                  : "text-text-muted hover:text-text-primary hover:bg-bg-elevated"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Email List Content */}
       <div className="flex-1 overflow-y-auto no-scrollbar px-6 py-4">
         {isLoading ? (
           <div className="p-8 text-center text-text-muted">Loading emails...</div>
@@ -198,22 +229,9 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                     >
                       {/* Left Controls & Sender */}
                       <div className={cn("flex items-center gap-3 flex-shrink-0", isSplitView ? "w-[140px]" : "w-[240px]")}>
-                        <div className="flex items-center gap-2 w-12">
+                        <div className="flex items-center gap-2 w-6">
                           <div className="flex h-5 w-5 items-center justify-center">
-                            {isChecked ? (
-                              <CheckSquare 
-                                className="h-4 w-4 text-accent-blue" 
-                                onClick={(e) => { e.stopPropagation(); toggleSelect(email.id); }} 
-                              />
-                            ) : (
-                              <>
-                                <div className={cn("h-1.5 w-1.5 rounded-full group-hover:hidden", !email.isRead ? "bg-accent-blue" : "bg-transparent")} />
-                                <Square 
-                                  className="h-4 w-4 text-text-muted hidden group-hover:block hover:text-text-primary" 
-                                  onClick={(e) => { e.stopPropagation(); toggleSelect(email.id); }} 
-                                />
-                              </>
-                            )}
+                            <div className={cn("h-1.5 w-1.5 rounded-full", !email.isRead ? "bg-accent-blue" : "bg-transparent")} />
                           </div>
                         </div>
                         <span className={cn("truncate text-[14px]", !email.isRead ? "font-semibold text-text-primary" : "text-text-secondary font-medium")}>

@@ -71,6 +71,7 @@ export async function syncGmailForUser(userId: string) {
           internalDate: new Date(parseInt(m.internalDate || '0')),
           isRead: !m.labelIds?.includes('UNREAD'),
           isStarred: m.labelIds?.includes('STARRED'),
+          labelIds: m.labelIds || [],
           historyId: m.historyId
         });
       } catch (err) {
@@ -91,6 +92,7 @@ export async function syncGmailForUser(userId: string) {
           isStarred: sql`excluded.is_starred`,
           snippet: sql`excluded.snippet`,
           body: sql`excluded.body`,
+          labelIds: sql`excluded.label_ids`,
         }
       });
       
