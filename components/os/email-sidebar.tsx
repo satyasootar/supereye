@@ -15,13 +15,6 @@ const primaryNav = [
   { icon: Trash2, label: 'Trash' },
 ];
 
-const labels = [
-  { color: 'bg-blue-500', label: 'Updates', count: '99+' },
-  { color: 'bg-green-500', label: 'Daily UI', count: '7' },
-  { color: 'bg-purple-500', label: 'Social', count: '99+' },
-  { color: 'bg-yellow-500', label: 'Promotions', count: '99+' },
-  { color: 'bg-gray-500', label: 'GitHub', count: '99+' },
-];
 
 import { useAppStore } from '@/lib/store/app-store';
 
@@ -30,7 +23,6 @@ export function EmailSidebar() {
   const { activeTabs } = useAppStore();
   const isSplit = activeTabs.length > 1;
 
-  const [labelsExpanded, setLabelsExpanded] = useState(true);
   const [viewsExpanded, setViewsExpanded] = useState(true);
   const [triageExpanded, setTriageExpanded] = useState(false);
 
@@ -60,20 +52,7 @@ export function EmailSidebar() {
 
   return (
     <div className="flex h-full w-[220px] flex-col border-r border-border-subtle bg-bg-surface text-text-primary overflow-y-auto custom-scrollbar">
-      {/* Account Header */}
-      <div className="flex h-12 flex-shrink-0 items-center justify-between px-3 hover:bg-bg-overlay cursor-pointer transition-colors">
-        <div className="flex items-center gap-2 overflow-hidden">
-          {session?.user?.image ? (
-             <img src={session.user.image} alt="User" className="h-6 w-6 rounded-full" />
-          ) : (
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-              {session?.user?.name?.charAt(0) || '?'}
-            </div>
-          )}
-          <span className="truncate text-[13.5px] font-medium">{session?.user?.email || 'Account'}</span>
-        </div>
-        <ChevronDown className="h-4 w-4 text-text-secondary flex-shrink-0" />
-      </div>
+
 
       <div className="px-3 py-2">
         {/* Compose Button */}
@@ -112,33 +91,7 @@ export function EmailSidebar() {
         ))}
       </nav>
 
-      {/* Labels */}
-      <div className="mt-4 px-2">
-        <button 
-          onClick={() => setLabelsExpanded(!labelsExpanded)}
-          className="flex w-full items-center justify-between px-3 py-1.5 text-[12px] font-semibold text-text-secondary hover:text-text-primary uppercase tracking-wider group"
-        >
-          <div className="flex items-center gap-1">
-            <ChevronDown className={cn("h-3 w-3 transition-transform", !labelsExpanded && "-rotate-90")} />
-            Labels
-          </div>
-          <Plus className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-        </button>
-        
-        {labelsExpanded && (
-          <div className="mt-1 flex flex-col gap-0.5">
-            {labels.map((label) => (
-              <button key={label.label} className="flex items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-text-secondary hover:bg-bg-overlay hover:text-text-primary">
-                <div className="flex items-center gap-3">
-                  <div className={cn("h-2.5 w-2.5 rounded-full", label.color)} />
-                  {label.label}
-                </div>
-                {label.count && <span className="text-[11px] text-text-muted">{label.count}</span>}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+
 
       {/* Spacer */}
       <div className="flex-1" />

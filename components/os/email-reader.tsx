@@ -162,10 +162,6 @@ export function EmailReader() {
                   <h1 className="font-heading text-[22px] font-semibold text-text-primary mb-3">
                     {email.subject || '(No Subject)'}
                   </h1>
-                  <div className="flex items-center gap-4">
-                    <button className="text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors">Add label</button>
-                    <button className="text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors">Add category</button>
-                  </div>
                 </div>
               </div>
             </motion.div>

@@ -6,7 +6,7 @@ import {
   Plus, Settings, SlidersHorizontal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isYesterday, isThisYear } from 'date-fns';
@@ -42,6 +42,29 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   
+  const [hoveredEmail, setHoveredEmail] = useState<EmailMessage | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = (e: React.MouseEvent, email: EmailMessage) => {
+    if (isSplitView) return;
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    setMousePos({ x: e.clientX, y: e.clientY });
+    hoverTimeout.current = setTimeout(() => {
+      setHoveredEmail(email);
+    }, 400);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isSplitView) return;
+    setMousePos({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    setHoveredEmail(null);
+  };
+  
   const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['emails', 'threads', category],
     queryFn: async ({ pageParam = 0 }) => {
@@ -57,24 +80,19 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   });
 
   const emails = data?.pages.flat() || [];
-  const observerTarget = useRef<HTMLDivElement>(null);
+  const observer = useRef<IntersectionObserver | null>(null);
+  const observerTarget = useCallback((node: HTMLDivElement | null) => {
+    if (isLoading || isFetchingNextPage) return;
+    if (observer.current) observer.current.disconnect();
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 0.1 }
-    );
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasNextPage) {
+        fetchNextPage();
+      }
+    }, { threshold: 0.1 });
 
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+    if (node) observer.current.observe(node);
+  }, [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]);
 
   const queryClient = useQueryClient();
 
@@ -86,16 +104,21 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['emails', 'threads'] });
-      const previous = queryClient.getQueryData(['emails', 'threads']);
       
-      queryClient.setQueryData(['emails', 'threads'], (old: any) => {
-        if (!old) return old;
-        return old.map((m: EmailMessage) => m.id === id ? { ...m, isRead: true } : m);
+      queryClient.setQueriesData({ queryKey: ['emails', 'threads'] }, (old: any) => {
+        if (!old || !old.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: EmailMessage[]) => 
+            page.map((m: EmailMessage) => m.id === id ? { ...m, isRead: true } : m)
+          )
+        };
       });
-      return { previous };
+      return { id };
     },
     onError: (err, variables, context) => {
-      queryClient.setQueryData(['emails', 'threads'], context?.previous);
+      // For simplicity, just invalidate on error
+      queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });
     },
   });
 
@@ -224,15 +247,17 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
             {emailsToMap.map(email => {
               const isChecked = selectedIds.includes(email.id);
               return (
-                <HoverCard key={email.id} openDelay={400} closeDelay={100}>
-                  <HoverCardTrigger asChild>
                     <div 
+                      key={email.id}
                       onClick={() => {
                         setSelectedEmailId(email.id);
                         if (!email.isRead) {
                           readMutation.mutate(email.id);
                         }
                       }}
+                      onMouseEnter={(e) => handleMouseEnter(e, email)}
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={handleMouseLeave}
                       className={cn(
                         "group relative flex items-center gap-4 px-3 py-2.5 border-b border-border-subtle hover:bg-bg-surface/50 transition-colors cursor-pointer rounded-md",
                         !email.isRead && "bg-bg-surface/20"
@@ -282,49 +307,6 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                         )}
                       </div>
                     </div>
-                  </HoverCardTrigger>
-                  <HoverCardContent 
-                    align="center" 
-                    side="bottom"
-                    sideOffset={-20}
-                    className="w-[380px] p-0 bg-bg-elevated border border-white/5 shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95"
-                  >
-                    <div className="p-5 max-h-[280px] overflow-hidden flex flex-col gap-3">
-                      <div className="flex items-center gap-3 border-b border-border-subtle pb-3">
-                        <div className="h-8 w-8 rounded-full bg-accent-blue/10 flex items-center justify-center flex-shrink-0">
-                          <span className="text-accent-blue font-semibold text-[14px]">
-                            {email.sender.split('<')[0].trim().charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="flex flex-col overflow-hidden">
-                          <span className="text-[14px] font-medium text-text-primary truncate">{email.subject || '(No Subject)'}</span>
-                          <span className="text-[12px] text-text-muted truncate">{email.sender.split('<')[0].trim()}</span>
-                        </div>
-                      </div>
-                      <div className="relative w-full h-[200px] bg-bg-elevated rounded-md overflow-hidden pointer-events-none mt-2">
-                        {email.body ? (
-                          <div className="absolute top-0 left-0 w-[800px] h-[470px] origin-top-left" style={{ transform: 'scale(0.425)' }}>
-                            <iframe 
-                              srcDoc={`<style>
-                                :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
-                                body, html { background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; font-family: sans-serif; margin: 0; padding: 0; } 
-                                * { background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; border-color: ${isDark ? '#2A2D35' : '#E2E8F0'} !important; }
-                                img { background-color: transparent !important; }
-                              </style>${email.body}`} 
-                              className="w-full h-full border-none bg-transparent"
-                              sandbox=""
-                              scrolling="no"
-                            />
-                          </div>
-                        ) : (
-                          <div className="text-[13px] text-text-secondary leading-relaxed line-clamp-6 whitespace-pre-wrap p-3">
-                            {email.snippet}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
               );
             })}
               
@@ -338,6 +320,51 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
           </div>
         )}
       </div>
+      
+      {hoveredEmail && !isSplitView && (
+        <div 
+          className="fixed z-[100] w-[380px] p-0 bg-bg-elevated border border-border shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95 pointer-events-none"
+          style={{ 
+            left: mousePos.x + 20, 
+            top: typeof window !== 'undefined' ? Math.min(mousePos.y + 20, window.innerHeight - 300) : mousePos.y + 20
+          }}
+        >
+          <div className="p-5 max-h-[280px] overflow-hidden flex flex-col gap-3">
+            <div className="flex items-center gap-3 border-b border-border-subtle pb-3">
+              <div className="h-8 w-8 rounded-full bg-accent-blue/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-accent-blue font-semibold text-[14px]">
+                  {hoveredEmail.sender.split('<')[0].trim().charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex flex-col overflow-hidden">
+                <span className="text-[14px] font-medium text-text-primary truncate">{hoveredEmail.subject || '(No Subject)'}</span>
+                <span className="text-[12px] text-text-muted truncate">{hoveredEmail.sender.split('<')[0].trim()}</span>
+              </div>
+            </div>
+            <div className="relative w-full h-[200px] bg-bg-elevated rounded-md overflow-hidden pointer-events-none mt-2">
+              {hoveredEmail.body ? (
+                <div className="absolute top-0 left-0 w-[800px] h-[470px] origin-top-left" style={{ transform: 'scale(0.425)' }}>
+                  <iframe 
+                    srcDoc={`<style>
+                      :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
+                      body, html { background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; font-family: sans-serif; margin: 0; padding: 0; } 
+                      * { background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; border-color: ${isDark ? '#2A2D35' : '#E2E8F0'} !important; }
+                      img { background-color: transparent !important; }
+                    </style>${hoveredEmail.body}`} 
+                    className="w-full h-full border-none bg-transparent"
+                    sandbox=""
+                    scrolling="no"
+                  />
+                </div>
+              ) : (
+                <div className="text-[13px] text-text-secondary leading-relaxed line-clamp-6 whitespace-pre-wrap p-3">
+                  {hoveredEmail.snippet}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

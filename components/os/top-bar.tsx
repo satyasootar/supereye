@@ -37,12 +37,12 @@ export function TopBar() {
     <header className="sticky top-0 z-50 flex h-12 w-full items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md">
       {/* Left: Logo */}
       <div className="flex items-center gap-2 w-[200px]">
-        <div className="flex h-7 w-7 items-center justify-center rounded bg-primary/10 text-primary">
+        <div className="flex h-7 w-7 items-center justify-center rounded bg-accent-blue/10 text-accent-blue">
           <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
         </div>
-        <span className="font-heading text-[15px] font-semibold text-foreground">Corsair</span>
+        <span className="font-heading text-[15px] font-semibold text-text-primary">Corsair</span>
       </div>
 
       {/* Center: Tabs */}
@@ -58,8 +58,8 @@ export function TopBar() {
               className={cn(
                 "relative px-4 py-1.5 text-[13.5px] font-medium transition-colors rounded-md select-none flex items-center gap-1.5",
                 isActive 
-                  ? "bg-accent text-foreground" 
-                  : "text-secondary hover:bg-secondary hover:text-foreground"
+                  ? "bg-bg-highlight text-text-primary" 
+                  : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary"
               )}
             >
               {tab.label}
@@ -71,7 +71,7 @@ export function TopBar() {
               )}
               {/* Active Tab Underline Indicator */}
               {isActive && !isSplit && activeTabs.length === 1 && (
-                <div className="absolute bottom-[-10px] left-1/2 h-[2px] w-1/2 -translate-x-1/2 bg-primary rounded-t-full" />
+                <div className="absolute bottom-[-10px] left-1/2 h-[2px] w-1/2 -translate-x-1/2 bg-accent-blue rounded-t-full" />
               )}
             </button>
           );
@@ -80,18 +80,18 @@ export function TopBar() {
 
       {/* Right: Utilities */}
       <div className="flex items-center justify-end gap-3 w-[200px]">
-        <button className="text-secondary hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-secondary" title="Search (⌘K)">
+        <button className="text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-md hover:bg-bg-overlay" title="Search (⌘K)">
           <Search className="h-[18px] w-[18px]" />
         </button>
         <NotificationBell />
         <button 
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="text-secondary hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-secondary" 
+          className="text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-md hover:bg-bg-overlay" 
           title="Toggle Theme"
         >
           {mounted && theme === 'dark' ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
         </button>
-        <button className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-accent-foreground ml-1 border border-border/50 hover:bg-secondary overflow-hidden">
+        <button className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-highlight text-text-primary ml-1 border border-border-subtle hover:bg-bg-overlay overflow-hidden">
           {session?.user?.image ? (
             <img src={session.user.image} alt="User" className="h-full w-full object-cover" />
           ) : (
