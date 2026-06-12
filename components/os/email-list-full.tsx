@@ -6,9 +6,9 @@ import {
   Plus, Settings, SlidersHorizontal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '@/lib/store/app-store';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isYesterday, isThisYear } from 'date-fns';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 
@@ -28,15 +28,39 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { setSelectedEmailId } = useAppStore();
   
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['emails', 'threads'],
-    queryFn: async () => {
-      const res = await fetch('/api/mail/threads');
+    queryFn: async ({ pageParam = 0 }) => {
+      const res = await fetch(`/api/mail/threads?offset=${pageParam}`);
       if (!res.ok) throw new Error('Failed to fetch emails');
       const json = await res.json();
-      return json.messages as EmailMessage[];
+      return (json.messages || []) as EmailMessage[];
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage?.length === 20 ? allPages.length * 20 : undefined;
     }
   });
+
+  const emails = data?.pages.flat() || [];
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const queryClient = useQueryClient();
 
@@ -61,7 +85,15 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     },
   });
 
-  const emails = data || [];
+  const emailsToMap = emails;
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === emails.length && emails.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(emails.map(e => e.id));
+    }
+  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => 
@@ -147,7 +179,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
           <div className="p-8 text-center text-text-muted">No emails found. Please sync your inbox.</div>
         ) : (
           <div className="flex flex-col gap-1 w-full">
-            {emails.map(email => {
+            {emailsToMap.map(email => {
               const isChecked = selectedIds.includes(email.id);
               return (
                 <HoverCard key={email.id} openDelay={400} closeDelay={100}>
@@ -261,6 +293,14 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                 </HoverCard>
               );
             })}
+              
+            {/* Intersection Observer Target */}
+            <div ref={observerTarget} className="h-4 w-full" />
+            {isFetchingNextPage && (
+              <div className="py-4 text-center text-sm text-text-subtle">
+                Loading more emails...
+              </div>
+            )}
           </div>
         )}
       </div>
