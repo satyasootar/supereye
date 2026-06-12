@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { emails } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
+import { getTenant } from '@/lib/corsair';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -15,8 +16,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id: messageId } = await params;
 
   try {
-    const { corsair } = await import('@/lib/corsair');
-    const t = corsair.withTenant(userId) as any;
+    const t = getTenant(userId);
 
     await t.gmail.api.messages.modify({
       id: messageId,

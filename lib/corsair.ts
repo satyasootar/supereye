@@ -27,3 +27,14 @@ export const corsair =
 if (process.env.NODE_ENV !== 'production') {
   globalForCorsair.__supereyeCorsair = corsair;
 }
+
+/**
+ * Get a typed Corsair tenant for a given user.
+ * Use this everywhere instead of `corsair.withTenant(userId) as any`.
+ * As we add more plugins (Slack, Linear, etc.), the return type
+ * automatically expands to include their APIs.
+ */
+export function getTenant(userId: string) {
+  return corsair.withTenant(userId);
+}
+

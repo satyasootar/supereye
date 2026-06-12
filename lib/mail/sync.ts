@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { emails, syncState } from '@/lib/db/schema';
 import { sql } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
+import { getTenant } from '@/lib/corsair';
 
 function getBody(payload: any): string {
   if (!payload) return '';
@@ -28,8 +29,7 @@ function getBody(payload: any): string {
 
 export async function syncGmailForUser(userId: string) {
   try {
-    const { corsair } = await import('@/lib/corsair');
-    const t = corsair.withTenant(userId) as any;
+    const t = getTenant(userId);
 
     // Automatically register/renew the push notification watch
     const topicName = process.env.GMAIL_PUBSUB_TOPIC;

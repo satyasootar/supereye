@@ -1,35 +1,36 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { emails } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
 import { getTenant } from '@/lib/corsair';
 import { handleCorsairError } from '@/lib/corsair-error';
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const userId = session.user.id;
-  const { id: messageId } = await params;
 
   try {
     const body = await req.json();
-    const { replyText, threadId, to, subject } = body;
+    const { to, subject, text } = body;
+
+    if (!to || to.length === 0) {
+      return NextResponse.json({ error: 'Recipient is required' }, { status: 400 });
+    }
 
     const t = getTenant(userId);
 
+    const toHeader = Array.isArray(to) ? to.join(', ') : to;
+
     // Construct raw email
     const emailLines = [
-      `To: ${to}`,
-      `Subject: Re: ${subject.replace(/^Re:\s*/i, '')}`,
-      `In-Reply-To: ${messageId}`,
-      `References: ${messageId}`,
+      `To: ${toHeader}`,
+      `Subject: ${subject || ''}`,
+      'Content-Type: text/plain; charset="UTF-8"',
       '',
-      replyText
+      text || ''
     ];
 
     const raw = Buffer.from(emailLines.join('\n')).toString('base64url');
@@ -37,13 +38,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     await t.gmail.api.messages.send({
       userId: 'me',
       requestBody: {
-        raw,
-        threadId
+        raw
       }
     });
 
-    // We don't necessarily update our local DB immediately with the sent message
-    // because the webhook / sync will catch it, but we can emit a sync request.
     sseEmitter.emit(userId, { type: 'sync:requested' });
 
     return NextResponse.json({ success: true });

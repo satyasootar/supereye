@@ -2,11 +2,11 @@ import { db } from '@/lib/db';
 import { calendarEvents, syncState } from '@/lib/db/schema';
 import { sql } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
+import { getTenant } from '@/lib/corsair';
 
 export async function syncCalendarForUser(userId: string) {
   try {
-    const { corsair } = await import('@/lib/corsair');
-    const t = corsair.withTenant(userId) as any;
+    const t = getTenant(userId);
 
     // Automatically register/renew the push notification watch
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://your-localtunnel.loca.lt';

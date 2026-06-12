@@ -7,12 +7,7 @@
  *   - Webhook handler calls: sseEmitter.emit(userId, { type: 'email:new', ... })
  *   - SSE route subscribes: sseEmitter.on(userId, callback)
  */
-
-type SSEEvent = {
-  type: string;
-  data?: Record<string, unknown>;
-  timestamp: string;
-};
+import type { SSEEvent, SSEEventType } from './events';
 
 type Listener = (event: SSEEvent) => void;
 
@@ -42,9 +37,10 @@ class SSEEmitter {
   }
 
   /**
-   * Broadcast an event to all listeners for a specific user.
+   * Broadcast a typed event to all listeners for a specific user.
+   * The `type` parameter is now compile-time checked against SSEEventType.
    */
-  emit(userId: string, event: Omit<SSEEvent, 'timestamp'>) {
+  emit(userId: string, event: { type: SSEEventType; data?: Record<string, unknown> }) {
     const userListeners = this.listeners.get(userId);
     if (userListeners) {
       const fullEvent: SSEEvent = {

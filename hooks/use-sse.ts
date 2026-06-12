@@ -1,64 +1,95 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { SSE_INVALIDATION_MAP } from '@/lib/sse/events';
+import type { SSEEventType } from '@/lib/sse/events';
 
+/**
+ * SSE hook with automatic reconnection and centralized event handling.
+ *
+ * Instead of a growing if/else chain, this hook uses the SSE_INVALIDATION_MAP
+ * to automatically invalidate the right React Query keys when events arrive.
+ * When you add a new integration, just add its event type + query keys to
+ * the map in lib/sse/events.ts — zero changes needed here.
+ */
 export function useSSE() {
   const queryClient = useQueryClient();
+  const retryDelay = useRef(1000);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const eventSource = new EventSource('/api/events/sse');
+    let eventSource: EventSource | null = null;
+    let isMounted = true;
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('SSE message received:', data);
-        
-        if (data.type === 'email:updated') {
-          queryClient.invalidateQueries({ queryKey: ['mail-threads'] });
-          queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });
-        } else if (data.type === 'calendar:updated') {
-          queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-        } else if (data.type === 'notification:new') {
-          import('sonner').then(({ toast }) => {
-            const notif = data.data;
-            if (!notif) return;
-            toast(notif.title as string, {
-              description: notif.body as string,
-              action: {
-                label: 'View',
-                onClick: () => {
-                  if (notif.link) {
-                    window.location.hash = notif.link as string;
+    function connect() {
+      if (!isMounted) return;
+
+      eventSource = new EventSource('/api/events/sse');
+      retryDelay.current = 1000; // Reset on successful connection attempt
+
+      eventSource.onopen = () => {
+        retryDelay.current = 1000; // Reset backoff on successful connect
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const eventType = data.type as SSEEventType;
+
+          // Invalidate all query keys mapped to this event type
+          const queryKeys = SSE_INVALIDATION_MAP[eventType];
+          if (queryKeys) {
+            for (const key of queryKeys) {
+              queryClient.invalidateQueries({ queryKey: key });
+            }
+          }
+
+          // Special handling for toast notifications
+          if (eventType === 'notification:new' && data.data) {
+            import('sonner').then(({ toast }) => {
+              const notif = data.data;
+              if (!notif) return;
+              toast(notif.title as string, {
+                description: notif.body as string,
+                action: {
+                  label: 'View',
+                  onClick: () => {
+                    if (notif.link) {
+                      window.location.hash = notif.link as string;
+                    }
                   }
                 }
-              }
+              });
             });
-          });
-          queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        } else if (data.type === 'sync:requested') {
-          queryClient.invalidateQueries({ queryKey: ['mail-threads'] });
-          queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });
-          queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+          }
+        } catch (e) {
+          console.error('Failed to parse SSE data', e);
         }
-      } catch (e) {
-        console.error('Failed to parse SSE data', e);
-      }
-    };
+      };
 
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error);
-      eventSource.close();
-      
-      // Attempt to reconnect after a delay
-      setTimeout(() => {
-        // useSSE is a hook, so this reconnection strategy is naive.
-        // A full implementation would manage eventSource state, but this works for the hackathon.
-      }, 5000);
-    };
+      eventSource.onerror = () => {
+        eventSource?.close();
+        eventSource = null;
+
+        if (!isMounted) return;
+
+        // Exponential backoff reconnection: 1s → 2s → 4s → ... → 30s max
+        retryTimer.current = setTimeout(() => {
+          connect();
+        }, retryDelay.current);
+        retryDelay.current = Math.min(retryDelay.current * 2, 30000);
+      };
+    }
+
+    connect();
 
     return () => {
-      eventSource.close();
+      isMounted = false;
+      eventSource?.close();
+      if (retryTimer.current) {
+        clearTimeout(retryTimer.current);
+      }
     };
   }, [queryClient]);
 }

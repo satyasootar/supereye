@@ -8,6 +8,7 @@ import { useAppStore } from '@/lib/store/app-store';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 export function GlobalComposer() {
   const { isComposeOpen, setComposeOpen } = useAppStore();
@@ -16,9 +17,11 @@ export function GlobalComposer() {
   const [toRecipients, setToRecipients] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [subject, setSubject] = useState('');
+  const [bodyText, setBodyText] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
   const [showScheduleSend, setShowScheduleSend] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -53,6 +56,42 @@ export function GlobalComposer() {
   };
 
   const suggestions = getSuggestions(inputValue);
+
+  const handleSend = async () => {
+    if (toRecipients.length === 0) {
+      toast.error('Please add at least one recipient');
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const res = await fetch('/api/mail/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: toRecipients,
+          subject,
+          text: bodyText,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to send email');
+      }
+
+      toast.success('Message sent');
+      setComposeOpen(false);
+      setToRecipients([]);
+      setSubject('');
+      setBodyText('');
+      setInputValue('');
+      setIsMinimized(false);
+    } catch (error) {
+      toast.error('Failed to send message');
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (['Enter', ' ', ','].includes(e.key)) {
@@ -193,6 +232,8 @@ export function GlobalComposer() {
           <div className="flex-1 p-4 overflow-y-auto no-scrollbar">
             <textarea 
               placeholder="..."
+              value={bodyText}
+              onChange={(e) => setBodyText(e.target.value)}
               className="w-full h-full min-h-[150px] bg-transparent resize-none outline-none text-[14px] text-text-primary placeholder:text-text-muted no-scrollbar"
             />
           </div>
@@ -201,14 +242,20 @@ export function GlobalComposer() {
           <div className="flex items-center justify-between px-4 py-3 bg-bg-surface border-t border-border-subtle flex-shrink-0">
             <div className="relative">
               <div className="flex items-stretch rounded-md overflow-hidden shadow-sm">
-                <button type="button" className="flex items-center px-5 py-1.5 bg-accent-blue hover:bg-accent-blue-dim text-white text-[14px] font-medium transition-colors">
-                  Send
+                <button 
+                  type="button" 
+                  onClick={handleSend}
+                  disabled={isSending}
+                  className="flex items-center px-5 py-1.5 bg-accent-blue hover:bg-accent-blue-dim text-white text-[14px] font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isSending ? 'Sending...' : 'Send'}
                 </button>
                 <div className="w-[1px] bg-white/20"></div>
                 <button 
                   type="button" 
                   onClick={() => setShowScheduleSend(!showScheduleSend)}
-                  className="flex items-center justify-center px-2 py-1.5 bg-accent-blue hover:bg-accent-blue-dim text-white transition-colors"
+                  disabled={isSending}
+                  className="flex items-center justify-center px-2 py-1.5 bg-accent-blue hover:bg-accent-blue-dim text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </button>
