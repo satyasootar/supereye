@@ -11,6 +11,7 @@ import { useAppStore } from '@/lib/store/app-store';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isYesterday, isThisYear } from 'date-fns';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
+import { useTheme } from 'next-themes';
 
 type EmailMessage = {
   id: string;
@@ -38,6 +39,8 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [category, setCategory] = useState<FilterCategory>('ALL');
   const setSelectedEmailId = useAppStore(state => state.setSelectedEmailId);
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   
   const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['emails', 'threads', category],
@@ -303,9 +306,9 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                           <div className="absolute top-0 left-0 w-[800px] h-[470px] origin-top-left" style={{ transform: 'scale(0.425)' }}>
                             <iframe 
                               srcDoc={`<style>
-                                :root { color-scheme: dark; }
-                                body, html { background-color: #14151A !important; color: #F2F4F7 !important; font-family: sans-serif; margin: 0; padding: 0; } 
-                                * { background-color: #14151A !important; color: #F2F4F7 !important; border-color: #2A2D35 !important; }
+                                :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
+                                body, html { background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; font-family: sans-serif; margin: 0; padding: 0; } 
+                                * { background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; border-color: ${isDark ? '#2A2D35' : '#E2E8F0'} !important; }
                                 img { background-color: transparent !important; }
                               </style>${email.body}`} 
                               className="w-full h-full border-none bg-transparent"
