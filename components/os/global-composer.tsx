@@ -70,7 +70,12 @@ export function GlobalComposer() {
   const suggestions = getSuggestions(inputValue);
 
   const handleSend = async () => {
-    if (toRecipients.length === 0) {
+    const finalTo = [...toRecipients];
+    if (inputValue.trim()) {
+      finalTo.push(inputValue.trim().replace(/,/g, ''));
+    }
+
+    if (finalTo.length === 0) {
       toast.error('Please add at least one recipient');
       return;
     }
@@ -78,7 +83,7 @@ export function GlobalComposer() {
     setIsSending(true);
     try {
       const formData = new FormData();
-      formData.append('to', toRecipients.join(', '));
+      formData.append('to', finalTo.join(', '));
       formData.append('subject', subject);
       formData.append('text', bodyText);
       attachments.forEach(file => {

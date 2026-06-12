@@ -35,8 +35,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
 
     const headers = originalMsg.payload?.headers || [];
-    const rfcMessageId = headers.find(h => h.name?.toLowerCase() === 'message-id')?.value || '';
-    const existingReferences = headers.find(h => h.name?.toLowerCase() === 'references')?.value || '';
+    const rfcMessageId = originalMsg.payload?.headers?.find((h: any) => h.name === 'Message-ID')?.value;
+    const existingReferences = originalMsg.payload?.headers?.find((h: any) => h.name === 'References')?.value || '';
     
     const newReferences = existingReferences 
       ? `${existingReferences} ${rfcMessageId}`.trim()

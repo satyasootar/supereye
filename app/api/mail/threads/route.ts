@@ -42,18 +42,25 @@ export async function GET(req: Request) {
       .limit(20)
       .offset(offset);
 
-    const fullMessages = cachedEmails.map(m => ({
-      id: m.email.googleMessageId,
-      snippet: m.email.snippet,
-      body: m.email.body,
-      subject: m.email.subject,
-      sender: m.email.fromAddress,
-      isRead: m.email.isRead,
-      isStarred: m.email.isStarred,
-      isLinkedToEvent: !!m.linkId,
-      date: m.email.internalDate,
-      toAddresses: m.email.toAddresses
-    }));
+    const uniqueMessagesMap = new Map();
+    for (const m of cachedEmails) {
+      if (!uniqueMessagesMap.has(m.email.googleMessageId)) {
+        uniqueMessagesMap.set(m.email.googleMessageId, {
+          id: m.email.googleMessageId,
+          snippet: m.email.snippet,
+          body: m.email.body,
+          subject: m.email.subject,
+          sender: m.email.fromAddress,
+          isRead: m.email.isRead,
+          isStarred: m.email.isStarred,
+          isLinkedToEvent: !!m.linkId,
+          date: m.email.internalDate,
+          toAddresses: m.email.toAddresses
+        });
+      }
+    }
+
+    const fullMessages = Array.from(uniqueMessagesMap.values());
 
     return NextResponse.json({ messages: fullMessages });
   } catch (error: any) {
