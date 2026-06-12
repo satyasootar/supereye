@@ -8,7 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store/app-store';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isYesterday, isThisYear } from 'date-fns';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 
@@ -35,6 +35,32 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       const json = await res.json();
       return json.messages as EmailMessage[];
     }
+  });
+
+  const queryClient = useQueryClient();
+
+  const readMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/mail/${id}/read`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to mark read');
+      return res.json();
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['emails', 'threads'] });
+      const previous = queryClient.getQueryData(['emails', 'threads']);
+      
+      queryClient.setQueryData(['emails', 'threads'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          messages: old.messages.map((m: EmailMessage) => m.id === id ? { ...m, isRead: true } : m)
+        };
+      });
+      return { previous };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['emails', 'threads'], context?.previous);
+    },
   });
 
   const emails = data || [];
@@ -129,7 +155,12 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                 <HoverCard key={email.id} openDelay={400} closeDelay={100}>
                   <HoverCardTrigger asChild>
                     <div 
-                      onClick={() => setSelectedEmailId(email.id)}
+                      onClick={() => {
+                        setSelectedEmailId(email.id);
+                        if (!email.isRead) {
+                          readMutation.mutate(email.id);
+                        }
+                      }}
                       className={cn(
                         "group relative flex items-center gap-4 px-3 py-2.5 border-b border-border-subtle hover:bg-bg-surface/50 transition-colors cursor-pointer rounded-md",
                         !email.isRead && "bg-bg-surface/20"

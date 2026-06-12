@@ -7,7 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store/app-store';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 type EmailMessage = {
   id: string;
@@ -31,6 +31,32 @@ export function EmailList() {
       const json = await res.json();
       return json.messages as EmailMessage[];
     }
+  });
+
+  const queryClient = useQueryClient();
+
+  const readMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/mail/${id}/read`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to mark read');
+      return res.json();
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['emails', 'threads'] });
+      const previous = queryClient.getQueryData(['emails', 'threads']);
+      
+      queryClient.setQueryData(['emails', 'threads'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          messages: old.messages.map((m: EmailMessage) => m.id === id ? { ...m, isRead: true } : m)
+        };
+      });
+      return { previous };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['emails', 'threads'], context?.previous);
+    },
   });
 
   const emails = data || [];
@@ -87,7 +113,12 @@ export function EmailList() {
               return (
                 <div 
                   key={email.id}
-                  onClick={() => setSelectedEmailId(email.id)}
+                  onClick={() => {
+                    setSelectedEmailId(email.id);
+                    if (!email.isRead) {
+                      readMutation.mutate(email.id);
+                    }
+                  }}
                   className={cn(
                     "group relative flex flex-col gap-1 px-4 py-3 border-b border-border-subtle hover:bg-bg-overlay transition-colors cursor-pointer",
                     isSelected && "bg-bg-highlight border-l-2 border-l-accent-blue pl-[14px]",
