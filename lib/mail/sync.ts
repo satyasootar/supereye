@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
 import { getTenant } from '@/lib/corsair';
 
-function getBody(payload: any): string {
+export function getBody(payload: any): string {
   if (!payload) return '';
   let body = '';
   

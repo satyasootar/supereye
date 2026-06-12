@@ -1,0 +1,158 @@
+import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { emails, emailEventLinks } from '@/lib/db/schema';
+import { eq, desc, ilike, or, sql } from 'drizzle-orm';
+import { getTenant } from '@/lib/corsair';
+import { getBody } from '@/lib/mail/sync';
+
+export async function GET(req: Request) {
+  const session = await auth();
+  
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const q = searchParams.get('q') || '';
+  if (!q.trim()) {
+    return NextResponse.json({ messages: [] });
+  }
+
+  try {
+    const userId = session.user.id;
+    
+    // 1. Local DB Search
+    const searchPattern = `%${q}%`;
+    const localResults = await db.select({
+      email: emails,
+      linkId: emailEventLinks.id
+    })
+    .from(emails)
+    .leftJoin(emailEventLinks, eq(emails.id, emailEventLinks.emailId))
+    .where(
+      sql`${emails.userId} = ${userId} AND (${ilike(emails.subject, searchPattern)} OR ${ilike(emails.snippet, searchPattern)} OR ${ilike(emails.body, searchPattern)} OR ${ilike(emails.fromAddress, searchPattern)})`
+    )
+    .orderBy(desc(emails.internalDate))
+    .limit(25);
+
+    // Map to our UI format
+    const uniqueMessagesMap = new Map();
+    for (const m of localResults) {
+      if (!uniqueMessagesMap.has(m.email.googleMessageId)) {
+        uniqueMessagesMap.set(m.email.googleMessageId, {
+          id: m.email.googleMessageId,
+          snippet: m.email.snippet,
+          body: m.email.body,
+          subject: m.email.subject,
+          sender: m.email.fromAddress,
+          isRead: m.email.isRead,
+          isStarred: m.email.isStarred,
+          isLinkedToEvent: !!m.linkId,
+          date: m.email.internalDate,
+          toAddresses: m.email.toAddresses
+        });
+      }
+    }
+
+    // 2. Gmail API Search (Deep fetch)
+    const t = getTenant(userId);
+    let gmailMessagesFetched = 0;
+    try {
+      const gmailResult = await t.gmail.api.messages.list({ q, maxResults: 15 });
+      const messageIds = gmailResult.messages || [];
+      
+      const missingMessageIds = messageIds.filter((msg: any) => !uniqueMessagesMap.has(msg.id));
+      
+      const toInsert: any[] = [];
+      const fetchPromises = missingMessageIds.map(async (msg: any) => {
+        try {
+          const m = await t.gmail.api.messages.get({ userId: 'me', id: msg.id, format: 'full' });
+          const headers = m.payload?.headers || [];
+          const subject = headers.find((h: any) => h.name?.toLowerCase() === 'subject')?.value || '';
+          const sender = headers.find((h: any) => h.name?.toLowerCase() === 'from')?.value || '';
+          const toHeader = headers.find((h: any) => h.name?.toLowerCase() === 'to')?.value || '';
+          const bodyStr = getBody(m.payload);
+          
+          const toAddresses = toHeader.split(',').filter(Boolean).map((addr: string) => {
+            const match = addr.match(/(?:(.*)\s+)?<([^>]+)>/);
+            if (match) {
+               return { name: match[1]?.replace(/"/g, '').trim(), email: match[2]?.trim() };
+            }
+            return { email: addr.trim() };
+          });
+          
+          const dbPayload = {
+            userId,
+            googleMessageId: m.id,
+            threadId: m.threadId,
+            fromAddress: sender,
+            subject,
+            snippet: m.snippet,
+            body: bodyStr,
+            internalDate: new Date(parseInt(m.internalDate || '0')),
+            isRead: !m.labelIds?.includes('UNREAD'),
+            isStarred: m.labelIds?.includes('STARRED'),
+            labelIds: m.labelIds || [],
+            toAddresses,
+            historyId: m.historyId
+          };
+          
+          return {
+            dbPayload,
+            uiPayload: {
+              id: m.id,
+              snippet: m.snippet,
+              body: bodyStr,
+              subject,
+              sender,
+              isRead: !m.labelIds?.includes('UNREAD'),
+              isStarred: m.labelIds?.includes('STARRED'),
+              isLinkedToEvent: false, // Assume false for newly fetched
+              date: new Date(parseInt(m.internalDate || '0')),
+              toAddresses
+            }
+          };
+        } catch (err) {
+          console.error('Failed to fetch individual message in search:', msg.id, err);
+          return null;
+        }
+      });
+      
+      const fetchedResults = await Promise.all(fetchPromises);
+      for (const res of fetchedResults) {
+        if (res) {
+          toInsert.push(res.dbPayload);
+          uniqueMessagesMap.set(res.uiPayload.id, res.uiPayload);
+          gmailMessagesFetched++;
+        }
+      }
+      
+      // Save newly fetched to cache in background
+      if (toInsert.length > 0) {
+        // Don't await the insert so we return faster
+        db.insert(emails).values(toInsert).onConflictDoNothing().execute().catch(e => console.error('Failed to save search results to cache', e));
+      }
+    } catch (gmailErr: any) {
+      console.error('Gmail API Search failed, falling back to local only:', gmailErr.message);
+    }
+
+    // Convert map to array and sort by date descending
+    let fullMessages = Array.from(uniqueMessagesMap.values());
+    fullMessages.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return NextResponse.json({ 
+      messages: fullMessages,
+      meta: {
+        localCount: localResults.length,
+        gmailFetched: gmailMessagesFetched
+      }
+    });
+  } catch (error: any) {
+    console.error('Failed to search emails:', error);
+    return NextResponse.json({ 
+      error: 'Failed to search emails',
+      details: error?.message 
+    }, { status: 500 });
+  }
+}

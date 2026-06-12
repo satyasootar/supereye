@@ -1,16 +1,17 @@
 'use client';
 
 import { 
-  Menu, Filter, Paperclip, CheckSquare, Square, 
-  Archive, Trash2, Clock, CheckCircle2, Tag, 
-  Plus, Settings, SlidersHorizontal, Send
+  Menu, Filter, Tag, CheckCircle2, SlidersHorizontal, Square, 
+  CheckSquare, Archive, Trash2, Clock, Calendar, MessageSquare, 
+  MoreHorizontal, ChevronDown, Plus, Search, Send
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from '@/lib/store/app-store';
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { format, isToday, isYesterday, isThisYear, subDays, isAfter } from 'date-fns';
 import { useTheme } from 'next-themes';
+import { useDebounce } from '@/lib/hooks/use-debounce';
 
 type EmailMessage = {
   id: string;
@@ -43,6 +44,9 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   const setSelectedEmailId = useAppStore(state => state.setSelectedEmailId);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 600);
   
   const [hoveredEmail, setHoveredEmail] = useState<EmailMessage | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -81,7 +85,19 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     }
   });
 
-  const rawEmails = data?.pages.flat() || [];
+  const { data: searchData, isLoading: isSearchLoading } = useQuery({
+    queryKey: ['emails', 'search', debouncedSearch],
+    queryFn: async () => {
+      const res = await fetch(`/api/mail/search?q=${encodeURIComponent(debouncedSearch)}`);
+      if (!res.ok) throw new Error('Failed to search emails');
+      const json = await res.json();
+      return (json.messages || []) as EmailMessage[];
+    },
+    enabled: debouncedSearch.trim().length > 0
+  });
+
+  const isSearching = debouncedSearch.trim().length > 0;
+  const rawEmails = isSearching ? (searchData || []) : (data?.pages.flat() || []);
   const emails = Array.from(new Map(rawEmails.map(e => [e.id, e])).values());
   const observer = useRef<IntersectionObserver | null>(null);
   const observerTarget = useCallback((node: HTMLDivElement | null) => {
@@ -242,11 +258,16 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
 
       {/* Filter Row */}
       <div className="flex items-center gap-3 px-6 py-3 border-b border-border-subtle bg-bg-app overflow-x-auto no-scrollbar">
-        <button className="flex items-center gap-1.5 px-3 py-1 rounded border border-border-default bg-bg-surface hover:bg-bg-highlight text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap">
-          <Tag className="h-3.5 w-3.5 text-accent-blue" />
-          Categories: Not Promotions, Social...
-          <Menu className="h-3 w-3 ml-1" />
-        </button>
+        <div className="flex items-center gap-2 px-3 py-1 rounded border border-border-default bg-bg-surface focus-within:border-accent-blue focus-within:ring-1 focus-within:ring-accent-blue transition-all w-[240px]">
+          <Search className="h-3.5 w-3.5 text-text-muted" />
+          <input 
+            type="text" 
+            placeholder="Search emails..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-transparent border-none outline-none text-[13px] font-medium text-text-primary placeholder:text-text-muted w-full"
+          />
+        </div>
         <button className="flex items-center gap-1.5 px-3 py-1 rounded border border-border-default bg-bg-surface hover:bg-bg-highlight text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap">
           <Menu className="h-3.5 w-3.5" />
           Labels
@@ -286,12 +307,16 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
 
       {/* Email List Content */}
       <div className="flex-1 overflow-y-auto no-scrollbar px-6 py-4">
-        {isLoading ? (
-          <div className="p-8 text-center text-text-muted">Loading emails...</div>
-        ) : error ? (
+        {(isLoading && !isSearching) || (isSearching && isSearchLoading) ? (
+          <div className="p-8 text-center text-text-muted">
+            {isSearching ? 'Searching emails...' : 'Loading emails...'}
+          </div>
+        ) : error && !isSearching ? (
           <div className="p-8 text-center text-red-500">Failed to load emails.</div>
         ) : emails.length === 0 ? (
-          <div className="p-8 text-center text-text-muted">No emails found. Please sync your inbox.</div>
+          <div className="p-8 text-center text-text-muted">
+            {isSearching ? 'No emails matched your search.' : 'No emails found. Please sync your inbox.'}
+          </div>
         ) : (
           <div className="flex flex-col w-full pb-10">
             {groupedEmails.map(group => (
