@@ -105,15 +105,31 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['emails', 'threads'] });
       
+      let wasUnread = false;
+
       queryClient.setQueriesData({ queryKey: ['emails', 'threads'] }, (old: any) => {
         if (!old || !old.pages) return old;
         return {
           ...old,
           pages: old.pages.map((page: EmailMessage[]) => 
-            page.map((m: EmailMessage) => m.id === id ? { ...m, isRead: true } : m)
+            page.map((m: EmailMessage) => {
+              if (m.id === id && !m.isRead) {
+                wasUnread = true;
+                return { ...m, isRead: true };
+              }
+              return m;
+            })
           )
         };
       });
+
+      if (wasUnread) {
+        queryClient.setQueryData(['emails', 'unread-count'], (old: any) => {
+          if (!old || typeof old.count !== 'number') return old;
+          return { count: Math.max(0, old.count - 1) };
+        });
+      }
+
       return { id };
     },
     onError: (err, variables, context) => {

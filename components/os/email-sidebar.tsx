@@ -9,19 +9,36 @@ import {
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
-const primaryNav = [
-  { icon: Inbox, label: 'Inbox', count: 12, active: true },
+const basePrimaryNav = [
+  { icon: Inbox, label: 'Inbox', active: true },
   { icon: Send, label: 'Sent' },
   { icon: Trash2, label: 'Trash' },
 ];
 
-
 import { useAppStore } from '@/lib/store/app-store';
+import { useQuery } from '@tanstack/react-query';
 
 export function EmailSidebar() {
   const { data: session } = useSession();
   const { activeTabs } = useAppStore();
   const isSplit = activeTabs.length > 1;
+
+  const { data: unreadData } = useQuery({
+    queryKey: ['emails', 'unread-count'],
+    queryFn: async () => {
+      const res = await fetch('/api/mail/unread');
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    },
+    refetchInterval: 30000, // refresh every 30 seconds
+  });
+
+  const primaryNav = basePrimaryNav.map(item => {
+    if (item.label === 'Inbox') {
+      return { ...item, count: unreadData?.count || 0 };
+    }
+    return item;
+  });
 
   const [viewsExpanded, setViewsExpanded] = useState(true);
   const [triageExpanded, setTriageExpanded] = useState(false);
@@ -82,14 +99,14 @@ export function EmailSidebar() {
               <item.icon className="h-4 w-4" />
               {item.label}
             </div>
-            {item.count && (
+            {item.count && item.count > 0 ? (
               <span className={cn(
                 "rounded-full px-2 py-0.5 text-[11px] font-bold",
                 item.active ? "bg-accent-blue text-white" : "text-text-muted"
               )}>
                 {item.count}
               </span>
-            )}
+            ) : null}
           </button>
         ))}
       </nav>
