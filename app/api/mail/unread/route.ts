@@ -9,19 +9,39 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json({ count: 0 });
 
   try {
-    // Only count unread INBOX items
-    const categoryFilter = JSON.stringify(['INBOX']);
-    const result = await db.select({ count: sql<number>`count(*)` })
-      .from(emails)
-      .where(
-        and(
-          eq(emails.userId, session.user.id),
-          eq(emails.isRead, false),
-          sql`(${emails.labelIds} @> ${categoryFilter}::jsonb OR ${emails.labelIds} IS NULL)`
-        )
-      );
+    const userId = session.user.id;
     
-    return NextResponse.json({ count: Number(result[0]?.count || 0) });
+    // Create query helper for different labels
+    const getCountForLabel = async (label: string | null) => {
+      let condition = and(eq(emails.userId, userId), eq(emails.isRead, false));
+      if (label) {
+        const categoryFilter = JSON.stringify([label]);
+        condition = and(condition, sql`(${emails.labelIds} @> ${categoryFilter}::jsonb)`);
+      }
+      const result = await db.select({ count: sql<number>`count(*)` })
+        .from(emails)
+        .where(condition);
+      return Number(result[0]?.count || 0);
+    };
+
+    const [all, inbox, promotions, social, updates] = await Promise.all([
+      getCountForLabel(null), // ALL
+      getCountForLabel('INBOX'),
+      getCountForLabel('CATEGORY_PROMOTIONS'),
+      getCountForLabel('CATEGORY_SOCIAL'),
+      getCountForLabel('CATEGORY_UPDATES'),
+    ]);
+    
+    return NextResponse.json({ 
+      count: inbox, // backwards compatibility for sidebar
+      categories: {
+        ALL: all,
+        INBOX: inbox,
+        CATEGORY_PROMOTIONS: promotions,
+        CATEGORY_SOCIAL: social,
+        CATEGORY_UPDATES: updates
+      }
+    });
   } catch (error) {
     console.error('Failed to fetch unread count:', error);
     return NextResponse.json({ count: 0 });

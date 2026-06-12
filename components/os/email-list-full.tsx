@@ -78,6 +78,16 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     }
   });
 
+  const { data: unreadData } = useQuery({
+    queryKey: ['emails', 'unread-count'],
+    queryFn: async () => {
+      const res = await fetch('/api/mail/unread');
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    },
+    refetchInterval: 30000,
+  });
+
   const formatLabelName = (name: string) => {
     if (!name) return '';
     if (name.startsWith('CATEGORY_')) {
@@ -452,20 +462,33 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       {['ALL', 'INBOX', 'CATEGORY_PROMOTIONS', 'CATEGORY_SOCIAL', 'CATEGORY_UPDATES'].includes(emailCategory) && (
         <div className="flex-none px-4 py-2 border-b border-border-subtle bg-bg-surface/50 overflow-x-auto hide-scrollbar">
           <div className="flex items-center gap-2">
-            {CATEGORY_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setEmailCategory(tab.id)}
-                className={cn(
-                  "px-3 py-1.5 text-[13px] font-medium rounded-full whitespace-nowrap transition-colors",
-                  emailCategory === tab.id 
-                    ? "bg-accent-blue/10 text-accent-blue" 
-                    : "text-text-muted hover:text-text-primary hover:bg-bg-elevated"
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
+            {CATEGORY_TABS.map((tab) => {
+              const unreadCount = unreadData?.categories?.[tab.id] || 0;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setEmailCategory(tab.id)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-full whitespace-nowrap transition-colors",
+                    emailCategory === tab.id 
+                      ? "bg-accent-blue/10 text-accent-blue" 
+                      : "text-text-muted hover:text-text-primary hover:bg-bg-elevated"
+                  )}
+                >
+                  {tab.label}
+                  {unreadCount > 0 && (
+                    <span className={cn(
+                      "px-1.5 py-0.5 rounded-full text-[11px] leading-none font-bold",
+                      emailCategory === tab.id
+                        ? "bg-accent-blue text-white"
+                        : "bg-border-subtle text-text-secondary"
+                    )}>
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
