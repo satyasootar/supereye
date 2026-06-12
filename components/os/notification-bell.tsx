@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
+import { useAppStore } from '@/lib/store/app-store';
 
 type Notification = {
   id: string;
@@ -23,6 +24,7 @@ type Notification = {
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { openTab, setSelectedEmailId } = useAppStore();
 
   const { data, isLoading } = useQuery<{ notifications: Notification[] }>({
     queryKey: ['notifications'],
@@ -84,7 +86,7 @@ export function NotificationBell() {
           )}
         </div>
         
-        <ScrollArea className="h-80 bg-background">
+        <ScrollArea className="max-h-[500px] bg-background">
           {isLoading ? (
             <div className="p-4 text-center text-sm text-text-subtle">Loading...</div>
           ) : notifications.length === 0 ? (
@@ -94,33 +96,35 @@ export function NotificationBell() {
               {notifications.map((notif) => (
                 <div 
                   key={notif.id} 
-                  className={`p-4 border-b border-border-subtle/50 transition-colors hover:bg-secondary flex gap-3 ${
+                  className={`p-3.5 border-b border-border-subtle/50 transition-colors hover:bg-secondary flex gap-3 cursor-pointer ${
                     !notif.isRead ? 'bg-accent' : 'bg-background'
                   }`}
                   onClick={() => {
                     if (!notif.isRead) markAsReadMutation.mutate(notif.id);
-                    if (notif.link) {
-                      window.location.hash = notif.link;
+                    if (notif.link?.startsWith('/emails/')) {
+                      const emailId = notif.link.split('/emails/')[1];
+                      openTab('email');
+                      setSelectedEmailId(emailId);
                       setOpen(false);
                     }
                   }}
                 >
                   <div className="flex-1 space-y-1">
-                    <p className={`text-sm leading-tight ${!notif.isRead ? 'font-semibold text-text' : 'text-text-subtle'}`}>
+                    <p className={`text-[13.5px] leading-snug line-clamp-2 ${!notif.isRead ? 'font-semibold text-text' : 'text-text-subtle'}`}>
                       {notif.title}
                     </p>
                     {notif.body && (
-                      <p className="text-xs text-text-subtle line-clamp-2">
+                      <p className="text-[12px] text-text-subtle line-clamp-1">
                         {notif.body}
                       </p>
                     )}
-                    <p className="text-[10px] text-text-subtle/70 pt-1">
+                    <p className="text-[10px] text-text-subtle/70 pt-0.5 font-medium">
                       {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
                     </p>
                   </div>
                   {!notif.isRead && (
-                    <div className="flex items-center">
-                      <div className="h-2 w-2 bg-primary rounded-full" />
+                    <div className="flex items-center flex-shrink-0 pt-1">
+                      <div className="h-2 w-2 bg-primary rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                     </div>
                   )}
                 </div>
