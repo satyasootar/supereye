@@ -50,7 +50,8 @@ export async function GET(req: Request) {
       sender: m.email.fromAddress,
       isRead: m.email.isRead,
       isStarred: m.email.isStarred,
-      isLinkedToEvent: !!m.linkId
+      isLinkedToEvent: !!m.linkId,
+      date: m.email.internalDate
     }));
 
     return NextResponse.json({ messages: fullMessages });

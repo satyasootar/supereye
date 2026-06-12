@@ -5,9 +5,14 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+import { toast } from 'sonner';
+
 interface EmailComposerProps {
   onClose: () => void;
   defaultTo: string;
+  emailId: string;
+  threadId?: string;
+  subject?: string;
 }
 
 function RecipientInput({ 
@@ -66,12 +71,51 @@ function RecipientInput({
   );
 }
 
-export function EmailComposer({ onClose, defaultTo }: EmailComposerProps) {
+export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }: EmailComposerProps) {
   const [showCcBcc, setShowCcBcc] = useState(false);
   const [showScheduleSend, setShowScheduleSend] = useState(false);
   const [toRecipients, setToRecipients] = useState<string[]>([defaultTo]);
   const [ccRecipients, setCcRecipients] = useState<string[]>([]);
   const [bccRecipients, setBccRecipients] = useState<string[]>([]);
+  const [bodyText, setBodyText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSend = async () => {
+    if (toRecipients.length === 0) {
+      toast.error('Please add at least one recipient');
+      return;
+    }
+    if (!bodyText.trim()) {
+      toast.error('Please enter a message');
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const res = await fetch(`/api/mail/${emailId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          replyText: bodyText,
+          threadId,
+          to: toRecipients.join(', '),
+          subject: subject || 'No Subject',
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to send reply');
+      }
+
+      toast.success('Reply sent successfully');
+      onClose();
+    } catch (error) {
+      toast.error('Failed to send reply');
+      console.error(error);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <div className="flex flex-col rounded-2xl bg-bg-elevated border border-border-subtle text-text-primary shadow-lg overflow-hidden mt-4 mb-8">
@@ -131,6 +175,8 @@ export function EmailComposer({ onClose, defaultTo }: EmailComposerProps) {
         <textarea 
           aria-label="Email body"
           autoFocus
+          value={bodyText}
+          onChange={(e) => setBodyText(e.target.value)}
           placeholder='Write, or press "space" for AI, "/" for commands...'
           className="w-full min-h-[250px] bg-transparent resize-none outline-none text-[15px] text-text-primary placeholder:text-text-muted leading-relaxed"
         />
@@ -140,8 +186,13 @@ export function EmailComposer({ onClose, defaultTo }: EmailComposerProps) {
       <div className="flex items-center justify-between px-6 py-4">
         <div className="relative">
           <div className="flex items-stretch shadow-sm rounded-lg overflow-hidden">
-            <button type="button" className="flex items-center gap-2 px-6 py-2 bg-accent-blue hover:bg-accent-blue-dim text-white text-[15px] font-medium transition-colors">
-              Send
+            <button 
+              type="button" 
+              onClick={handleSend}
+              disabled={isSending}
+              className="flex items-center gap-2 px-6 py-2 bg-accent-blue hover:bg-accent-blue-dim text-white text-[15px] font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isSending ? 'Sending...' : 'Send'}
             </button>
             <div className="w-[1px] bg-white/20"></div>
             <button 

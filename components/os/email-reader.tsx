@@ -1,14 +1,12 @@
 'use client';
 
 import {
-  ArrowLeft, Archive, Trash2, MoreVertical, Sparkles,
-  CornerUpLeft, CornerUpRight, Reply, Forward, Download,
-  Bold, Italic, Underline, Link, List, Quote, Code, Heading,
-  Paperclip, Calendar as CalendarIcon, Send, X, MailOpen,
-  ChevronsRight, ChevronUp, ChevronDown, Printer, Clock, CheckSquare, MoreHorizontal
+  Archive, Trash2, MoreVertical, Sparkles,
+  Reply, Forward, Download,
+  CheckSquare, Printer, Clock, MoreHorizontal, ChevronUp, ChevronDown, ChevronsRight, MailOpen, X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useQuery } from '@tanstack/react-query';
 import { EmailComposer } from './email-composer';
@@ -19,27 +17,40 @@ export function EmailReader() {
   const selectedEmailId = useAppStore(state => state.selectedEmailId);
   const setSelectedEmailId = useAppStore(state => state.setSelectedEmailId);
   const currentEmailIds = useAppStore(state => state.currentEmailIds);
-  const [showComposer, setShowComposer] = useState(false);
+  const [replyMessageId, setReplyMessageId] = useState<string | null>(null);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['email', selectedEmailId],
+  const { data: messages, isLoading, error } = useQuery({
+    queryKey: ['email-thread', selectedEmailId],
     queryFn: async () => {
       if (!selectedEmailId) return null;
-      const res = await fetch(`/api/mail/${encodeURIComponent(selectedEmailId)}`);
+      const res = await fetch(`/api/mail/thread/${encodeURIComponent(selectedEmailId)}`);
       if (!res.ok) {
-        const errText = await res.text();
-        console.error('Email fetch failed:', res.status, errText);
-        throw new Error('Failed to fetch email details');
+        throw new Error('Failed to fetch thread details');
       }
       const json = await res.json();
-      return json.message;
+      return json.messages || [];
     },
     enabled: !!selectedEmailId,
     retry: false
   });
+
+  useEffect(() => {
+    // Reset reply state when selected thread changes
+    setReplyMessageId(null);
+  }, [selectedEmailId]);
+
+  useEffect(() => {
+    // Scroll to composer when opened
+    if (replyMessageId && bottomRef.current) {
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [replyMessageId]);
 
   if (!selectedEmailId) {
     return (
@@ -57,28 +68,20 @@ export function EmailReader() {
   if (isLoading) {
     return (
       <div className="flex h-full flex-1 flex-col items-center justify-center bg-bg-app overflow-hidden min-w-[400px]">
-        <div className="text-center text-text-muted">Loading email...</div>
+        <div className="text-center text-text-muted">Loading thread...</div>
       </div>
     );
   }
 
-  if (error || !data) {
+  if (error || !messages || messages.length === 0) {
     return (
       <div className="flex h-full flex-1 flex-col items-center justify-center bg-bg-app overflow-hidden min-w-[400px]">
-        <div className="text-center text-red-500">Failed to load email.</div>
+        <div className="text-center text-red-500">Failed to load thread.</div>
       </div>
     );
   }
 
-  const email = data;
-  const extractRawEmail = (address: string) => {
-    if (!address) return '';
-    const match = address.match(/<([^>]+)>/);
-    return match ? match[1] : address;
-  };
-  const rawFromAddress = extractRawEmail(email.fromAddress);
-  const cleanFromName = email.fromName ? email.fromName.replace(/<[^>]+>/g, '').replace(/"/g, '').trim() : rawFromAddress;
-
+  const firstEmail = messages[0];
   const currentIndex = currentEmailIds.indexOf(selectedEmailId);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex !== -1 && currentIndex < currentEmailIds.length - 1;
@@ -89,6 +92,12 @@ export function EmailReader() {
 
   const handleNext = () => {
     if (hasNext) setSelectedEmailId(currentEmailIds[currentIndex + 1]);
+  };
+
+  const extractRawEmail = (address: string) => {
+    if (!address) return '';
+    const match = address.match(/<([^>]+)>/);
+    return match ? match[1] : address;
   };
 
   return (
@@ -118,7 +127,7 @@ export function EmailReader() {
                       onClick={handlePrev}
                       disabled={!hasPrev}
                       className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors disabled:opacity-30 disabled:pointer-events-none"
-                      title="Previous email"
+                      title="Previous thread"
                     >
                       <ChevronUp className="h-5 w-5" />
                     </button>
@@ -126,7 +135,7 @@ export function EmailReader() {
                       onClick={handleNext}
                       disabled={!hasNext}
                       className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors disabled:opacity-30 disabled:pointer-events-none"
-                      title="Next email"
+                      title="Next thread"
                     >
                       <ChevronDown className="h-5 w-5" />
                     </button>
@@ -160,7 +169,7 @@ export function EmailReader() {
 
                 <div>
                   <h1 className="font-heading text-[22px] font-semibold text-text-primary mb-3">
-                    {email.subject || '(No Subject)'}
+                    {firstEmail.subject || '(No Subject)'}
                   </h1>
                 </div>
               </div>
@@ -168,7 +177,6 @@ export function EmailReader() {
           )}
         </AnimatePresence>
 
-        {/* Toggle Header Visibility Button */}
         <button 
           onClick={() => setIsHeaderVisible(!isHeaderVisible)}
           className={cn(
@@ -182,102 +190,122 @@ export function EmailReader() {
       </div>
 
       {/* Scrollable Thread Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 relative">
         <div className="max-w-[700px] mx-auto flex flex-col gap-6">
+          
+          {messages.map((email: any, index: number) => {
+            const rawFromAddress = extractRawEmail(email.fromAddress);
+            const cleanFromName = email.fromName ? email.fromName.replace(/<[^>]+>/g, '').replace(/"/g, '').trim() : rawFromAddress;
+            const isLast = index === messages.length - 1;
+            const isReplyingToThis = replyMessageId === email.id;
 
-          {/* Email Message Bubble */}
-          <div className="flex flex-col">
-            {/* Message Header */}
-            <div className="flex items-start justify-between py-4 border-b border-border-subtle">
-              <div className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-[14px] font-semibold text-text-primary">{cleanFromName}</span>
-                  {rawFromAddress !== cleanFromName && (
-                    <span className="text-[13px] text-text-secondary">{rawFromAddress}</span>
+            return (
+              <div key={email.id} className="flex flex-col pt-4 pb-2 border-b border-white/5 last:border-b-0">
+                {/* Message Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px] font-semibold text-text-primary">{cleanFromName}</span>
+                      {rawFromAddress !== cleanFromName && (
+                        <span className="text-[13px] text-text-secondary">{rawFromAddress}</span>
+                      )}
+                    </div>
+                    <span className="text-[13px] text-text-secondary">
+                      To {email.toAddresses?.map((t: any) => t.name ? t.name.toUpperCase() : t.email).join(', ') || 'ME'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-[12px] text-text-secondary font-medium whitespace-nowrap">
+                      {new Date(email.internalDate).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setReplyMessageId(email.id)} className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors" title="Reply">
+                        <Reply className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => setReplyMessageId(email.id)} className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors" title="Forward">
+                        <Forward className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Message Body */}
+                <div className="py-4 text-[14px] leading-[1.6] text-text-primary font-sans">
+                  {email.body ? (
+                    <iframe
+                      srcDoc={`<style>
+                                    :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
+                                    body, html { 
+                                      background-color: transparent !important; 
+                                      color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; 
+                                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+                                      line-height: 1.6; 
+                                      word-wrap: break-word; 
+                                      margin: 0; 
+                                      padding: 0; 
+                                      -ms-overflow-style: none;
+                                      scrollbar-width: none;
+                                    }
+                                    body::-webkit-scrollbar, html::-webkit-scrollbar { display: none; }
+                                    * { background-color: transparent !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; border-color: ${isDark ? '#2A2D35' : '#E2E8F0'} !important; }
+                                    a { color: #3b82f6 !important; }
+                                    img { background-color: transparent !important; max-width: 100%; height: auto; }
+                                  </style>${email.body}`}
+                      className="w-full h-full min-h-[150px] border-none bg-transparent"
+                      sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
+                      onLoad={(e) => {
+                        // Very basic iframe auto-resize attempt if same-origin wasn't an issue, 
+                        // but since emails often have cross-origin images, we just give it a flexible min-height
+                        const iframe = e.target as HTMLIFrameElement;
+                        try {
+                          if (iframe.contentWindow?.document.body) {
+                            iframe.style.height = iframe.contentWindow.document.body.scrollHeight + 30 + 'px';
+                          }
+                        } catch (err) {}
+                      }}
+                    />
+                  ) : (
+                    <div dangerouslySetInnerHTML={{ __html: email.snippet }} />
                   )}
                 </div>
-                <span className="text-[13px] text-text-secondary">
-                  To {email.toAddresses?.map((t: any) => t.name ? t.name.toUpperCase() : t.email).join(', ') || 'ME'}
-                </span>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <button onClick={() => setShowComposer(true)} className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors" title="Reply">
-                    <Reply className="h-4 w-4" />
-                  </button>
-                  <button onClick={() => setShowComposer(true)} className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors" title="Forward">
-                    <Forward className="h-4 w-4" />
-                  </button>
-                </div>
-                <span className="text-[13px] text-text-secondary font-medium whitespace-nowrap">
-                  {new Date(email.internalDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                </span>
-              </div>
-            </div>
 
-            {/* Message Body */}
-            <div className="py-6 text-[14px] leading-[1.6] text-text-primary font-sans h-full min-h-[500px]">
-              {email.body ? (
-                <iframe
-                  srcDoc={`<style>
-                                :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
-                                body, html { 
-                                  background-color: ${isDark ? '#0D0E12' : '#FFFFFF'} !important; 
-                                  color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; 
-                                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-                                  line-height: 1.6; 
-                                  word-wrap: break-word; 
-                                  margin: 0; 
-                                  padding: 0; 
-                                  -ms-overflow-style: none;  /* IE and Edge */
-                                  scrollbar-width: none;  /* Firefox */
-                                }
-                                body::-webkit-scrollbar, html::-webkit-scrollbar { 
-                                  display: none; 
-                                }
-                                * { background-color: ${isDark ? '#0D0E12' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; border-color: ${isDark ? '#2A2D35' : '#E2E8F0'} !important; }
-                                a { color: #3b82f6 !important; }
-                                img { background-color: transparent !important; }
-                              </style>${email.body}`}
-                  className="w-full h-full min-h-[800px] border-none bg-transparent"
-                  sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
-                />
-              ) : (
-                <p dangerouslySetInnerHTML={{ __html: email.snippet }} />
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+                {/* Inline Actions (shown only if this isn't the one being actively replied to) */}
+                {!isReplyingToThis && (
+                  <div className="pt-2 pb-4 flex items-center gap-3">
+                    <button
+                      onClick={() => setReplyMessageId(email.id)}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-strong text-text-primary text-[13px] hover:bg-bg-surface transition-colors shadow-sm bg-bg-app"
+                    >
+                      <Reply className="h-4 w-4" />
+                      Reply
+                    </button>
+                    <button
+                      onClick={() => setReplyMessageId(email.id)}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-strong text-text-primary text-[13px] hover:bg-bg-surface transition-colors shadow-sm bg-bg-app"
+                    >
+                      <Forward className="h-4 w-4" />
+                      Forward
+                    </button>
+                  </div>
+                )}
 
-      {/* Action Triggers / Composer - Sticky Footer */}
-      <div className="flex-shrink-0 border-t border-border-subtle bg-bg-base px-6 py-4">
-        <div className="max-w-[700px] mx-auto w-full">
-          {!showComposer ? (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowComposer(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-md border border-border-strong text-text-primary text-[14px] hover:bg-bg-surface transition-colors shadow-sm bg-bg-app"
-              >
-                <Reply className="h-4 w-4" />
-                Reply
-              </button>
-              <button
-                onClick={() => setShowComposer(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-md border border-border-strong text-text-primary text-[14px] hover:bg-bg-surface transition-colors shadow-sm bg-bg-app"
-              >
-                <Forward className="h-4 w-4" />
-                Forward
-              </button>
-            </div>
-          ) : (
-            <div>
-              <EmailComposer
-                onClose={() => setShowComposer(false)}
-                defaultTo={email.fromAddress}
-              />
-            </div>
-          )}
+                {/* Inline Composer (rendered exactly inside the message it replies to) */}
+                {isReplyingToThis && (
+                  <div className="pt-2 pb-4">
+                    <EmailComposer
+                      onClose={() => setReplyMessageId(null)}
+                      defaultTo={email.fromAddress}
+                      emailId={email.googleMessageId}
+                      threadId={email.threadId}
+                      subject={email.subject}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          
+          <div ref={bottomRef} className="h-4" />
         </div>
       </div>
     </div>

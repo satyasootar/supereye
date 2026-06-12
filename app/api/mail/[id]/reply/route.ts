@@ -22,12 +22,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const t = getTenant(userId);
 
+    // Fetch the original message to get its RFC 2822 Message-ID
+    const originalMsg = await t.gmail.api.messages.get({
+      id: messageId,
+      format: 'metadata',
+      metadataHeaders: ['Message-ID', 'References']
+    });
+
+    const headers = originalMsg.payload?.headers || [];
+    const rfcMessageId = headers.find(h => h.name?.toLowerCase() === 'message-id')?.value || '';
+    const existingReferences = headers.find(h => h.name?.toLowerCase() === 'references')?.value || '';
+    
+    const newReferences = existingReferences 
+      ? `${existingReferences} ${rfcMessageId}`.trim()
+      : rfcMessageId;
+
     // Construct raw email
     const emailLines = [
       `To: ${to}`,
-      `Subject: Re: ${subject.replace(/^Re:\s*/i, '')}`,
-      `In-Reply-To: ${messageId}`,
-      `References: ${messageId}`,
+      `Subject: ${subject.toLowerCase().startsWith('re:') ? subject : `Re: ${subject}`}`,
+      ...(rfcMessageId ? [`In-Reply-To: ${rfcMessageId}`] : []),
+      ...(newReferences ? [`References: ${newReferences}`] : []),
       '',
       replyText
     ];

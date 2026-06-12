@@ -9,8 +9,7 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, isToday, isYesterday, isThisYear } from 'date-fns';
-import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
+import { format, isToday, isYesterday, isThisYear, subDays, isAfter } from 'date-fns';
 import { useTheme } from 'next-themes';
 
 type EmailMessage = {
@@ -23,6 +22,7 @@ type EmailMessage = {
   isStarred: boolean;
   isLinkedToEvent: boolean;
   date: string; // ISO Date String
+  threadCount?: number;
 };
 
 export type FilterCategory = 'INBOX' | 'CATEGORY_PROMOTIONS' | 'CATEGORY_SOCIAL' | 'CATEGORY_UPDATES' | 'ALL';
@@ -133,28 +133,17 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       return { id };
     },
     onError: (err, variables, context) => {
-      // For simplicity, just invalidate on error
       queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });
     },
   });
 
-  const emailsToMap = emails;
-
   useEffect(() => {
-    const newIds = emailsToMap.map(e => e.id);
+    const newIds = emails.map(e => e.id);
     const currentIds = useAppStore.getState().currentEmailIds;
     if (newIds.length !== currentIds.length || newIds.some((id, i) => id !== currentIds[i])) {
       useAppStore.getState().setCurrentEmailIds(newIds);
     }
-  }, [emailsToMap]);
-
-  const toggleSelectAll = () => {
-    if (selectedIds.length === emails.length && emails.length > 0) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(emails.map(e => e.id));
-    }
-  };
+  }, [emails]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => 
@@ -173,6 +162,51 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       return '';
     }
   };
+
+  // Group emails logically by time
+  const groupEmailsByDate = (emailsToGroup: EmailMessage[]) => {
+    const groups: { [key: string]: EmailMessage[] } = {};
+    const today = new Date();
+    const last7Days = subDays(today, 7);
+
+    emailsToGroup.forEach(email => {
+      if (!email.date) return;
+      const d = new Date(email.date);
+      let title = '';
+
+      if (isToday(d)) {
+        title = 'Today';
+      } else if (isYesterday(d)) {
+        title = 'Yesterday';
+      } else if (isAfter(d, last7Days)) {
+        title = 'Last 7 days';
+      } else if (isThisYear(d)) {
+        title = format(d, 'MMMM');
+      } else {
+        title = format(d, 'yyyy');
+      }
+
+      if (!groups[title]) groups[title] = [];
+      groups[title].push(email);
+    });
+
+    const orderedTitles = Array.from(new Set(emailsToGroup.map(email => {
+      if (!email.date) return 'Unknown';
+      const d = new Date(email.date);
+      if (isToday(d)) return 'Today';
+      if (isYesterday(d)) return 'Yesterday';
+      if (isAfter(d, last7Days)) return 'Last 7 days';
+      if (isThisYear(d)) return format(d, 'MMMM');
+      return format(d, 'yyyy');
+    })));
+
+    return orderedTitles.map(title => ({
+      title,
+      emails: groups[title] || []
+    }));
+  };
+
+  const groupedEmails = groupEmailsByDate(emails);
 
   return (
     <div className="flex h-full flex-col bg-bg-app flex-1 overflow-hidden">
@@ -213,17 +247,6 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
           <CheckSquare className="h-3.5 w-3.5" />
           Is unread
         </button>
-        <button className="flex items-center gap-1.5 px-3 py-1 rounded border border-border-default bg-bg-surface hover:bg-bg-highlight text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap">
-          <Archive className="h-3.5 w-3.5" />
-          Show archived
-        </button>
-        <button className="flex items-center gap-1.5 px-3 py-1 rounded border border-border-default bg-bg-surface hover:bg-bg-highlight text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap">
-          <div className="h-3.5 w-3.5 rounded-full bg-accent-blue flex items-center justify-center">
-             <div className="h-1.5 w-1.5 rounded-full bg-white" />
-          </div>
-          From: Not "github.com"
-          <Menu className="h-3 w-3 ml-1" />
-        </button>
         <button className="flex items-center gap-1.5 px-3 py-1 rounded border border-transparent hover:bg-bg-surface text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap ml-2">
           <Plus className="h-3.5 w-3.5" />
           Filter
@@ -259,72 +282,85 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
         ) : emails.length === 0 ? (
           <div className="p-8 text-center text-text-muted">No emails found. Please sync your inbox.</div>
         ) : (
-          <div className="flex flex-col gap-1 w-full">
-            {emailsToMap.map(email => {
-              const isChecked = selectedIds.includes(email.id);
-              return (
-                    <div 
-                      key={email.id}
-                      onClick={() => {
-                        setSelectedEmailId(email.id);
-                        if (!email.isRead) {
-                          readMutation.mutate(email.id);
-                        }
-                      }}
-                      onMouseEnter={(e) => handleMouseEnter(e, email)}
-                      onMouseMove={handleMouseMove}
-                      onMouseLeave={handleMouseLeave}
-                      className={cn(
-                        "group relative flex items-center gap-4 px-3 py-2.5 border-b border-border-subtle hover:bg-bg-surface/50 transition-colors cursor-pointer rounded-md",
-                        !email.isRead && "bg-bg-surface/20"
-                      )}
-                    >
-                      {/* Left Controls & Sender */}
-                      <div className={cn("flex items-center gap-3 flex-shrink-0", isSplitView ? "w-[140px]" : "w-[240px]")}>
-                        <div className="flex items-center gap-2 w-6">
-                          <div className="flex h-5 w-5 items-center justify-center">
-                            <div className={cn("h-1.5 w-1.5 rounded-full", !email.isRead ? "bg-accent-blue" : "bg-transparent")} />
-                          </div>
-                        </div>
-                        <span className={cn("truncate text-[14px]", !email.isRead ? "font-semibold text-text-primary" : "text-text-secondary font-medium")}>
-                          {email.sender.split('<')[0].trim()}
-                        </span>
-                      </div>
-
-                      {/* Subject and Snippet */}
-                      <div className="flex-1 flex items-center overflow-hidden gap-2">
-                        <span className={cn("truncate text-[14px] flex-shrink-0", !email.isRead ? "font-semibold text-text-primary" : "text-text-primary font-medium")}>
-                          {email.subject || '(No Subject)'}
-                        </span>
-                        <span className="truncate text-[14px] text-text-muted">
-                          {email.snippet}
-                        </span>
-                      </div>
-
-                      {/* Actions & Date */}
-                      <div className={cn("flex items-center gap-4 justify-end flex-shrink-0", isSplitView ? "w-[60px]" : "w-[140px]")}>
-                        {/* Hover Actions */}
-                        <div className={cn("hidden group-hover:flex items-center gap-3 text-text-secondary bg-bg-app px-2 absolute", isSplitView ? "right-[40px]" : "right-[80px]")}>
-                          <button className="hover:text-text-primary transition-colors" title="Archive" onClick={(e) => e.stopPropagation()}>
-                            <Archive className="h-4 w-4" />
-                          </button>
-                          <button className="hover:text-destructive transition-colors" title="Delete" onClick={(e) => e.stopPropagation()}>
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                          <button className="hover:text-text-primary transition-colors" title="Mark Read" onClick={(e) => e.stopPropagation()}>
-                            <CheckCircle2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                        {/* Date */}
-                        {!isSplitView && (
-                          <span className="text-[12px] font-medium text-text-muted group-hover:opacity-0 transition-opacity">
-                            {formatDisplayDate(email.date)}
-                          </span>
+          <div className="flex flex-col w-full pb-10">
+            {groupedEmails.map(group => (
+              <div key={group.title} className="mb-4">
+                <div className="px-3 py-2 text-[14px] font-semibold text-text-primary sticky top-0 bg-bg-app z-10 opacity-90">
+                  {group.title}
+                </div>
+                <div className="flex flex-col w-full">
+                  {group.emails.map(email => {
+                    const isChecked = selectedIds.includes(email.id);
+                    return (
+                      <div 
+                        key={email.id}
+                        onClick={() => {
+                          setSelectedEmailId(email.id);
+                          if (!email.isRead) {
+                            readMutation.mutate(email.id);
+                          }
+                        }}
+                        onMouseEnter={(e) => handleMouseEnter(e, email)}
+                        onMouseMove={handleMouseMove}
+                        onMouseLeave={handleMouseLeave}
+                        className={cn(
+                          "group relative flex items-center gap-3 px-3 py-2 border-transparent hover:bg-bg-surface/50 transition-colors cursor-pointer rounded-md",
+                          !email.isRead && "bg-bg-surface/20",
+                          isChecked && "bg-accent-blue/5"
                         )}
+                      >
+                        {/* Checkbox (visible on hover or when selected) */}
+                        <div 
+                          className={cn("absolute left-2 top-1/2 -translate-y-1/2 w-6 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity", isChecked && "opacity-100")}
+                          onClick={(e) => { e.stopPropagation(); toggleSelect(email.id); }}
+                        >
+                          {isChecked ? <CheckSquare className="h-4 w-4 text-accent-blue" /> : <Square className="h-4 w-4 text-text-muted hover:text-text-primary" />}
+                        </div>
+
+                        {/* Sender */}
+                        <div className={cn("flex items-center gap-2 flex-shrink-0 transition-transform", isChecked || "group-hover:translate-x-6", isSplitView ? "w-[120px]" : "w-[200px]")}>
+                          <span className={cn("truncate text-[14px]", !email.isRead ? "font-semibold text-text-primary" : "text-text-secondary font-medium")}>
+                            {email.sender.split('<')[0].trim()} {email.threadCount && email.threadCount > 1 ? <span className="text-text-muted text-[12px] ml-1">{email.threadCount}</span> : null}
+                          </span>
+                        </div>
+
+                        {/* Subject and Snippet */}
+                        <div className="flex-1 flex items-center overflow-hidden gap-2">
+                          <span className={cn("truncate text-[14px] flex-shrink-0", !email.isRead ? "font-semibold text-text-primary" : "text-text-primary font-medium")}>
+                            {email.subject || '(No Subject)'}
+                          </span>
+                          <span className="truncate text-[14px] text-text-muted opacity-80">
+                            {email.snippet}
+                          </span>
+                        </div>
+
+                        {/* Actions & Date */}
+                        <div className={cn("flex items-center gap-3 justify-end flex-shrink-0", isSplitView ? "w-[40px]" : "w-[120px]")}>
+                          {/* Hover Actions */}
+                          <div className={cn("hidden group-hover:flex items-center gap-2.5 text-text-secondary bg-bg-app px-2 absolute right-16", isSplitView && "right-[40px]")}>
+                            <button className="hover:text-text-primary transition-colors" title="Archive" onClick={(e) => e.stopPropagation()}>
+                              <Archive className="h-4 w-4" />
+                            </button>
+                            <button className="hover:text-destructive transition-colors" title="Delete" onClick={(e) => e.stopPropagation()}>
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                            <button className="hover:text-text-primary transition-colors" title="Mark Read" onClick={(e) => e.stopPropagation()}>
+                              <CheckCircle2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                          {/* Date */}
+                          {!isSplitView && (
+                            <span className="text-[13px] font-medium text-text-muted group-hover:opacity-0 transition-opacity">
+                              {formatDisplayDate(email.date)}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-              );
-            })}
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
               
             {/* Intersection Observer Target */}
             <div ref={observerTarget} className="h-4 w-full" />
