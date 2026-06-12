@@ -56,7 +56,10 @@ export function EmailSidebar() {
 
       <div className="px-3 py-2">
         {/* Compose Button */}
-        <button className="flex w-full h-10 items-center justify-center gap-2 rounded-md bg-accent-blue text-[14px] font-semibold text-white shadow-sm hover:bg-accent-blue-dim transition-colors group relative">
+        <button 
+          onClick={() => useAppStore.getState().setComposeOpen(true)}
+          className="flex w-full h-10 items-center justify-center gap-2 rounded-md bg-accent-blue text-[14px] font-semibold text-white shadow-sm hover:bg-accent-blue-dim transition-colors group relative"
+        >
           <Edit className="h-4 w-4" />
           Compose
           <span className="absolute right-2 flex h-5 w-5 items-center justify-center rounded bg-white/20 text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity">C</span>

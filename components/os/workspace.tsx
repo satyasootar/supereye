@@ -8,6 +8,7 @@ import { CalendarPane } from './calendar-pane';
 import { ChatPane } from './chat-pane';
 import { useGlobalShortcuts } from '@/hooks/use-global-shortcuts';
 import { useSSE } from '@/hooks/use-sse';
+import { GlobalComposer } from './global-composer';
 
 export function Workspace() {
   useGlobalShortcuts();
@@ -50,9 +51,12 @@ export function Workspace() {
   // Single Pane View
   if (activeTabs.length === 1) {
     return (
-      <div className="h-full w-full bg-base">
-        {panes[activeTabs[0]]}
-      </div>
+      <>
+        <div className="h-full w-full bg-base">
+          {panes[activeTabs[0]]}
+        </div>
+        <GlobalComposer />
+      </>
     );
   }
 
@@ -91,6 +95,8 @@ export function Workspace() {
       >
         {panes[rightTab]}
       </div>
+      
+      <GlobalComposer />
     </div>
   );
 }
