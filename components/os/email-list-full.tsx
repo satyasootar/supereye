@@ -3,7 +3,7 @@
 import { 
   Menu, Filter, Tag, CheckCircle2, SlidersHorizontal, Square, 
   CheckSquare, Archive, Trash2, Clock, Calendar, MessageSquare, 
-  MoreHorizontal, ChevronDown, Plus, Search, Send
+  MoreHorizontal, ChevronDown, Plus, Search, Send, X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -317,6 +317,15 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-transparent border-none outline-none text-[13px] font-medium text-text-primary placeholder:text-text-muted w-full"
             />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-bg-highlight transition-colors flex-shrink-0"
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
             <AdvancedSearchFilter 
               currentQuery={searchQuery}
               onSearch={(q) => {
@@ -329,8 +338,20 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
           <SendersFilter 
             emails={rawEmails} 
             currentQuery={searchQuery}
-            onSelectSender={(sender) => setSearchQuery(`from:${sender}`)}
-            onClear={() => setSearchQuery('')}
+            onSelectSenders={(senders) => {
+              let q = searchQuery;
+              // Strip out any existing from: blocks
+              q = q.replace(/\{?from:[^\s}]+\}?/g, '').replace(/\s+/g, ' ').trim();
+              if (senders.length > 0) {
+                 const fromPart = senders.map(s => `from:${s}`).join(' ');
+                 q = (q ? q + ' ' : '') + (senders.length > 1 ? `{${fromPart}}` : fromPart);
+              }
+              setSearchQuery(q.trim());
+            }}
+            onClear={() => {
+              const q = searchQuery.replace(/\{?from:[^\s}]+\}?/g, '').replace(/\s+/g, ' ').trim();
+              setSearchQuery(q);
+            }}
           />
           
           <Popover open={openLabels} onOpenChange={setOpenLabels}>
@@ -391,6 +412,20 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                     <CommandItem onSelect={() => { setSearchQuery('has:attachment'); setOpenQuickFilters(false); }}>Has attachments</CommandItem>
                   </CommandGroup>
                 </CommandList>
+                {searchQuery && (
+                  <div className="p-2 border-t border-border-subtle">
+                    <button 
+                      onClick={() => {
+                        setSearchQuery('');
+                        setOpenQuickFilters(false);
+                      }}
+                      className="flex items-center gap-2 w-full px-2 py-1.5 text-[13px] text-text-secondary hover:text-text-primary hover:bg-bg-highlight rounded-md transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                      Clear all filters
+                    </button>
+                  </div>
+                )}
               </Command>
             </PopoverContent>
           </Popover>
