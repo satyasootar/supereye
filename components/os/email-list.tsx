@@ -149,7 +149,7 @@ export function EmailList() {
                         {email.sender.charAt(0).toUpperCase()}
                       </div>
 
-                      <span className={cn("truncate text-[13.5px]", !email.isRead ? "font-semibold text-text-primary" : "font-medium text-text-secondary")}>
+                      <span className={cn("truncate text-[13.5px]", !email.isRead ? "font-semibold text-text-primary" : "text-text-muted font-normal")}>
                         {email.sender.split('<')[0].trim()}
                       </span>
                     </div>
@@ -166,7 +166,7 @@ export function EmailList() {
 
                   {/* Bottom Row: Subject & Preview */}
                   <div className="pl-9 pr-2">
-                    <div className={cn("truncate text-[13.5px]", !email.isRead ? "font-semibold text-text-primary" : "font-medium text-text-primary")}>
+                    <div className={cn("truncate text-[13.5px]", !email.isRead ? "font-semibold text-text-primary" : "text-text-muted font-normal")}>
                       {email.subject || '(No Subject)'}
                     </div>
                     <div className="relative h-[20px] overflow-hidden">

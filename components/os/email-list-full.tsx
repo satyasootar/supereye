@@ -335,14 +335,14 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
 
                         {/* Sender */}
                         <div className={cn("flex items-center gap-2 flex-shrink-0 transition-transform", isChecked || "group-hover:translate-x-6", isSplitView ? "w-[120px]" : "w-[200px]")}>
-                          <span className={cn("truncate text-[14px]", !email.isRead ? "font-semibold text-text-primary" : "text-text-secondary font-medium")}>
+                          <span className={cn("truncate text-[14px]", !email.isRead ? "font-semibold text-text-primary" : "text-text-muted font-normal")}>
                             {displaySender} {email.threadCount && email.threadCount > 1 ? <span className="text-text-muted text-[12px] ml-1">{email.threadCount}</span> : null}
                           </span>
                         </div>
 
                         {/* Subject and Snippet */}
                         <div className="flex-1 flex items-center overflow-hidden gap-2">
-                          <span className={cn("truncate text-[14px] flex-shrink-0", !email.isRead ? "font-semibold text-text-primary" : "text-text-primary font-medium")}>
+                          <span className={cn("truncate text-[14px] flex-shrink-0", !email.isRead ? "font-semibold text-text-primary" : "text-text-muted font-normal")}>
                             {email.subject || '(No Subject)'}
                           </span>
                           <span className="truncate text-[14px] text-text-muted opacity-80">
