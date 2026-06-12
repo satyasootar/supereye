@@ -51,7 +51,8 @@ export async function GET(req: Request) {
       isRead: m.email.isRead,
       isStarred: m.email.isStarred,
       isLinkedToEvent: !!m.linkId,
-      date: m.email.internalDate
+      date: m.email.internalDate,
+      toAddresses: m.email.toAddresses
     }));
 
     return NextResponse.json({ messages: fullMessages });

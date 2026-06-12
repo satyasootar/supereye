@@ -58,7 +58,16 @@ export async function syncGmailForUser(userId: string) {
         const headers = m.payload?.headers || [];
         const subject = headers.find((h: any) => h.name?.toLowerCase() === 'subject')?.value || '';
         const sender = headers.find((h: any) => h.name?.toLowerCase() === 'from')?.value || '';
+        const toHeader = headers.find((h: any) => h.name?.toLowerCase() === 'to')?.value || '';
         const bodyStr = getBody(m.payload);
+        
+        const toAddresses = toHeader.split(',').filter(Boolean).map((addr: string) => {
+          const match = addr.match(/(?:(.*)\s+)?<([^>]+)>/);
+          if (match) {
+             return { name: match[1]?.replace(/"/g, '').trim(), email: match[2]?.trim() };
+          }
+          return { email: addr.trim() };
+        });
         
         toInsert.push({
           userId,
@@ -72,6 +81,7 @@ export async function syncGmailForUser(userId: string) {
           isRead: !m.labelIds?.includes('UNREAD'),
           isStarred: m.labelIds?.includes('STARRED'),
           labelIds: m.labelIds || [],
+          toAddresses,
           historyId: m.historyId
         });
       } catch (err) {
@@ -93,6 +103,7 @@ export async function syncGmailForUser(userId: string) {
           snippet: sql`excluded.snippet`,
           body: sql`excluded.body`,
           labelIds: sql`excluded.label_ids`,
+          toAddresses: sql`excluded.to_addresses`,
         }
       });
       

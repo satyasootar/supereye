@@ -10,9 +10,9 @@ import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
 const basePrimaryNav = [
-  { icon: Inbox, label: 'Inbox', active: true },
-  { icon: Send, label: 'Sent' },
-  { icon: Trash2, label: 'Trash' },
+  { icon: Inbox, label: 'Inbox', id: 'ALL' },
+  { icon: Send, label: 'Sent', id: 'SENT' },
+  { icon: Trash2, label: 'Trash', id: 'TRASH' },
 ];
 
 import { useAppStore } from '@/lib/store/app-store';
@@ -20,7 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 
 export function EmailSidebar() {
   const { data: session } = useSession();
-  const { activeTabs } = useAppStore();
+  const { activeTabs, emailCategory, setEmailCategory } = useAppStore();
   const isSplit = activeTabs.length > 1;
 
   const { data: unreadData } = useQuery({
@@ -34,10 +34,20 @@ export function EmailSidebar() {
   });
 
   const primaryNav = basePrimaryNav.map(item => {
+    let count = 0;
     if (item.label === 'Inbox') {
-      return { ...item, count: unreadData?.count || 0 };
+      count = unreadData?.count || 0;
     }
-    return item;
+    
+    // Determine active based on store
+    let active = false;
+    if (item.id === 'ALL' && (emailCategory === 'ALL' || emailCategory === 'INBOX' || emailCategory.startsWith('CATEGORY_'))) {
+      active = true;
+    } else if (item.id === emailCategory) {
+      active = true;
+    }
+
+    return { ...item, count, active };
   });
 
   const [viewsExpanded, setViewsExpanded] = useState(true);
@@ -54,6 +64,7 @@ export function EmailSidebar() {
             <button 
               key={item.label}
               title={item.label}
+              onClick={() => setEmailCategory(item.id)}
               className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
                 item.active ? "bg-bg-highlight text-accent-blue" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary"
@@ -88,6 +99,7 @@ export function EmailSidebar() {
         {primaryNav.map((item) => (
           <button 
             key={item.label}
+            onClick={() => setEmailCategory(item.id)}
             className={cn(
               "flex items-center justify-between rounded-md px-3 py-1.5 text-[13.5px] font-medium transition-colors",
               item.active 

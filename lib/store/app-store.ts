@@ -10,6 +10,7 @@ interface AppState {
   currentEmailIds: string[];
   isCommandPaletteOpen: boolean;
   isComposeOpen: boolean;
+  emailCategory: string;
   openTab: (tabId: TabId, multiSelect?: boolean) => void;
   closeTab: (tabId: TabId) => void;
   setSplitRatio: (ratio: number) => void;
@@ -17,6 +18,7 @@ interface AppState {
   setCurrentEmailIds: (ids: string[]) => void;
   setCommandPaletteOpen: (isOpen: boolean) => void;
   setComposeOpen: (isOpen: boolean) => void;
+  setEmailCategory: (category: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -28,6 +30,7 @@ export const useAppStore = create<AppState>()(
       currentEmailIds: [],
       isCommandPaletteOpen: false,
       isComposeOpen: false,
+      emailCategory: 'ALL',
       openTab: (tabId, multiSelect = false) => set((state) => {
         if (multiSelect) {
           // Cannot have more than 2 tabs open
@@ -52,6 +55,7 @@ export const useAppStore = create<AppState>()(
       setCurrentEmailIds: (ids) => set({ currentEmailIds: ids }),
       setCommandPaletteOpen: (isOpen) => set({ isCommandPaletteOpen: isOpen }),
       setComposeOpen: (isOpen) => set({ isComposeOpen: isOpen }),
+      setEmailCategory: (category) => set({ emailCategory: category }),
     }),
     {
       name: 'app-storage',

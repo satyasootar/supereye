@@ -3,7 +3,7 @@ import { Geist, Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/app/providers"
 import { cn } from "@/lib/utils";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'})
 const geist = Geist({subsets:['latin'],variable:'--font-heading'})

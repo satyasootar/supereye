@@ -3,7 +3,7 @@
 import { 
   Menu, Filter, Paperclip, CheckSquare, Square, 
   Archive, Trash2, Clock, CheckCircle2, Tag, 
-  Plus, Settings, SlidersHorizontal
+  Plus, Settings, SlidersHorizontal, Send
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -23,13 +23,15 @@ type EmailMessage = {
   isLinkedToEvent: boolean;
   date: string; // ISO Date String
   threadCount?: number;
+  toAddresses?: any[];
 };
 
-export type FilterCategory = 'INBOX' | 'CATEGORY_PROMOTIONS' | 'CATEGORY_SOCIAL' | 'CATEGORY_UPDATES' | 'ALL';
+export type FilterCategory = 'INBOX' | 'SENT' | 'CATEGORY_PROMOTIONS' | 'CATEGORY_SOCIAL' | 'CATEGORY_UPDATES' | 'ALL';
 
 const CATEGORY_TABS: { id: FilterCategory; label: string }[] = [
   { id: 'ALL', label: 'All Mail' },
   { id: 'INBOX', label: 'Primary' },
+  { id: 'SENT', label: 'Sent' },
   { id: 'CATEGORY_PROMOTIONS', label: 'Promotions' },
   { id: 'CATEGORY_SOCIAL', label: 'Social' },
   { id: 'CATEGORY_UPDATES', label: 'Updates' },
@@ -37,7 +39,7 @@ const CATEGORY_TABS: { id: FilterCategory; label: string }[] = [
 
 export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [category, setCategory] = useState<FilterCategory>('ALL');
+  const { activeTabs, emailCategory, setEmailCategory } = useAppStore();
   const setSelectedEmailId = useAppStore(state => state.setSelectedEmailId);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -66,9 +68,9 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   };
   
   const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['emails', 'threads', category],
+    queryKey: ['emails', 'threads', emailCategory],
     queryFn: async ({ pageParam = 0 }) => {
-      const res = await fetch(`/api/mail/threads?offset=${pageParam}&category=${category}`);
+      const res = await fetch(`/api/mail/threads?offset=${pageParam}&category=${emailCategory}`);
       if (!res.ok) throw new Error('Failed to fetch emails');
       const json = await res.json();
       return (json.messages || []) as EmailMessage[];
@@ -213,8 +215,14 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       {/* Header */}
       <div className="flex h-[60px] flex-shrink-0 items-center justify-between px-6 border-b border-border-subtle bg-bg-app">
         <div className="flex items-center gap-3 text-text-primary">
-          <Archive className="h-5 w-5 text-accent-blue" />
-          <h1 className="text-[20px] font-heading font-semibold">Inbox</h1>
+          {emailCategory === 'SENT' ? (
+            <Send className="h-5 w-5 text-accent-blue" />
+          ) : (
+            <Archive className="h-5 w-5 text-accent-blue" />
+          )}
+          <h1 className="text-[20px] font-heading font-semibold">
+            {emailCategory === 'SENT' ? 'Sent' : 'Inbox'}
+          </h1>
         </div>
         
         <div className="flex items-center gap-3">
@@ -253,25 +261,27 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
         </button>
       </div>
 
-      {/* Categories Toolbar */}
-      <div className="flex-none px-4 py-2 border-b border-border-subtle bg-bg-surface/50 overflow-x-auto hide-scrollbar">
-        <div className="flex items-center gap-2">
-          {CATEGORY_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setCategory(tab.id)}
-              className={cn(
-                "px-3 py-1.5 text-[13px] font-medium rounded-full whitespace-nowrap transition-colors",
-                category === tab.id 
-                  ? "bg-accent-blue/10 text-accent-blue" 
-                  : "text-text-muted hover:text-text-primary hover:bg-bg-elevated"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+      {/* Categories Toolbar - Only show if not in SENT view */}
+      {emailCategory !== 'SENT' && (
+        <div className="flex-none px-4 py-2 border-b border-border-subtle bg-bg-surface/50 overflow-x-auto hide-scrollbar">
+          <div className="flex items-center gap-2">
+            {CATEGORY_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setEmailCategory(tab.id)}
+                className={cn(
+                  "px-3 py-1.5 text-[13px] font-medium rounded-full whitespace-nowrap transition-colors",
+                  emailCategory === tab.id 
+                    ? "bg-accent-blue/10 text-accent-blue" 
+                    : "text-text-muted hover:text-text-primary hover:bg-bg-elevated"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Email List Content */}
       <div className="flex-1 overflow-y-auto no-scrollbar px-6 py-4">
@@ -291,6 +301,11 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                 <div className="flex flex-col w-full">
                   {group.emails.map(email => {
                     const isChecked = selectedIds.includes(email.id);
+                    let displaySender = email.sender.split('<')[0].trim();
+                    if (emailCategory === 'SENT') {
+                      displaySender = `To: ${email.toAddresses?.map((t: any) => t.name || t.email).join(', ') || 'Unknown'}`;
+                    }
+
                     return (
                       <div 
                         key={email.id}
@@ -320,7 +335,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                         {/* Sender */}
                         <div className={cn("flex items-center gap-2 flex-shrink-0 transition-transform", isChecked || "group-hover:translate-x-6", isSplitView ? "w-[120px]" : "w-[200px]")}>
                           <span className={cn("truncate text-[14px]", !email.isRead ? "font-semibold text-text-primary" : "text-text-secondary font-medium")}>
-                            {email.sender.split('<')[0].trim()} {email.threadCount && email.threadCount > 1 ? <span className="text-text-muted text-[12px] ml-1">{email.threadCount}</span> : null}
+                            {displaySender} {email.threadCount && email.threadCount > 1 ? <span className="text-text-muted text-[12px] ml-1">{email.threadCount}</span> : null}
                           </span>
                         </div>
 
