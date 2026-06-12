@@ -48,7 +48,6 @@ export type FilterCategory = 'INBOX' | 'SENT' | 'CATEGORY_PROMOTIONS' | 'CATEGOR
 const CATEGORY_TABS: { id: FilterCategory; label: string }[] = [
   { id: 'ALL', label: 'All Mail' },
   { id: 'INBOX', label: 'Primary' },
-  { id: 'SENT', label: 'Sent' },
   { id: 'CATEGORY_PROMOTIONS', label: 'Promotions' },
   { id: 'CATEGORY_SOCIAL', label: 'Social' },
   { id: 'CATEGORY_UPDATES', label: 'Updates' },
