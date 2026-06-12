@@ -26,6 +26,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Check } from "lucide-react";
+import { AdvancedSearchFilter } from '@/components/os/advanced-search-filter';
+import { SendersFilter } from '@/components/os/senders-filter';
 
 type EmailMessage = {
   id: string;
@@ -66,6 +68,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
   const [openLabels, setOpenLabels] = useState(false);
+  const [openQuickFilters, setOpenQuickFilters] = useState(false);
 
   const { data: labelsData } = useQuery({
     queryKey: ['labels'],
@@ -305,7 +308,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
         </div>
         
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border-default bg-bg-surface focus-within:border-accent-blue focus-within:ring-1 focus-within:ring-accent-blue transition-all w-[240px]">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border-default bg-bg-surface focus-within:border-accent-blue focus-within:ring-1 focus-within:ring-accent-blue transition-all w-[300px]">
             <Search className="h-3.5 w-3.5 text-text-muted" />
             <input 
               type="text" 
@@ -314,7 +317,21 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-transparent border-none outline-none text-[13px] font-medium text-text-primary placeholder:text-text-muted w-full"
             />
+            <AdvancedSearchFilter 
+              currentQuery={searchQuery}
+              onSearch={(q) => {
+                const combined = [searchQuery.trim(), q.trim()].filter(Boolean).join(' ');
+                setSearchQuery(combined);
+              }}
+            />
           </div>
+          
+          <SendersFilter 
+            emails={rawEmails} 
+            currentQuery={searchQuery}
+            onSelectSender={(sender) => setSearchQuery(`from:${sender}`)}
+            onClear={() => setSearchQuery('')}
+          />
           
           <Popover open={openLabels} onOpenChange={setOpenLabels}>
             <PopoverTrigger asChild>
@@ -353,9 +370,30 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
             </PopoverContent>
           </Popover>
 
-          <button className="p-2 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors" title="Filter">
-            <SlidersHorizontal className="h-4 w-4" />
-          </button>
+          <Popover open={openQuickFilters} onOpenChange={setOpenQuickFilters}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-default bg-bg-surface hover:bg-bg-highlight text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap" title="Filter">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                Quick Filters
+                <ChevronDown className="h-3 w-3 ml-1" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0 border-border-default shadow-xl rounded-xl" align="end">
+              <Command>
+                <CommandInput placeholder="Filter by..." />
+                <CommandList>
+                  <CommandEmpty>No filters found.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem onSelect={() => { setSearchQuery('is:unread'); setOpenQuickFilters(false); }}>Is unread</CommandItem>
+                    <CommandItem onSelect={() => { setSearchQuery('is:read'); setOpenQuickFilters(false); }}>Is read</CommandItem>
+                    <CommandItem onSelect={() => { setSearchQuery('-in:sent'); setOpenQuickFilters(false); }}>Hide sent</CommandItem>
+                    <CommandItem onSelect={() => { setSearchQuery('-in:inbox'); setOpenQuickFilters(false); }}>Show archived</CommandItem>
+                    <CommandItem onSelect={() => { setSearchQuery('has:attachment'); setOpenQuickFilters(false); }}>Has attachments</CommandItem>
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 

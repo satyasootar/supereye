@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { emails, emailEventLinks } from '@/lib/db/schema';
-import { eq, desc, ilike, or, sql } from 'drizzle-orm';
+import { eq, desc, ilike, or, sql, and } from 'drizzle-orm';
 import { getTenant } from '@/lib/corsair';
 import { getBody } from '@/lib/mail/sync';
 
@@ -22,17 +22,42 @@ export async function GET(req: Request) {
   try {
     const userId = session.user.id;
     
+    let localQ = q;
+    let fromFilter = '';
+    
+    const fromMatch = q.match(/from:\((.*?)\)|from:([^\s]+)/);
+    if (fromMatch) {
+       fromFilter = (fromMatch[1] || fromMatch[2]).trim();
+       localQ = q.replace(fromMatch[0], '').trim();
+    }
+
+    const searchPattern = `%${localQ}%`;
+    
+    const conditions = [eq(emails.userId, userId)];
+    
+    if (fromFilter) {
+      conditions.push(ilike(emails.fromAddress, `%${fromFilter}%`));
+    }
+    
+    if (localQ) {
+      conditions.push(
+        or(
+          ilike(emails.subject, searchPattern),
+          ilike(emails.snippet, searchPattern),
+          ilike(emails.body, searchPattern),
+          ilike(emails.fromAddress, searchPattern)
+        )
+      );
+    }
+
     // 1. Local DB Search
-    const searchPattern = `%${q}%`;
     const localResults = await db.select({
       email: emails,
       linkId: emailEventLinks.id
     })
     .from(emails)
     .leftJoin(emailEventLinks, eq(emails.id, emailEventLinks.emailId))
-    .where(
-      sql`${emails.userId} = ${userId} AND (${ilike(emails.subject, searchPattern)} OR ${ilike(emails.snippet, searchPattern)} OR ${ilike(emails.body, searchPattern)} OR ${ilike(emails.fromAddress, searchPattern)})`
-    )
+    .where(and(...conditions) as any)
     .orderBy(desc(emails.internalDate))
     .limit(25);
 
