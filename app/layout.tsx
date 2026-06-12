@@ -3,6 +3,7 @@ import { Geist, Inter, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/app/providers"
 import { cn } from "@/lib/utils";
+import { Toaster } from "sonner";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'})
 const geist = Geist({subsets:['latin'],variable:'--font-heading'})
@@ -25,6 +26,7 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning>
         <Providers>{children}</Providers>
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   )

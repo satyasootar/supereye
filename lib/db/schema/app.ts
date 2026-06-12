@@ -134,6 +134,29 @@ export const emailEventLinks = pgTable(
   ]
 );
 
+// ─── Notifications ───────────────────────────────────────────────────────
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(), // 'email', 'calendar', 'system'
+    title: text('title').notNull(),
+    body: text('body'),
+    link: text('link'),
+    isRead: boolean('is_read').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('idx_notifications_user_id').on(table.userId),
+    index('idx_notifications_created_at').on(table.createdAt),
+  ]
+);
+
 // ─── Sync State ─────────────────────────────────────────────────────────
 // Tracks incremental sync tokens per user per provider
 export const syncState = pgTable(

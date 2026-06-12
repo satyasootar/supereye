@@ -1,6 +1,6 @@
-import { db } from './lib/db/index.ts';
-import { emails } from './lib/db/schema/index.ts';
-import { syncGmailForUser } from './lib/mail/sync.ts';
+import { db } from './lib/db/index';
+import { emails } from './lib/db/schema/index';
+import { syncGmailForUser } from './lib/mail/sync';
 
 async function main() {
   const allEmails = await db.select().from(emails).limit(1);

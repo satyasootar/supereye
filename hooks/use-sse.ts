@@ -19,6 +19,23 @@ export function useSSE() {
           queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });
         } else if (data.type === 'calendar:updated') {
           queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+        } else if (data.type === 'notification:new') {
+          import('sonner').then(({ toast }) => {
+            const notif = data.data;
+            if (!notif) return;
+            toast(notif.title as string, {
+              description: notif.body as string,
+              action: {
+                label: 'View',
+                onClick: () => {
+                  if (notif.link) {
+                    window.location.hash = notif.link as string;
+                  }
+                }
+              }
+            });
+          });
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
         } else if (data.type === 'sync:requested') {
           queryClient.invalidateQueries({ queryKey: ['mail-threads'] });
           queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });

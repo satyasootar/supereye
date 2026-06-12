@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
+import { NotificationBell } from './notification-bell';
 
 export function TopBar() {
   const { activeTabs, openTab } = useAppStore();
@@ -33,7 +34,7 @@ export function TopBar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 flex h-12 w-full items-center justify-between border-b border-border bg-base/80 px-4 backdrop-blur-md">
+    <header className="sticky top-0 z-50 flex h-12 w-full items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md">
       {/* Left: Logo */}
       <div className="flex items-center gap-2 w-[200px]">
         <div className="flex h-7 w-7 items-center justify-center rounded bg-primary/10 text-primary">
@@ -57,8 +58,8 @@ export function TopBar() {
               className={cn(
                 "relative px-4 py-1.5 text-[13.5px] font-medium transition-colors rounded-md select-none flex items-center gap-1.5",
                 isActive 
-                  ? "bg-highlight text-foreground" 
-                  : "text-secondary hover:bg-overlay hover:text-foreground"
+                  ? "bg-accent text-foreground" 
+                  : "text-secondary hover:bg-secondary hover:text-foreground"
               )}
             >
               {tab.label}
@@ -79,21 +80,18 @@ export function TopBar() {
 
       {/* Right: Utilities */}
       <div className="flex items-center justify-end gap-3 w-[200px]">
-        <button className="text-secondary hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-overlay" title="Search (⌘K)">
+        <button className="text-secondary hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-secondary" title="Search (⌘K)">
           <Search className="h-[18px] w-[18px]" />
         </button>
-        <button className="relative text-secondary hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-overlay" title="Notifications">
-          <Bell className="h-[18px] w-[18px]" />
-          <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-destructive" />
-        </button>
+        <NotificationBell />
         <button 
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="text-secondary hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-overlay" 
+          className="text-secondary hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-secondary" 
           title="Toggle Theme"
         >
           {mounted && theme === 'dark' ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
         </button>
-        <button className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-accent-foreground ml-1 border border-border/50 hover:bg-overlay overflow-hidden">
+        <button className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-accent-foreground ml-1 border border-border/50 hover:bg-secondary overflow-hidden">
           {session?.user?.image ? (
             <img src={session.user.image} alt="User" className="h-full w-full object-cover" />
           ) : (

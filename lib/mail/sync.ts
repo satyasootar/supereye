@@ -78,6 +78,11 @@ export async function syncGmailForUser(userId: string) {
       }
     }
 
+    const existingDbEmails = await db.select({ googleMessageId: emails.googleMessageId })
+      .from(emails)
+      .where(sql`${emails.userId} = ${userId}`);
+    const existingIds = new Set(existingDbEmails.map(e => e.googleMessageId));
+
     if (toInsert.length > 0) {
       await db.insert(emails).values(toInsert).onConflictDoUpdate({
         target: [emails.userId, emails.googleMessageId],
@@ -90,6 +95,29 @@ export async function syncGmailForUser(userId: string) {
       });
       
       sseEmitter.emit(userId, { type: 'email:updated' });
+
+      // Create notifications for completely new emails
+      const newEmails = toInsert.filter(m => !existingIds.has(m.googleMessageId));
+      if (newEmails.length > 0) {
+        const { notifications } = await import('@/lib/db/schema');
+        const notifsToInsert = newEmails.map(m => ({
+          userId,
+          type: 'email',
+          title: `New Email: ${m.subject || '(No Subject)'}`,
+          body: m.snippet || '',
+          link: `/emails/${m.googleMessageId}`
+        }));
+        
+        await db.insert(notifications).values(notifsToInsert);
+        
+        // Emit SSE for each new notification
+        for (const notif of notifsToInsert) {
+          sseEmitter.emit(userId, { 
+            type: 'notification:new', 
+            data: notif as Record<string, unknown>
+          });
+        }
+      }
     }
 
     await db.insert(syncState).values({

@@ -15,6 +15,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/h
 type EmailMessage = {
   id: string;
   snippet: string;
+  body?: string;
   subject: string;
   sender: string;
   isRead: boolean;
@@ -239,8 +240,21 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                           <span className="text-[12px] text-text-muted truncate">{email.sender.split('<')[0].trim()}</span>
                         </div>
                       </div>
-                      <div className="text-[13px] text-text-secondary leading-relaxed line-clamp-6 whitespace-pre-wrap">
-                        {email.snippet}
+                      <div className="relative w-full h-[200px] bg-white rounded-md overflow-hidden pointer-events-none border border-border-subtle mt-2">
+                        {email.body ? (
+                          <div className="absolute top-0 left-0 w-[800px] h-[470px] origin-top-left" style={{ transform: 'scale(0.425)' }}>
+                            <iframe 
+                              srcDoc={email.body} 
+                              className="w-full h-full border-none"
+                              sandbox=""
+                              scrolling="no"
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-[13px] text-gray-800 leading-relaxed line-clamp-6 whitespace-pre-wrap p-3">
+                            {email.snippet}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </HoverCardContent>

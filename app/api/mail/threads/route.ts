@@ -25,6 +25,7 @@ export async function GET() {
     const fullMessages = cachedEmails.map(m => ({
       id: m.email.googleMessageId,
       snippet: m.email.snippet,
+      body: m.email.body,
       subject: m.email.subject,
       sender: m.email.fromAddress,
       isRead: m.email.isRead,
