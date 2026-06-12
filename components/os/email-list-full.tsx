@@ -3,7 +3,7 @@
 import { 
   Menu, Filter, Tag, CheckCircle2, SlidersHorizontal, Square, 
   CheckSquare, Archive, Trash2, Clock, Calendar, MessageSquare, 
-  MoreHorizontal, ChevronDown, Plus, Search, Send, X
+  MoreHorizontal, ChevronDown, Plus, Search, Send, X, FileText, Inbox
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -296,14 +296,31 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       {/* Header */}
       <div className="flex h-[60px] flex-shrink-0 items-center justify-between px-6 border-b border-border-subtle bg-bg-app">
         <div className="flex items-center gap-3 text-text-primary">
-          {emailCategory === 'SENT' ? (
-            <Send className="h-5 w-5 text-accent-blue" />
-          ) : (
-            <Archive className="h-5 w-5 text-accent-blue" />
-          )}
-          <h1 className="text-[20px] font-heading font-semibold">
-            {emailCategory === 'SENT' ? 'Sent' : 'Inbox'}
-          </h1>
+          {(() => {
+            let Icon = Inbox;
+            let title = 'Inbox';
+            
+            if (emailCategory === 'SENT') {
+              Icon = Send;
+              title = 'Sent';
+            } else if (emailCategory === 'TRASH') {
+              Icon = Trash2;
+              title = 'Trash';
+            } else if (emailCategory === 'DRAFT') {
+              Icon = FileText;
+              title = 'Drafts';
+            } else if (emailCategory === 'ALL') {
+              Icon = Archive;
+              title = 'All Mail';
+            }
+            
+            return (
+              <>
+                <Icon className="h-5 w-5 text-accent-blue" />
+                <h1 className="text-[20px] font-heading font-semibold">{title}</h1>
+              </>
+            );
+          })()}
         </div>
         
         <div className="flex items-center gap-3">
@@ -431,8 +448,8 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
         </div>
       </div>
 
-      {/* Categories Toolbar - Only show if not in SENT view */}
-      {emailCategory !== 'SENT' && (
+      {/* Categories Toolbar - Only show in INBOX and its sub-categories */}
+      {['ALL', 'INBOX', 'CATEGORY_PROMOTIONS', 'CATEGORY_SOCIAL', 'CATEGORY_UPDATES'].includes(emailCategory) && (
         <div className="flex-none px-4 py-2 border-b border-border-subtle bg-bg-surface/50 overflow-x-auto hide-scrollbar">
           <div className="flex items-center gap-2">
             {CATEGORY_TABS.map((tab) => (
