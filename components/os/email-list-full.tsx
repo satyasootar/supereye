@@ -93,6 +93,8 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     (l: any) => !['INBOX', 'SENT', 'TRASH', 'UNREAD', 'STARRED', 'DRAFT', 'CHAT', 'YELLOW_STAR'].includes(l.id) && l.name !== 'YELLOW_STAR'
   );
 
+
+
   const handleMouseEnter = (e: React.MouseEvent, email: EmailMessage) => {
     if (isSplitView) return;
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
@@ -303,80 +305,58 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
         </div>
         
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border-default bg-bg-surface text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors">
-            <Tag className="h-3.5 w-3.5" />
-            Auto label
-          </button>
-          <button className="p-2 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors">
-            <CheckCircle2 className="h-4 w-4" />
-          </button>
-          <button className="p-2 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border-default bg-bg-surface focus-within:border-accent-blue focus-within:ring-1 focus-within:ring-accent-blue transition-all w-[240px]">
+            <Search className="h-3.5 w-3.5 text-text-muted" />
+            <input 
+              type="text" 
+              placeholder="Search emails..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-transparent border-none outline-none text-[13px] font-medium text-text-primary placeholder:text-text-muted w-full"
+            />
+          </div>
+          
+          <Popover open={openLabels} onOpenChange={setOpenLabels}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-default bg-bg-surface hover:bg-bg-highlight text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap">
+                <Tag className="h-3.5 w-3.5" />
+                Labels
+                <ChevronDown className="h-3 w-3 ml-1" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search label..." />
+                <CommandList>
+                  <CommandEmpty>No label found.</CommandEmpty>
+                  <CommandGroup>
+                    {dynamicLabels.map((label: any) => {
+                      const displayName = formatLabelName(label.name);
+                      const isSelected = emailCategory === label.id;
+                      return (
+                        <CommandItem
+                          key={label.id}
+                          value={displayName}
+                          data-checked={isSelected}
+                          onSelect={() => {
+                            setEmailCategory(label.id);
+                            setOpenLabels(false);
+                          }}
+                        >
+                          {displayName}
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          <button className="p-2 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors" title="Filter">
             <SlidersHorizontal className="h-4 w-4" />
           </button>
         </div>
-      </div>
-
-      {/* Filter Row */}
-      <div className="flex items-center gap-3 px-6 py-3 border-b border-border-subtle bg-bg-app overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-2 px-3 py-1 rounded border border-border-default bg-bg-surface focus-within:border-accent-blue focus-within:ring-1 focus-within:ring-accent-blue transition-all w-[240px]">
-          <Search className="h-3.5 w-3.5 text-text-muted" />
-          <input 
-            type="text" 
-            placeholder="Search emails..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent border-none outline-none text-[13px] font-medium text-text-primary placeholder:text-text-muted w-full"
-          />
-        </div>
-        <Popover open={openLabels} onOpenChange={setOpenLabels}>
-          <PopoverTrigger asChild>
-            <button className="flex items-center gap-1.5 px-3 py-1 rounded border border-border-default bg-bg-surface hover:bg-bg-highlight text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap">
-              <Tag className="h-3.5 w-3.5" />
-              Labels
-              <ChevronDown className="h-3 w-3 ml-1" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[200px] p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Search label..." />
-              <CommandList>
-                <CommandEmpty>No label found.</CommandEmpty>
-                <CommandGroup>
-                  {dynamicLabels.map((label: any) => {
-                    const displayName = formatLabelName(label.name);
-                    const isSelected = emailCategory === label.id;
-                    return (
-                      <CommandItem
-                        key={label.id}
-                        value={displayName}
-                        onSelect={() => {
-                          setEmailCategory(label.id);
-                          setOpenLabels(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            isSelected ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {displayName}
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        <button className="flex items-center gap-1.5 px-3 py-1 rounded border border-border-default bg-bg-surface hover:bg-bg-highlight text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap">
-          <CheckSquare className="h-3.5 w-3.5" />
-          Is unread
-        </button>
-        <button className="flex items-center gap-1.5 px-3 py-1 rounded border border-transparent hover:bg-bg-surface text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap ml-2">
-          <Plus className="h-3.5 w-3.5" />
-          Filter
-        </button>
       </div>
 
       {/* Categories Toolbar - Only show if not in SENT view */}
@@ -423,7 +403,10 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                 <div className="flex flex-col w-full">
                   {group.emails.map(email => {
                     const isChecked = selectedIds.includes(email.id);
-                    let displaySender = email.sender.split('<')[0].trim();
+                    let displaySender = email.sender ? email.sender.split('<')[0].replace(/["']/g, '').trim() : 'Unknown';
+                    if (!displaySender && email.sender) {
+                      displaySender = email.sender.replace(/[<>]/g, '').trim();
+                    }
                     if (emailCategory === 'SENT') {
                       displaySender = `To: ${email.toAddresses?.map((t: any) => t.name || t.email).join(', ') || 'Unknown'}`;
                     }

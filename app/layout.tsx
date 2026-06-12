@@ -24,7 +24,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("dark antialiased", fontMono.variable, geist.variable, inter.variable)}
     >
-      <body suppressHydrationWarning>
+      <body suppressHydrationWarning className="mx-auto max-w-[1600px] border-x border-border-subtle shadow-2xl relative h-screen">
         <Providers>{children}</Providers>
         <Toaster position="bottom-right" richColors />
       </body>

@@ -194,8 +194,21 @@ export function EmailReader() {
         <div className="max-w-[700px] mx-auto flex flex-col gap-6">
           
           {messages.map((email: any, index: number) => {
-            const rawFromAddress = extractRawEmail(email.fromAddress);
-            const cleanFromName = email.fromName ? email.fromName.replace(/<[^>]+>/g, '').replace(/"/g, '').trim() : rawFromAddress;
+            const senderString = email.sender || email.fromAddress || '';
+            const match = senderString.match(/(?:(.*)\s+)?<([^>]+)>/);
+            
+            let cleanFromName = senderString;
+            let rawFromAddress = senderString;
+            
+            if (match) {
+              cleanFromName = match[1] ? match[1].replace(/["']/g, '').trim() : match[2];
+              rawFromAddress = match[2];
+            }
+
+            if (email.fromName) {
+              cleanFromName = email.fromName.replace(/<[^>]+>/g, '').replace(/"/g, '').trim();
+            }
+
             const isLast = index === messages.length - 1;
             const isReplyingToThis = replyMessageId === email.id;
 
@@ -204,14 +217,14 @@ export function EmailReader() {
                 {/* Message Header */}
                 <div className="flex items-start justify-between">
                   <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <span className="text-[14px] font-semibold text-text-primary">{cleanFromName}</span>
                       {rawFromAddress !== cleanFromName && (
-                        <span className="text-[13px] text-text-secondary">{rawFromAddress}</span>
+                        <span className="text-[13px] text-text-secondary">&lt;{rawFromAddress}&gt;</span>
                       )}
                     </div>
                     <span className="text-[13px] text-text-secondary">
-                      To {email.toAddresses?.map((t: any) => t.name ? t.name.toUpperCase() : t.email).join(', ') || 'ME'}
+                      To: {email.toAddresses?.map((t: any) => t.name ? t.name : t.email).join(', ') || 'me'}
                     </span>
                   </div>
                   <div className="flex items-center gap-4">
