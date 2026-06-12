@@ -56,7 +56,8 @@ export function EmailList() {
     },
   });
 
-  const emails = data || [];
+  const rawEmails = data || [];
+  const emails = Array.from(new Map(rawEmails.map((e: EmailMessage) => [e.id, e])).values());
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => 

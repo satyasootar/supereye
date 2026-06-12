@@ -4,6 +4,8 @@ import { sseEmitter } from '@/lib/sse/emitter';
 import { getTenant } from '@/lib/corsair';
 import { handleCorsairError } from '@/lib/corsair-error';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
+import { db } from '@/lib/db';
+import { scheduledEmails } from '@/lib/db/schema';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -18,6 +20,7 @@ export async function POST(req: Request) {
     const to = formData.get('to') as string;
     const subject = formData.get('subject') as string;
     const text = formData.get('text') as string;
+    const scheduleAt = formData.get('scheduleAt') as string;
     const attachmentFiles = formData.getAll('attachments') as File[];
 
     if (!to || to.length === 0) {
@@ -43,6 +46,16 @@ export async function POST(req: Request) {
 
     const mailBuffer = await mail.compile().build();
     const raw = mailBuffer.toString('base64url');
+
+    if (scheduleAt) {
+      await db.insert(scheduledEmails).values({
+        userId,
+        rawPayload: raw,
+        scheduledAt: new Date(scheduleAt),
+        status: 'pending'
+      });
+      return NextResponse.json({ success: true, scheduled: true });
+    }
 
     await t.gmail.api.messages.send({
       userId: 'me',

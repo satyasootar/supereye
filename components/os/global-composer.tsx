@@ -1,5 +1,6 @@
 import { useState, useRef, KeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
+import { addDays, setHours, setMinutes, nextFriday, format, isAfter } from 'date-fns';
 import { 
   X, Minus, Sparkles, Paperclip, Code, Calendar as CalendarIcon, 
   Trash2, ChevronDown
@@ -23,6 +24,7 @@ export function GlobalComposer() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [scheduleAt, setScheduleAt] = useState<Date | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,6 +88,9 @@ export function GlobalComposer() {
       formData.append('to', finalTo.join(', '));
       formData.append('subject', subject);
       formData.append('text', bodyText);
+      if (scheduleAt) {
+        formData.append('scheduleAt', scheduleAt.toISOString());
+      }
       attachments.forEach(file => {
         formData.append('attachments', file);
       });
@@ -99,13 +104,14 @@ export function GlobalComposer() {
         throw new Error('Failed to send email');
       }
 
-      toast.success('Message sent');
+      toast.success(scheduleAt ? 'Message scheduled' : 'Message sent');
       setComposeOpen(false);
       setToRecipients([]);
       setSubject('');
       setBodyText('');
       setInputValue('');
       setAttachments([]);
+      setScheduleAt(null);
       setIsMinimized(false);
     } catch (error) {
       toast.error('Failed to send message');
@@ -133,6 +139,19 @@ export function GlobalComposer() {
 
   const userName = session?.user?.name?.toUpperCase() || 'NEW MESSAGE';
   const userEmail = session?.user?.email || '';
+
+  // Calculate dynamic schedule times
+  const now = new Date();
+  const tmrwMorning = setMinutes(setHours(addDays(now, 1), 8), 0);
+  const tmrwAfternoon = setMinutes(setHours(addDays(now, 1), 13), 0);
+  const nxtFriday = setMinutes(setHours(nextFriday(now), 8), 0);
+  // Ensure we don't show a past time (e.g., if it's already past 1pm)
+  
+  const scheduleOptions = [
+    { label: 'Tomorrow morning', date: tmrwMorning },
+    { label: 'Tomorrow afternoon', date: tmrwAfternoon },
+    { label: 'Friday morning', date: nxtFriday }
+  ];
 
   return (
     <motion.div 
@@ -288,7 +307,7 @@ export function GlobalComposer() {
                   disabled={isSending}
                   className="flex items-center px-5 py-1.5 bg-accent-blue hover:bg-accent-blue-dim text-white text-[14px] font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  {isSending ? 'Sending...' : 'Send'}
+                  {isSending ? 'Sending...' : scheduleAt ? `Schedule send` : 'Send'}
                 </button>
                 <div className="w-[1px] bg-white/20"></div>
                 <button 
@@ -300,6 +319,61 @@ export function GlobalComposer() {
                   <ChevronDown className="h-4 w-4" />
                 </button>
               </div>
+              
+              {showScheduleSend && (
+                <div className="absolute bottom-[calc(100%+8px)] left-0 w-[300px] bg-bg-elevated text-text-primary rounded-xl shadow-2xl border border-border-subtle overflow-hidden flex flex-col z-50 animate-in fade-in zoom-in-95 duration-200 py-1">
+                  <div className="px-5 py-3 text-[14px] font-medium text-text-muted flex justify-between items-center">
+                    <span>Schedule send</span>
+                    {scheduleAt && (
+                      <button 
+                        className="text-accent-blue text-[13px] hover:underline"
+                        onClick={() => {
+                          setScheduleAt(null);
+                          setShowScheduleSend(false);
+                        }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  
+                  {scheduleOptions.map((opt, i) => (
+                    <button 
+                      key={i}
+                      onClick={() => {
+                        setScheduleAt(opt.date);
+                        setShowScheduleSend(false);
+                      }}
+                      className="flex items-center gap-4 px-5 py-3 hover:bg-bg-surface transition-colors text-left group"
+                    >
+                      <div className="flex flex-col items-center justify-center w-9 h-10 rounded-md border border-border-default bg-transparent flex-shrink-0 group-hover:bg-bg-surface transition-colors">
+                        <span className="text-[10px] font-bold text-red-400 mt-0.5">{format(opt.date, 'EEE').toUpperCase()}</span>
+                        <span className="text-[14px] font-bold leading-tight text-text-primary">{format(opt.date, 'd')}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[15px] text-text-primary font-medium">{opt.label}</span>
+                        <span className="text-[13px] text-text-muted">{format(opt.date, 'MMM d, h:mm a')}</span>
+                      </div>
+                    </button>
+                  ))}
+
+                  <div className="h-[1px] bg-border-subtle mx-5 my-1"></div>
+
+                  <div className="px-5 py-3">
+                    <span className="text-[13px] text-text-muted mb-2 block">Custom time</span>
+                    <input 
+                      type="datetime-local" 
+                      className="w-full bg-bg-surface border border-border-default rounded-md px-3 py-2 text-[13px] text-text-primary outline-none focus:border-accent-blue"
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setScheduleAt(new Date(e.target.value));
+                          setShowScheduleSend(false);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="flex items-center gap-3 text-text-muted">

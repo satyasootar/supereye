@@ -174,3 +174,28 @@ export const syncState = pgTable(
     unique('uq_sync_state_user_provider').on(table.userId, table.provider),
   ]
 );
+
+// ─── Scheduled Emails ───────────────────────────────────────────────────
+export const scheduledEmails = pgTable(
+  'scheduled_emails',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    rawPayload: text('raw_payload').notNull(),
+    threadId: text('thread_id'),
+    scheduledAt: timestamp('scheduled_at', { withTimezone: true }).notNull(),
+    status: text('status').notNull().default('pending'), // 'pending', 'sent', 'failed'
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('idx_scheduled_emails_status').on(table.status),
+    index('idx_scheduled_emails_time').on(table.scheduledAt),
+  ]
+);

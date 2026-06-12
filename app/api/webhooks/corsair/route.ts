@@ -57,9 +57,13 @@ export async function POST(req: Request) {
     console.log(`[Webhook] Received update for user ${userId} from provider ${provider}`);
 
     // Process webhook via Corsair so internal SDK state is updated
-    const headersObject = Object.fromEntries(req.headers.entries());
-    const queryObj = userId ? { tenantId: userId } : undefined;
-    await processWebhook(corsair, headersObject, bodyText, queryObj);
+    try {
+      const headersObject = Object.fromEntries(req.headers.entries());
+      const queryObj = userId ? { tenantId: userId } : undefined;
+      await processWebhook(corsair, headersObject, bodyText, queryObj);
+    } catch (e) {
+      console.warn(`[Webhook] Corsair processWebhook failed (often expected in local dev):`, e);
+    }
 
     // Fetch and sync the latest data in the background for our app DB
     if (provider === 'gmail') {

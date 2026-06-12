@@ -81,7 +81,8 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     }
   });
 
-  const emails = data?.pages.flat() || [];
+  const rawEmails = data?.pages.flat() || [];
+  const emails = Array.from(new Map(rawEmails.map(e => [e.id, e])).values());
   const observer = useRef<IntersectionObserver | null>(null);
   const observerTarget = useCallback((node: HTMLDivElement | null) => {
     if (isLoading || isFetchingNextPage) return;

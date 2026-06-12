@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { emails } from '@/lib/db/schema';
+import { emails, scheduledEmails } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
 import { getTenant } from '@/lib/corsair';
@@ -23,6 +23,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const threadId = formData.get('threadId') as string;
     const to = formData.get('to') as string;
     const subject = formData.get('subject') as string;
+    const scheduleAt = formData.get('scheduleAt') as string;
     const attachmentFiles = formData.getAll('attachments') as File[];
 
     const t = getTenant(userId);
@@ -63,6 +64,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const mail = new MailComposer(mailOptions);
     const mailBuffer = await mail.compile().build();
     const raw = mailBuffer.toString('base64url');
+
+    if (scheduleAt) {
+      await db.insert(scheduledEmails).values({
+        userId,
+        rawPayload: raw,
+        threadId,
+        scheduledAt: new Date(scheduleAt),
+        status: 'pending'
+      });
+      return NextResponse.json({ success: true, scheduled: true });
+    }
 
     await t.gmail.api.messages.send({
       userId: 'me',
