@@ -51,10 +51,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       
       queryClient.setQueryData(['emails', 'threads'], (old: any) => {
         if (!old) return old;
-        return {
-          ...old,
-          messages: old.messages.map((m: EmailMessage) => m.id === id ? { ...m, isRead: true } : m)
-        };
+        return old.map((m: EmailMessage) => m.id === id ? { ...m, isRead: true } : m);
       });
       return { previous };
     },

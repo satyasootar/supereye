@@ -43,7 +43,10 @@ export async function POST(req: Request) {
 
     // Fetch and sync the latest data in the background for our app DB
     if (provider === 'gmail') {
-      await syncGmailForUser(userId);
+      // Delay sync by 2.5s to ensure Google's index has propagated label changes
+      setTimeout(async () => {
+        await syncGmailForUser(userId);
+      }, 2500);
     } else if (provider === 'googlecalendar') {
       await syncCalendarForUser(userId);
     } else {

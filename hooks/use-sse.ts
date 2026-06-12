@@ -16,10 +16,12 @@ export function useSSE() {
         
         if (data.type === 'email:updated') {
           queryClient.invalidateQueries({ queryKey: ['mail-threads'] });
+          queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });
         } else if (data.type === 'calendar:updated') {
           queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         } else if (data.type === 'sync:requested') {
           queryClient.invalidateQueries({ queryKey: ['mail-threads'] });
+          queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });
           queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
         }
       } catch (e) {

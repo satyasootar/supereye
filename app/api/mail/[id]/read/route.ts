@@ -5,25 +5,22 @@ import { emails } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const userId = session.user.id;
-  const messageId = params.id;
+  const { id: messageId } = await params;
 
   try {
     const { corsair } = await import('@/lib/corsair');
     const t = corsair.withTenant(userId) as any;
 
     await t.gmail.api.messages.modify({
-      userId: 'me',
       id: messageId,
-      requestBody: {
-        removeLabelIds: ['UNREAD']
-      }
+      removeLabelIds: ['UNREAD']
     });
 
     await db.update(emails)
