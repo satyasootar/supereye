@@ -6,6 +6,7 @@ import { eq, and } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
 import { getTenant } from '@/lib/corsair';
 import { handleCorsairError } from '@/lib/corsair-error';
+import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -17,16 +18,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id: messageId } = await params;
 
   try {
-    const body = await req.json();
-    const { replyText, threadId, to, subject } = body;
+    const formData = await req.formData();
+    const replyText = formData.get('replyText') as string;
+    const threadId = formData.get('threadId') as string;
+    const to = formData.get('to') as string;
+    const subject = formData.get('subject') as string;
+    const attachmentFiles = formData.getAll('attachments') as File[];
 
     const t = getTenant(userId);
 
     // Fetch the original message to get its RFC 2822 Message-ID
     const originalMsg = await t.gmail.api.messages.get({
+      userId: 'me',
       id: messageId,
-      format: 'metadata',
-      metadataHeaders: ['Message-ID', 'References']
+      format: 'metadata'
     });
 
     const headers = originalMsg.payload?.headers || [];
@@ -37,24 +42,32 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       ? `${existingReferences} ${rfcMessageId}`.trim()
       : rfcMessageId;
 
-    // Construct raw email
-    const emailLines = [
-      `To: ${to}`,
-      `Subject: ${subject.toLowerCase().startsWith('re:') ? subject : `Re: ${subject}`}`,
-      ...(rfcMessageId ? [`In-Reply-To: ${rfcMessageId}`] : []),
-      ...(newReferences ? [`References: ${newReferences}`] : []),
-      '',
-      replyText
-    ];
+    const attachments = await Promise.all(
+      attachmentFiles.map(async (file) => ({
+        filename: file.name,
+        content: Buffer.from(await file.arrayBuffer()),
+        contentType: file.type
+      }))
+    );
 
-    const raw = Buffer.from(emailLines.join('\n')).toString('base64url');
+    const mailOptions: any = {
+      to,
+      subject: subject.toLowerCase().startsWith('re:') ? subject : `Re: ${subject}`,
+      text: replyText,
+      attachments
+    };
+
+    if (rfcMessageId) mailOptions.inReplyTo = rfcMessageId;
+    if (newReferences) mailOptions.references = newReferences;
+
+    const mail = new MailComposer(mailOptions);
+    const mailBuffer = await mail.compile().build();
+    const raw = mailBuffer.toString('base64url');
 
     await t.gmail.api.messages.send({
       userId: 'me',
-      requestBody: {
-        raw,
-        threadId
-      }
+      raw,
+      threadId
     });
 
     // We don't necessarily update our local DB immediately with the sent message

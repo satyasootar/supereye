@@ -54,7 +54,7 @@ export async function syncGmailForUser(userId: string) {
 
     for (const msg of messageIds) {
       try {
-        const m = await t.gmail.api.messages.get({ id: msg.id, format: 'full' });
+        const m = await t.gmail.api.messages.get({ userId: 'me', id: msg.id, format: 'full' });
         const headers = m.payload?.headers || [];
         const subject = headers.find((h: any) => h.name?.toLowerCase() === 'subject')?.value || '';
         const sender = headers.find((h: any) => h.name?.toLowerCase() === 'from')?.value || '';

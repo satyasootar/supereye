@@ -19,6 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const t = corsair.withTenant(userId) as any;
 
     await t.gmail.api.messages.modify({
+      userId: 'me',
       id: messageId,
       removeLabelIds: ['INBOX']
     });

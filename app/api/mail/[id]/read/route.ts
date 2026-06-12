@@ -19,6 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const t = getTenant(userId);
 
     await t.gmail.api.messages.modify({
+      userId: 'me',
       id: messageId,
       removeLabelIds: ['UNREAD']
     });

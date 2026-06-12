@@ -22,6 +22,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const isStarred = body.isStarred !== false;
 
     await t.gmail.api.messages.modify({
+      userId: 'me',
       id: messageId,
       addLabelIds: isStarred ? ['STARRED'] : [],
       removeLabelIds: !isStarred ? ['STARRED'] : []

@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent } from 'react';
+import { useState, useRef, KeyboardEvent } from 'react';
 import { 
   CornerUpLeft, X, MoreHorizontal, ChevronDown,
   Sparkles, Paperclip, Calendar as CalendarIcon, Trash2, Code
@@ -78,7 +78,19 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
   const [ccRecipients, setCcRecipients] = useState<string[]>([]);
   const [bccRecipients, setBccRecipients] = useState<string[]>([]);
   const [bodyText, setBodyText] = useState('');
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSend = async () => {
     if (toRecipients.length === 0) {
@@ -92,15 +104,18 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
 
     setIsSending(true);
     try {
+      const formData = new FormData();
+      formData.append('replyText', bodyText);
+      if (threadId) formData.append('threadId', threadId);
+      formData.append('to', toRecipients.join(', '));
+      formData.append('subject', subject || 'No Subject');
+      attachments.forEach(file => {
+        formData.append('attachments', file);
+      });
+
       const res = await fetch(`/api/mail/${emailId}/reply`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          replyText: bodyText,
-          threadId,
-          to: toRecipients.join(', '),
-          subject: subject || 'No Subject',
-        }),
+        body: formData,
       });
 
       if (!res.ok) {
@@ -182,6 +197,25 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
         />
       </div>
 
+      {/* Attachments List */}
+      {attachments.length > 0 && (
+        <div className="px-6 py-2 flex flex-wrap gap-2">
+          {attachments.map((file, idx) => (
+            <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-bg-surface border border-border-subtle text-[13px] text-text-primary">
+              <Paperclip className="h-3.5 w-3.5 text-text-muted" />
+              <span className="truncate max-w-[150px]">{file.name}</span>
+              <button 
+                type="button" 
+                onClick={() => removeAttachment(idx)}
+                className="text-text-muted hover:text-text-primary transition-colors ml-1"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Bottom Toolbar */}
       <div className="flex items-center justify-between px-6 py-4">
         <div className="relative">
@@ -260,9 +294,23 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
           <button type="button" aria-label="AI Assistant" className="hover:text-text-primary transition-colors">
             <Sparkles className="h-5 w-5" />
           </button>
-          <button type="button" aria-label="Attach file" className="hover:text-text-primary transition-colors">
+          
+          <input 
+            type="file" 
+            multiple 
+            className="hidden" 
+            ref={fileInputRef}
+            onChange={handleFileChange}
+          />
+          <button 
+            type="button" 
+            aria-label="Attach file" 
+            className="hover:text-text-primary transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+          >
             <Paperclip className="h-5 w-5" />
           </button>
+          
           <button type="button" aria-label="Insert code" className="hover:text-text-primary transition-colors">
             <Code className="h-5 w-5" />
           </button>

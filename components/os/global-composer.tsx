@@ -22,6 +22,18 @@ export function GlobalComposer() {
   const [showScheduleSend, setShowScheduleSend] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   const queryClient = useQueryClient();
 
@@ -65,14 +77,17 @@ export function GlobalComposer() {
 
     setIsSending(true);
     try {
+      const formData = new FormData();
+      formData.append('to', toRecipients.join(', '));
+      formData.append('subject', subject);
+      formData.append('text', bodyText);
+      attachments.forEach(file => {
+        formData.append('attachments', file);
+      });
+
       const res = await fetch('/api/mail/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: toRecipients,
-          subject,
-          text: bodyText,
-        }),
+        body: formData,
       });
 
       if (!res.ok) {
@@ -85,6 +100,7 @@ export function GlobalComposer() {
       setSubject('');
       setBodyText('');
       setInputValue('');
+      setAttachments([]);
       setIsMinimized(false);
     } catch (error) {
       toast.error('Failed to send message');
@@ -238,6 +254,25 @@ export function GlobalComposer() {
             />
           </div>
 
+          {/* Attachments List */}
+          {attachments.length > 0 && (
+            <div className="px-4 py-2 flex flex-wrap gap-2 border-t border-border-subtle">
+              {attachments.map((file, idx) => (
+                <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-bg-surface border border-border-subtle text-[13px] text-text-primary">
+                  <Paperclip className="h-3.5 w-3.5 text-text-muted" />
+                  <span className="truncate max-w-[150px]">{file.name}</span>
+                  <button 
+                    type="button" 
+                    onClick={() => removeAttachment(idx)}
+                    className="text-text-muted hover:text-text-primary transition-colors ml-1"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Footer */}
           <div className="flex items-center justify-between px-4 py-3 bg-bg-surface border-t border-border-subtle flex-shrink-0">
             <div className="relative">
@@ -266,7 +301,18 @@ export function GlobalComposer() {
               <button type="button" className="hover:text-text-primary transition-colors">
                 <Sparkles className="h-4 w-4" />
               </button>
-              <button type="button" className="hover:text-text-primary transition-colors">
+              <input 
+                type="file" 
+                multiple 
+                className="hidden" 
+                ref={fileInputRef}
+                onChange={handleFileChange}
+              />
+              <button 
+                type="button" 
+                className="hover:text-text-primary transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <Paperclip className="h-4 w-4" />
               </button>
               <button type="button" className="hover:text-text-primary transition-colors">
