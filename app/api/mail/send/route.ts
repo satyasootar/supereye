@@ -21,6 +21,7 @@ export async function POST(req: Request) {
     const subject = formData.get('subject') as string;
     const text = formData.get('text') as string;
     const scheduleAt = formData.get('scheduleAt') as string;
+    const isDraft = formData.get('isDraft') === 'true';
     const attachmentFiles = formData.getAll('attachments') as File[];
 
     if (!to || to.length === 0) {
@@ -55,6 +56,14 @@ export async function POST(req: Request) {
         status: 'pending'
       });
       return NextResponse.json({ success: true, scheduled: true });
+    }
+
+    if (isDraft) {
+      await t.gmail.api.drafts.create({
+        message: { raw }
+      });
+      sseEmitter.emit(userId, { type: 'sync:requested' });
+      return NextResponse.json({ success: true, draft: true });
     }
 
     await t.gmail.api.messages.send({

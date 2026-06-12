@@ -4,13 +4,14 @@ import { useSession } from 'next-auth/react';
 import { 
   Inbox, Star, Clock, Send, FileText, Mail, AlertOctagon, Trash2, 
   ChevronDown, Plus, Settings, HelpCircle, HardDrive, Edit, 
-  BarChart, Flame, Paperclip, Users
+  BarChart, Flame, Paperclip, Users, Tag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
 const basePrimaryNav = [
   { icon: Inbox, label: 'Inbox', id: 'ALL' },
+  { icon: FileText, label: 'Drafts', id: 'DRAFT' },
   { icon: Send, label: 'Sent', id: 'SENT' },
   { icon: Trash2, label: 'Trash', id: 'TRASH' },
 ];
@@ -31,6 +32,16 @@ export function EmailSidebar() {
       return res.json();
     },
     refetchInterval: 30000, // refresh every 30 seconds
+  });
+
+  const { data: labelsData } = useQuery({
+    queryKey: ['emails', 'labels'],
+    queryFn: async () => {
+      const res = await fetch('/api/mail/labels');
+      if (!res.ok) throw new Error('Failed to fetch labels');
+      return res.json();
+    },
+    staleTime: 60000 * 5, // Cache labels for 5 minutes
   });
 
   const primaryNav = basePrimaryNav.map(item => {
@@ -122,8 +133,6 @@ export function EmailSidebar() {
           </button>
         ))}
       </nav>
-
-
 
       {/* Spacer */}
       <div className="flex-1" />

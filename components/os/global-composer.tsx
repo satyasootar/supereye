@@ -71,13 +71,13 @@ export function GlobalComposer() {
 
   const suggestions = getSuggestions(inputValue);
 
-  const handleSend = async () => {
+  const handleSend = async (isDraft = false) => {
     const finalTo = [...toRecipients];
     if (inputValue.trim()) {
       finalTo.push(inputValue.trim().replace(/,/g, ''));
     }
 
-    if (finalTo.length === 0) {
+    if (finalTo.length === 0 && !isDraft) {
       toast.error('Please add at least one recipient');
       return;
     }
@@ -88,8 +88,11 @@ export function GlobalComposer() {
       formData.append('to', finalTo.join(', '));
       formData.append('subject', subject);
       formData.append('text', bodyText);
-      if (scheduleAt) {
+      if (scheduleAt && !isDraft) {
         formData.append('scheduleAt', scheduleAt.toISOString());
+      }
+      if (isDraft) {
+        formData.append('isDraft', 'true');
       }
       attachments.forEach(file => {
         formData.append('attachments', file);
@@ -104,7 +107,11 @@ export function GlobalComposer() {
         throw new Error('Failed to send email');
       }
 
-      toast.success(scheduleAt ? 'Message scheduled' : 'Message sent');
+      if (isDraft) {
+        toast.success('Draft saved');
+      } else {
+        toast.success(scheduleAt ? 'Message scheduled' : 'Message sent');
+      }
       setComposeOpen(false);
       setToRecipients([]);
       setSubject('');
@@ -157,7 +164,6 @@ export function GlobalComposer() {
     <motion.div 
       drag
       dragMomentum={false}
-      dragHandle=".drag-handle"
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -303,7 +309,7 @@ export function GlobalComposer() {
               <div className="flex items-stretch rounded-md overflow-hidden shadow-sm">
                 <button 
                   type="button" 
-                  onClick={handleSend}
+                  onClick={() => handleSend(false)}
                   disabled={isSending}
                   className="flex items-center px-5 py-1.5 bg-accent-blue hover:bg-accent-blue-dim text-white text-[14px] font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
@@ -401,6 +407,14 @@ export function GlobalComposer() {
                 <CalendarIcon className="h-4 w-4" />
               </button>
               <div className="w-[1px] h-4 bg-border-strong mx-1"></div>
+              <button 
+                type="button" 
+                onClick={() => handleSend(true)}
+                disabled={isSending}
+                className="hover:text-text-primary transition-colors text-[13px] font-medium px-2"
+              >
+                Save Draft
+              </button>
               <button 
                 type="button"
                 onClick={() => {

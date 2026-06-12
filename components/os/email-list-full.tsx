@@ -12,6 +12,20 @@ import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tansta
 import { format, isToday, isYesterday, isThisYear, subDays, isAfter } from 'date-fns';
 import { useTheme } from 'next-themes';
 import { useDebounce } from '@/lib/hooks/use-debounce';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check } from "lucide-react";
 
 type EmailMessage = {
   id: string;
@@ -51,6 +65,33 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   const [hoveredEmail, setHoveredEmail] = useState<EmailMessage | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [openLabels, setOpenLabels] = useState(false);
+
+  const { data: labelsData } = useQuery({
+    queryKey: ['labels'],
+    queryFn: async () => {
+      const res = await fetch('/api/mail/labels');
+      if (!res.ok) throw new Error('Failed to fetch labels');
+      return res.json();
+    }
+  });
+
+  const formatLabelName = (name: string) => {
+    if (!name) return '';
+    if (name.startsWith('CATEGORY_')) {
+      const clean = name.replace('CATEGORY_', '');
+      return clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+    }
+    if (name === name.toUpperCase() && !name.includes('[')) {
+      const clean = name.replace(/_/g, ' ');
+      return clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+    }
+    return name;
+  };
+
+  const dynamicLabels = (labelsData?.labels || []).filter(
+    (l: any) => !['INBOX', 'SENT', 'TRASH', 'UNREAD', 'STARRED', 'DRAFT', 'CHAT', 'YELLOW_STAR'].includes(l.id) && l.name !== 'YELLOW_STAR'
+  );
 
   const handleMouseEnter = (e: React.MouseEvent, email: EmailMessage) => {
     if (isSplitView) return;
@@ -74,7 +115,11 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['emails', 'threads', emailCategory],
     queryFn: async ({ pageParam = 0 }) => {
-      const res = await fetch(`/api/mail/threads?offset=${pageParam}&category=${emailCategory}`);
+      const endpoint = emailCategory === 'DRAFT' 
+        ? `/api/mail/drafts` 
+        : `/api/mail/threads?offset=${pageParam}&category=${encodeURIComponent(emailCategory)}`;
+      
+      const res = await fetch(endpoint);
       if (!res.ok) throw new Error('Failed to fetch emails');
       const json = await res.json();
       return (json.messages || []) as EmailMessage[];
@@ -154,6 +199,21 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     onError: (err, variables, context) => {
       queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });
     },
+  });
+
+  const trashMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/mail/${id}/trash`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to trash email');
+      return { id };
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['emails'] });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });
+      queryClient.invalidateQueries({ queryKey: ['emails', 'search'] });
+    }
   });
 
   useEffect(() => {
@@ -268,11 +328,47 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
             className="bg-transparent border-none outline-none text-[13px] font-medium text-text-primary placeholder:text-text-muted w-full"
           />
         </div>
-        <button className="flex items-center gap-1.5 px-3 py-1 rounded border border-border-default bg-bg-surface hover:bg-bg-highlight text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap">
-          <Menu className="h-3.5 w-3.5" />
-          Labels
-          <Menu className="h-3 w-3 ml-1" />
-        </button>
+        <Popover open={openLabels} onOpenChange={setOpenLabels}>
+          <PopoverTrigger asChild>
+            <button className="flex items-center gap-1.5 px-3 py-1 rounded border border-border-default bg-bg-surface hover:bg-bg-highlight text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap">
+              <Tag className="h-3.5 w-3.5" />
+              Labels
+              <ChevronDown className="h-3 w-3 ml-1" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[200px] p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search label..." />
+              <CommandList>
+                <CommandEmpty>No label found.</CommandEmpty>
+                <CommandGroup>
+                  {dynamicLabels.map((label: any) => {
+                    const displayName = formatLabelName(label.name);
+                    const isSelected = emailCategory === label.id;
+                    return (
+                      <CommandItem
+                        key={label.id}
+                        value={displayName}
+                        onSelect={() => {
+                          setEmailCategory(label.id);
+                          setOpenLabels(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            isSelected ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {displayName}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
         <button className="flex items-center gap-1.5 px-3 py-1 rounded border border-border-default bg-bg-surface hover:bg-bg-highlight text-[13px] font-medium text-text-secondary transition-colors whitespace-nowrap">
           <CheckSquare className="h-3.5 w-3.5" />
           Is unread
@@ -382,7 +478,14 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                             <button className="hover:text-text-primary transition-colors" title="Archive" onClick={(e) => e.stopPropagation()}>
                               <Archive className="h-4 w-4" />
                             </button>
-                            <button className="hover:text-destructive transition-colors" title="Delete" onClick={(e) => e.stopPropagation()}>
+                            <button 
+                              className="hover:text-destructive transition-colors" 
+                              title="Delete" 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                trashMutation.mutate(email.id);
+                              }}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </button>
                             <button className="hover:text-text-primary transition-colors" title="Mark Read" onClick={(e) => e.stopPropagation()}>
