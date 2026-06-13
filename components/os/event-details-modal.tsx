@@ -45,43 +45,56 @@ export function EventDetailsModal({ eventId, open, onOpenChange }: { eventId: st
           </div>
         ) : (
           <>
-            <div className="h-16 bg-accent-blue/10 border-b border-border-subtle" />
-            <div className="p-6 pt-4 space-y-6">
+            <div className="p-6 space-y-6">
               <DialogHeader>
-                <DialogTitle className="text-xl font-semibold mb-1 text-left">{evt.summary}</DialogTitle>
+                <DialogTitle className="text-2xl font-semibold mb-2 text-left leading-tight text-text-primary">
+                  {evt.summary}
+                </DialogTitle>
               </DialogHeader>
               
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 text-text-secondary">
-                  <Clock className="h-5 w-5 mt-0.5 text-text-muted" />
-                  <div className="flex flex-col">
-                    <span className="text-[14px]">
-                      {evt.start?.dateTime ? new Date(evt.start.dateTime).toLocaleString() : evt.start?.date}
+              <div className="space-y-5">
+                <div className="flex items-start gap-3.5 text-text-secondary">
+                  <Clock className="h-5 w-5 mt-0.5 text-text-muted flex-shrink-0" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[15px] font-medium text-text-primary">
+                      {evt.start?.dateTime 
+                        ? new Date(evt.start.dateTime).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) 
+                        : evt.start?.date 
+                          ? new Date(evt.start.date).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                          : ''}
                     </span>
                     <span className="text-[14px] text-text-muted">
-                      to {evt.end?.dateTime ? new Date(evt.end.dateTime).toLocaleString() : evt.end?.date}
+                      to {evt.end?.dateTime 
+                        ? new Date(evt.end.dateTime).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit' }) 
+                        : evt.end?.date 
+                          ? new Date(evt.end.date).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                          : ''}
                     </span>
                   </div>
                 </div>
 
                 {evt.location && (
-                  <div className="flex items-start gap-3 text-text-secondary">
-                    <MapPin className="h-5 w-5 mt-0.5 text-text-muted" />
-                    <span className="text-[14px]">{evt.location}</span>
+                  <div className="flex items-start gap-3.5 text-text-secondary">
+                    <MapPin className="h-5 w-5 mt-0.5 text-text-muted flex-shrink-0" />
+                    <span className="text-[14px] leading-relaxed">{evt.location}</span>
                   </div>
                 )}
 
                 {evt.attendees && evt.attendees.length > 0 && (
-                  <div className="flex items-start gap-3 text-text-secondary">
-                    <Users className="h-5 w-5 mt-0.5 text-text-muted" />
-                    <div className="flex flex-col gap-1 w-full">
-                      <span className="text-[14px] font-medium">{evt.attendees.length} guests</span>
-                      <div className="max-h-24 overflow-y-auto custom-scrollbar flex flex-col gap-1 mt-1">
+                  <div className="flex items-start gap-3.5 text-text-secondary">
+                    <Users className="h-5 w-5 mt-0.5 text-text-muted flex-shrink-0" />
+                    <div className="flex flex-col gap-2 w-full">
+                      <span className="text-[14px] font-medium text-text-primary">
+                        {evt.attendees.length} guest{evt.attendees.length === 1 ? '' : 's'}
+                      </span>
+                      <div className="max-h-32 overflow-y-auto custom-scrollbar flex flex-col gap-2">
                         {evt.attendees.map((a: any, i: number) => (
-                          <div key={i} className="flex items-center gap-2 text-[13px]">
-                            <div className="h-2 w-2 rounded-full bg-border-strong" />
-                            <span className="truncate">{a.email}</span>
-                            <span className="text-text-muted text-[11px] ml-auto bg-bg-overlay px-1.5 rounded">{a.responseStatus}</span>
+                          <div key={i} className="flex items-center gap-2.5 text-[13px] bg-bg-overlay/50 px-2 py-1.5 rounded-md">
+                            <div className="h-1.5 w-1.5 rounded-full bg-accent-blue" />
+                            <span className="truncate flex-1">{a.email}</span>
+                            <span className="text-text-muted text-[11px] bg-bg-surface border border-border-subtle px-1.5 py-0.5 rounded capitalize">
+                              {a.responseStatus === 'needsAction' ? 'Pending' : a.responseStatus}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -90,15 +103,15 @@ export function EventDetailsModal({ eventId, open, onOpenChange }: { eventId: st
                 )}
 
                 {evt.description && (
-                  <div className="pt-4 border-t border-border-subtle">
-                    <div className="text-[13px] text-text-secondary whitespace-pre-wrap">
+                  <div className="pt-5 mt-2 border-t border-border-subtle">
+                    <div className="text-[14px] text-text-secondary whitespace-pre-wrap leading-relaxed">
                       {evt.description}
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-border-subtle">
+              <div className="flex justify-end gap-3 pt-6 mt-2 border-t border-border-subtle">
                 <Button 
                   variant="ghost" 
                   onClick={() => {
@@ -106,13 +119,16 @@ export function EventDetailsModal({ eventId, open, onOpenChange }: { eventId: st
                       deleteMutation.mutate();
                     }
                   }}
-                  className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                  className="text-red-400 hover:text-red-500 hover:bg-red-400/10 text-[14px] px-4"
                   disabled={deleteMutation.isPending}
                 >
                   <Trash className="h-4 w-4 mr-2" />
-                  {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  {deleteMutation.isPending ? 'Deleting...' : 'Delete Event'}
                 </Button>
-                <Button className="bg-accent-blue text-white hover:bg-accent-blue/90" onClick={() => onOpenChange(false)}>
+                <Button 
+                  className="bg-bg-highlight border border-border-strong text-text-primary hover:bg-bg-overlay text-[14px] px-6" 
+                  onClick={() => onOpenChange(false)}
+                >
                   Close
                 </Button>
               </div>
