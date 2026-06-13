@@ -9,4 +9,5 @@
 import { config } from 'dotenv';
 config({ path: '.env.local' });
 
-export { corsair } from './lib/corsair';
+const { corsair } = require('./lib/corsair');
+export { corsair };

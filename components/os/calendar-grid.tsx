@@ -1,9 +1,10 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Search, Settings } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { ChevronLeft, ChevronRight, Search, Settings, RefreshCw } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { EventDetailsModal } from './event-details-modal';
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -24,6 +25,20 @@ type CalendarEvent = {
 };
 
 export function CalendarGrid() {
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/calendar/sync', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to sync calendar');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendar', 'events'] });
+    }
+  });
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['calendar', 'events'],
     queryFn: async () => {
@@ -53,6 +68,7 @@ export function CalendarGrid() {
         if (!map[day]) map[day] = [];
         
         map[day].push({
+          id: evt.id,
           title: evt.summary || '(No Title)',
           time: evt.start.dateTime 
             ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
@@ -97,9 +113,20 @@ export function CalendarGrid() {
               className="h-8 w-48 rounded-full bg-bg-overlay border-none pl-9 pr-3 text-[13px] outline-none focus:ring-1 focus:ring-accent-blue transition-shadow text-text-primary placeholder:text-text-muted"
             />
           </div>
-          <button type="button" aria-label="Settings" className="p-2 rounded hover:bg-bg-overlay text-text-secondary transition-colors ml-2">
-            <Settings className="h-4 w-4" />
-          </button>
+          <div className="flex items-center">
+            <button 
+              type="button" 
+              onClick={() => syncMutation.mutate()}
+              disabled={syncMutation.isPending}
+              title="Sync Calendar" 
+              className="p-2 rounded hover:bg-bg-overlay text-text-secondary transition-colors"
+            >
+              <RefreshCw className={cn("h-4 w-4", syncMutation.isPending && "animate-spin")} />
+            </button>
+            <button type="button" aria-label="Settings" className="p-2 rounded hover:bg-bg-overlay text-text-secondary transition-colors ml-2">
+              <Settings className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -150,6 +177,7 @@ export function CalendarGrid() {
                   ) : events.map((evt, evtIndex) => (
                     <div 
                       key={evtIndex}
+                      onClick={() => setSelectedEventId(evt.id)}
                       className={cn(
                         "flex items-center px-1.5 py-0.5 mx-1 rounded-[4px] text-[11px] font-medium cursor-pointer transition-colors group",
                         evt.isAllDay 
@@ -178,6 +206,12 @@ export function CalendarGrid() {
           })}
         </div>
       </div>
+
+      <EventDetailsModal 
+        eventId={selectedEventId} 
+        open={!!selectedEventId} 
+        onOpenChange={(open) => !open && setSelectedEventId(null)} 
+      />
     </div>
   );
 }

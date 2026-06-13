@@ -27,17 +27,20 @@ export async function syncCalendarForUser(userId: string) {
     }
 
     const startOfDay = new Date();
+    startOfDay.setDate(1); // Start of current month
+    startOfDay.setMonth(startOfDay.getMonth() - 1); // Previous month
     startOfDay.setHours(0, 0, 0, 0);
 
     const endOfWindow = new Date();
-    endOfWindow.setDate(endOfWindow.getDate() + 7);
+    endOfWindow.setDate(28); // End of next month roughly
+    endOfWindow.setMonth(endOfWindow.getMonth() + 2);
     endOfWindow.setHours(23, 59, 59, 999);
 
     const calendarResult = await t.googlecalendar.api.events.getMany({
       calendarId: 'primary',
       timeMin: startOfDay.toISOString(),
       timeMax: endOfWindow.toISOString(),
-      maxResults: 50,
+      maxResults: 250,
       singleEvents: true,
       orderBy: 'startTime'
     });

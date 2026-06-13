@@ -7,6 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { CalendarModal } from './calendar-modal';
+import { CreateEventModal } from './create-event-modal';
 
 const miniCalDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -43,9 +44,11 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
   if (isSplit && variant !== 'right-panel') {
     return (
       <div className="flex h-full w-[48px] flex-col items-center border-r border-border-subtle bg-bg-surface text-text-primary py-4 gap-4 flex-shrink-0">
-        <button className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-blue text-white hover:bg-accent-blue-dim transition-colors" title="New Event">
-          <Plus className="h-4 w-4" />
-        </button>
+        <CreateEventModal trigger={
+          <button className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-blue text-white hover:bg-accent-blue-dim transition-colors" title="New Event">
+            <Plus className="h-4 w-4" />
+          </button>
+        } />
         <div className="flex flex-col gap-2 mt-4">
           <button title="Day View" onClick={() => setActiveView('Day')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors", activeView === 'Day' ? "bg-bg-highlight text-accent-blue" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>D</button>
           <button title="Week View" onClick={() => setActiveView('Week')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors", activeView === 'Week' ? "bg-bg-highlight text-accent-blue" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>W</button>

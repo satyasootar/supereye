@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { calendarEvents, emailEventLinks, emails } from '@/lib/db/schema';
 import { eq, gte, lte, and, asc } from 'drizzle-orm';
+import { getTenant } from '@/lib/corsair';
 
 export async function GET() {
   const session = await auth();
@@ -58,5 +59,55 @@ export async function GET() {
       error: 'Failed to fetch calendar events',
       details: error?.message 
     }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const { summary, description, start, end, attendees, location } = body;
+
+    const t = getTenant(session.user.id);
+    const createdEvent = await t.googlecalendar.api.events.create({
+      calendarId: 'primary',
+      requestBody: {
+        summary,
+        description,
+        location,
+        start,
+        end,
+        attendees,
+      }
+    });
+
+    // Save to local DB cache
+    await db.insert(calendarEvents).values({
+      userId: session.user.id,
+      googleEventId: createdEvent.id!,
+      calendarId: 'primary',
+      title: createdEvent.summary,
+      description: createdEvent.description,
+      location: createdEvent.location,
+      startTime: createdEvent.start?.dateTime ? new Date(createdEvent.start.dateTime) : (createdEvent.start?.date ? new Date(createdEvent.start.date) : null),
+      endTime: createdEvent.end?.dateTime ? new Date(createdEvent.end.dateTime) : (createdEvent.end?.date ? new Date(createdEvent.end.date) : null),
+      isAllDay: !!createdEvent.start?.date,
+      status: createdEvent.status || 'confirmed',
+      attendees: createdEvent.attendees ? createdEvent.attendees.map((a: any) => ({
+        email: a.email,
+        displayName: a.displayName,
+        responseStatus: a.responseStatus
+      })) : null,
+      htmlLink: createdEvent.htmlLink
+    });
+
+    return NextResponse.json({ event: createdEvent });
+  } catch (error: any) {
+    console.error('Failed to create calendar event:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
