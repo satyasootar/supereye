@@ -13,12 +13,7 @@ const miniCalDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 
 
-const myCalendars = [
-  { name: 'satya.sootar06', color: 'bg-red-500', active: true },
-  { name: 'Birthdays', color: 'bg-green-500', active: true },
-  { name: 'Family', color: 'bg-teal-500', active: true },
-  { name: 'Tasks', color: 'bg-blue-500', active: false },
-];
+
 
 import { useAppStore } from '@/lib/store/app-store';
 
@@ -33,7 +28,6 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
   const isSplit = activeTabs.length > 1 || (leftSidebarCollapsed && variant !== 'right-panel');
   const isCalendarMode = workspaceMode === 'calendar';
 
-  const [calsExpanded, setCalsExpanded] = useState(true);
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
 
   const activeDate = useMemo(() => new Date(currentDateStr), [currentDateStr]);
@@ -277,46 +271,7 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
 
 
 
-      {/* My Calendars - Hide in right-panel variant */}
-      {variant !== 'right-panel' && (
-        <div className="mt-4 px-2">
-          <div className="flex items-center justify-between px-2 mb-1 group">
-            <button 
-              onClick={() => setCalsExpanded(!calsExpanded)}
-              className="flex items-center gap-1 text-[12px] font-semibold text-text-secondary hover:text-text-primary uppercase tracking-wider"
-            >
-              <ChevronDown className={cn("h-3 w-3 transition-transform", !calsExpanded && "-rotate-90")} />
-              My Calendars
-            </button>
-            <button className="p-1 text-text-muted hover:text-text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-              <Plus className="h-3 w-3" />
-            </button>
-          </div>
 
-          {calsExpanded && (
-            <div className="flex flex-col gap-0.5 mt-1">
-              {myCalendars.map(cal => (
-                <div key={cal.name} className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-bg-overlay group cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "flex h-4 w-4 items-center justify-center rounded-[4px] border",
-                      cal.active ? cal.color : "border-border-strong bg-transparent"
-                    )}>
-                      {cal.active && <div className="h-1.5 w-1.5 rounded-sm bg-white" />}
-                    </div>
-                    <span className={cn("text-[13px] truncate max-w-[140px]", cal.active ? "text-text-primary font-medium" : "text-text-secondary")}>
-                      {cal.name}
-                    </span>
-                  </div>
-                  <button className="p-0.5 text-text-muted hover:text-text-primary opacity-0 group-hover:opacity-100">
-                    <MoreVertical className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="mt-4 px-2 flex-1">
         <button 
