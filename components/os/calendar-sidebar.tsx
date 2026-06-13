@@ -25,8 +25,8 @@ import { useAppStore } from '@/lib/store/app-store';
 import { useQuery } from '@tanstack/react-query';
 
 export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' | 'right-panel' }) {
-  const { activeTabs, workspaceMode, setWorkspaceMode } = useAppStore();
-  const isSplit = activeTabs.length > 1;
+  const { activeTabs, workspaceMode, setWorkspaceMode, leftSidebarCollapsed, setLeftSidebarCollapsed } = useAppStore();
+  const isSplit = activeTabs.length > 1 || (leftSidebarCollapsed && variant !== 'right-panel');
   const isCalendarMode = workspaceMode === 'calendar';
 
   const [calsExpanded, setCalsExpanded] = useState(true);
@@ -79,7 +79,18 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
 
   if (isSplit && variant !== 'right-panel') {
     return (
-      <div className="flex h-full w-[48px] flex-col items-center border-r border-border-subtle bg-bg-surface text-text-primary py-4 gap-4 flex-shrink-0">
+      <div className="flex h-full w-[48px] flex-col items-center border-r border-border-subtle bg-bg-surface text-text-primary py-3 gap-3 flex-shrink-0">
+        {/* Toggle Expand (only if not forced split view by activeTabs) */}
+        {leftSidebarCollapsed && activeTabs.length <= 1 && (
+          <button
+            onClick={() => setLeftSidebarCollapsed(false)}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-bg-overlay transition-colors"
+            title="Expand Sidebar"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
+
         <CreateEventModal trigger={
           <button className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-blue text-white hover:bg-accent-blue-dim transition-colors" title="New Event">
             <Plus className="h-4 w-4" />

@@ -1,11 +1,11 @@
 import { config } from 'dotenv';
 config({ path: '.env.local' });
 
-import { db } from './lib/db';
-import { users } from './lib/db/schema';
-import { getTenant } from './lib/corsair';
-
 async function run() {
+  const { db } = await import('./lib/db');
+  const { users } = await import('./lib/db/schema');
+  const { getTenant } = await import('./lib/corsair');
+
   const allUsers = await db.select().from(users);
   if (allUsers.length === 0) {
     console.log("No users found.");
@@ -52,7 +52,7 @@ async function run() {
     console.log("   Watch registered successfully! Channel ID:", watchResult.id);
     
   } catch (error: any) {
-    console.error("   Failed:", error.message);
+    console.error("   Failed:", error);
   }
   
   process.exit(0);

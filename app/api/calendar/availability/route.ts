@@ -15,11 +15,9 @@ export async function POST(req: Request) {
     
     const t = getTenant(session.user.id);
     const availability = await t.googlecalendar.api.calendar.getAvailability({
-      requestBody: {
-        timeMin,
-        timeMax,
-        items
-      }
+      timeMin,
+      timeMax,
+      items
     });
 
     return NextResponse.json(availability);

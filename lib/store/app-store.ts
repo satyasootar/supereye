@@ -13,6 +13,7 @@ interface AppState {
   isComposeOpen: boolean;
   emailCategory: string;
   workspaceMode: WorkspaceMode;
+  leftSidebarCollapsed: boolean;
   openTab: (tabId: TabId, multiSelect?: boolean) => void;
   closeTab: (tabId: TabId) => void;
   setSplitRatio: (ratio: number) => void;
@@ -22,6 +23,7 @@ interface AppState {
   setComposeOpen: (isOpen: boolean) => void;
   setEmailCategory: (category: string) => void;
   setWorkspaceMode: (mode: WorkspaceMode) => void;
+  setLeftSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -35,6 +37,7 @@ export const useAppStore = create<AppState>()(
       isComposeOpen: false,
       emailCategory: 'ALL',
       workspaceMode: 'email',
+      leftSidebarCollapsed: false,
       openTab: (tabId, multiSelect = false) => set((state) => {
         if (multiSelect) {
           // Cannot have more than 2 tabs open
@@ -61,11 +64,17 @@ export const useAppStore = create<AppState>()(
       setComposeOpen: (isOpen) => set({ isComposeOpen: isOpen }),
       setEmailCategory: (category) => set({ emailCategory: category }),
       setWorkspaceMode: (mode) => set({ workspaceMode: mode }),
+      setLeftSidebarCollapsed: (collapsed) => set({ leftSidebarCollapsed: collapsed }),
     }),
     {
       name: 'app-storage',
       // Only persist these fields so we don't restore weird UI states like modals or selected items across sessions
-      partialize: (state) => ({ activeTabs: state.activeTabs, splitRatio: state.splitRatio, workspaceMode: state.workspaceMode }),
+      partialize: (state) => ({ 
+        activeTabs: state.activeTabs, 
+        splitRatio: state.splitRatio, 
+        workspaceMode: state.workspaceMode,
+        leftSidebarCollapsed: state.leftSidebarCollapsed 
+      }),
     }
   )
 );

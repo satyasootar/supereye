@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     const t = getTenant(session.user.id);
     const createdEvent = await t.googlecalendar.api.events.create({
       calendarId: 'primary',
-      requestBody: {
+      event: {
         summary,
         description,
         location,

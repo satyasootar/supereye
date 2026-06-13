@@ -75,17 +75,6 @@ export function EmailPane() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              {/* Left: Calendar Agenda Panel */}
-              <motion.div
-                className="h-full flex-shrink-0 border-r border-border-strong bg-bg-surface overflow-hidden"
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 280, opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                transition={springTransition}
-              >
-                <CalendarSidebar variant="default" />
-              </motion.div>
-
               {/* Center: Full Calendar Grid (inline, not modal) */}
               <motion.div
                 className="flex-1 h-full overflow-hidden"
@@ -101,7 +90,7 @@ export function EmailPane() {
               <AnimatePresence initial={false}>
                 <motion.div
                   key={isRightPanelExpanded ? 'email-expanded' : 'email-collapsed'}
-                  className="h-full flex-shrink-0 border-l border-border-strong overflow-hidden relative"
+                  className="h-full flex-shrink-0 border-l border-border-subtle bg-bg-surface overflow-hidden relative"
                   initial={{ width: 0, opacity: 0 }}
                   animate={{ width: isRightPanelExpanded ? 400 : 48, opacity: 1 }}
                   exit={{ width: 0, opacity: 0 }}

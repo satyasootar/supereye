@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     // 1. Create the event in Google Calendar
     const eventPayload = {
       calendarId: 'primary',
-      requestBody: {
+      event: {
         summary: title,
         description: description,
         start: { dateTime: new Date(startTime).toISOString() },

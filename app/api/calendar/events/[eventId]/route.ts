@@ -16,7 +16,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ eventId:
     const t = getTenant(session.user.id);
     const event = await t.googlecalendar.api.events.get({
       calendarId: 'primary',
-      eventId: eventId
+      id: eventId
     });
     return NextResponse.json({ event });
   } catch (error: any) {
@@ -36,8 +36,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ eventI
     const t = getTenant(session.user.id);
     const updatedEvent = await t.googlecalendar.api.events.update({
       calendarId: 'primary',
-      eventId: eventId,
-      requestBody: body
+      id: eventId,
+      event: body
     });
 
     // Update local cache
@@ -71,7 +71,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ event
     const t = getTenant(session.user.id);
     await t.googlecalendar.api.events.delete({
       calendarId: 'primary',
-      eventId: eventId
+      id: eventId
     });
 
     // Delete from local cache

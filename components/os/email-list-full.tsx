@@ -460,7 +460,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
 
       {/* Categories Toolbar - Only show in INBOX and its sub-categories */}
       {['ALL', 'INBOX', 'CATEGORY_PROMOTIONS', 'CATEGORY_SOCIAL', 'CATEGORY_UPDATES'].includes(emailCategory) && (
-        <div className="flex-none px-4 py-2 border-b border-border-subtle bg-bg-surface/50 overflow-x-auto hide-scrollbar">
+        <div className="flex-none px-4 py-2 border-b border-border-subtle bg-bg-surface/50 overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-2">
             {CATEGORY_TABS.map((tab) => {
               const unreadCount = unreadData?.categories?.[tab.id] || 0;
@@ -614,45 +614,32 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       
       {hoveredEmail && !isSplitView && (
         <div 
-          className="fixed z-[100] w-[380px] p-0 bg-bg-elevated border border-border shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95 pointer-events-none"
+          className="fixed z-[100] w-[380px] p-4 bg-bg-elevated border border-border shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95 pointer-events-none"
           style={{ 
             left: mousePos.x + 20, 
             top: typeof window !== 'undefined' ? Math.min(mousePos.y + 20, window.innerHeight - 300) : mousePos.y + 20
           }}
         >
-          <div className="p-5 max-h-[280px] overflow-hidden flex flex-col gap-3">
-            <div className="flex items-center gap-3 border-b border-border-subtle pb-3">
-              <div className="h-8 w-8 rounded-full bg-accent-blue/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-accent-blue font-semibold text-[14px]">
-                  {hoveredEmail.sender.split('<')[0].trim().charAt(0).toUpperCase()}
-                </span>
+          <div className="relative w-full h-[240px] bg-bg-elevated rounded-md overflow-hidden pointer-events-none">
+            {hoveredEmail.body ? (
+              <div className="absolute top-0 left-0 w-[800px] h-[550px] origin-top-left" style={{ transform: 'scale(0.435)' }}>
+                <iframe 
+                  srcDoc={`<style>
+                    :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
+                    body, html { background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; font-family: sans-serif; margin: 0; padding: 0; } 
+                    * { background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; border-color: ${isDark ? '#2A2D35' : '#E2E8F0'} !important; }
+                    img { background-color: transparent !important; }
+                  </style>${hoveredEmail.body}`} 
+                  className="w-full h-full border-none bg-transparent"
+                  sandbox=""
+                  scrolling="no"
+                />
               </div>
-              <div className="flex flex-col overflow-hidden">
-                <span className="text-[14px] font-medium text-text-primary truncate">{hoveredEmail.subject || '(No Subject)'}</span>
-                <span className="text-[12px] text-text-muted truncate">{hoveredEmail.sender.split('<')[0].trim()}</span>
+            ) : (
+              <div className="text-[14px] text-text-primary leading-relaxed line-clamp-10 whitespace-pre-wrap p-4 bg-bg-base/40 h-full rounded-md border border-border-subtle/50">
+                {hoveredEmail.snippet}
               </div>
-            </div>
-            <div className="relative w-full h-[200px] bg-bg-elevated rounded-md overflow-hidden pointer-events-none mt-2">
-              {hoveredEmail.body ? (
-                <div className="absolute top-0 left-0 w-[800px] h-[470px] origin-top-left" style={{ transform: 'scale(0.425)' }}>
-                  <iframe 
-                    srcDoc={`<style>
-                      :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
-                      body, html { background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; font-family: sans-serif; margin: 0; padding: 0; } 
-                      * { background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; border-color: ${isDark ? '#2A2D35' : '#E2E8F0'} !important; }
-                      img { background-color: transparent !important; }
-                    </style>${hoveredEmail.body}`} 
-                    className="w-full h-full border-none bg-transparent"
-                    sandbox=""
-                    scrolling="no"
-                  />
-                </div>
-              ) : (
-                <div className="text-[13px] text-text-secondary leading-relaxed line-clamp-6 whitespace-pre-wrap p-3">
-                  {hoveredEmail.snippet}
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
       )}
