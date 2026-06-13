@@ -4,7 +4,7 @@ import { useAppStore } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
 import { useState, useRef } from 'react';
 import { EmailPane } from './email-pane';
-import { CalendarPane } from './calendar-pane';
+
 import { ChatPane } from './chat-pane';
 import { useGlobalShortcuts } from '@/hooks/use-global-shortcuts';
 import { useSSE } from '@/hooks/use-sse';
@@ -20,8 +20,7 @@ export function Workspace() {
   // Map of available panes
   const panes = {
     chat: <ChatPane key="chat" />,
-    email: <EmailPane key="email" />,
-    calendar: <CalendarPane key="calendar" />
+    email: <EmailPane key="email" />
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {

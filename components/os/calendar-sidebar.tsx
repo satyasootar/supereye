@@ -11,12 +11,7 @@ import { CreateEventModal } from './create-event-modal';
 
 const miniCalDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-// Basic static generation for June 2026 (starts Monday, 30 days)
-const miniCalDates = Array.from({ length: 35 }, (_, i) => {
-  const date = i - 0; // Padding before the 1st
-  if (date < 1 || date > 30) return null;
-  return date;
-});
+
 
 const myCalendars = [
   { name: 'satya.sootar06', color: 'bg-red-500', active: true },
@@ -27,11 +22,7 @@ const myCalendars = [
 
 import { useAppStore } from '@/lib/store/app-store';
 
-const upcomingEvents = [
-  { title: 'Team standup', date: 'Today, 3:00 PM', color: 'bg-red-500' },
-  { title: 'Meeting — friend@corsair.dev', date: 'Tomorrow, 9:00 AM', color: 'bg-teal-500' },
-  { title: 'Muharram/Ashura', date: 'Jun 26, All day', color: 'bg-green-500' },
-];
+import { useQuery } from '@tanstack/react-query';
 
 export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' | 'right-panel' }) {
   const { activeTabs } = useAppStore();
@@ -40,6 +31,50 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
   const [calsExpanded, setCalsExpanded] = useState(true);
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
   const [activeView, setActiveView] = useState('Month');
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentDay = now.getDate();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  // Generate a grid of 42 cells (6 rows)
+  const miniCalDates = Array.from({ length: 42 }, (_, i) => {
+    const date = i - firstDayOfMonth + 1;
+    if (date < 1 || date > daysInMonth) return null;
+    return date;
+  });
+
+  const { data: events, isLoading } = useQuery({
+    queryKey: ['calendar', 'events'],
+    queryFn: async () => {
+      const res = await fetch('/api/calendar/events');
+      if (!res.ok) throw new Error('Failed to fetch calendar events');
+      const json = await res.json();
+      return json.events as any[];
+    }
+  });
+
+  const eventDates = new Set(
+    (events || []).map(evt => {
+      const d = new Date(evt.start?.dateTime || evt.start?.date);
+      if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+        return d.getDate();
+      }
+      return null;
+    }).filter(Boolean)
+  );
+
+  const upcomingEventsList = [...(events || [])]
+    .filter(evt => {
+      const d = new Date(evt.start?.dateTime || evt.start?.date);
+      // Let's just say "upcoming" means within the next 7 days, or just future events
+      return d.getTime() + 86400000 >= now.getTime(); // Include today
+    })
+    .sort((a, b) => new Date(a.start?.dateTime || a.start?.date).getTime() - new Date(b.start?.dateTime || b.start?.date).getTime())
+    .slice(0, 5);
 
   if (isSplit && variant !== 'right-panel') {
     return (
@@ -62,7 +97,7 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
     <div className="flex h-full w-[260px] flex-col border-r border-border-subtle bg-bg-surface text-text-primary overflow-y-auto custom-scrollbar flex-shrink-0">
       {/* Mini Calendar Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <span className="font-heading text-[14px] font-semibold">June 2026</span>
+        <span className="font-heading text-[14px] font-semibold">{monthName}</span>
         <div className="flex items-center gap-1">
           <CalendarModal trigger={
             <button title="Full Calendar" className="p-1 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors mr-1">
@@ -87,8 +122,8 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
         </div>
         <div className="grid grid-cols-7 gap-1 text-center">
           {miniCalDates.map((date, i) => {
-            const isToday = date === 11; // Hardcoded "today" for June 2026 mockup
-            const hasEvent = [2, 11, 14, 26].includes(date!);
+            const isToday = date === currentDay;
+            const hasEvent = date && eventDates.has(date);
             return (
               <div 
                 key={i} 
@@ -171,30 +206,44 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
         </div>
       )}
 
-      {/* Upcoming */}
       <div className="mt-4 px-2 flex-1">
         <button 
           onClick={() => setUpcomingExpanded(!upcomingExpanded)}
           className="flex items-center gap-1 px-2 mb-2 text-[12px] font-semibold text-text-secondary hover:text-text-primary uppercase tracking-wider"
         >
-          <ChevronDown className={cn("h-3 w-3 transition-transform", !upcomingExpanded && "-rotate-90")} />
+          <ChevronDown className={cn("h-4 w-4 text-text-muted transition-transform", !upcomingExpanded && "-rotate-90")} />
           Upcoming
         </button>
 
         {upcomingExpanded && (
-          <div className="flex flex-col gap-3 mt-2 px-2">
-            {upcomingEvents.map((evt, i) => (
-              <div key={i} className="flex flex-col gap-1 hover:bg-bg-overlay p-2 -mx-2 rounded-md cursor-pointer transition-colors group">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-3 w-3 text-text-muted" />
-                  <span className="text-[11px] font-mono text-text-secondary group-hover:text-text-primary">{evt.date}</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className={cn("mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0", evt.color)} />
-                  <span className="text-[13px] font-medium text-text-primary leading-tight">{evt.title}</span>
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-col mt-2 px-1 gap-2">
+            {isLoading ? (
+              <div className="text-[13px] text-text-muted px-2">Loading...</div>
+            ) : upcomingEventsList.length === 0 ? (
+              <div className="text-[13px] text-text-muted px-2">No upcoming events.</div>
+            ) : (
+              upcomingEventsList.map((evt, i) => {
+                const d = new Date(evt.start?.dateTime || evt.start?.date);
+                const isAllDay = !evt.start?.dateTime;
+                const timeStr = isAllDay ? 'All day' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const isToday = d.getDate() === currentDay && d.getMonth() === currentMonth;
+                const dateStr = isToday ? 'Today' : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                
+                return (
+                  <div key={evt.id || i} className="group relative flex gap-3 rounded-lg p-2 hover:bg-bg-overlay cursor-pointer transition-colors">
+                    <div className="mt-1 flex h-2 w-2 flex-shrink-0 rounded-full bg-accent-blue" />
+                    <div className="flex flex-col overflow-hidden">
+                      <span className="truncate text-[13.5px] font-medium text-text-primary group-hover:text-accent-blue transition-colors">
+                        {evt.summary || '(No title)'}
+                      </span>
+                      <span className="truncate text-[12px] text-text-secondary">
+                        {dateStr}, {timeStr}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
       </div>

@@ -29,8 +29,7 @@ export function TopBar() {
 
   const tabs: { id: TabId; label: string }[] = [
     { id: 'chat', label: 'Chat' },
-    { id: 'email', label: 'Email' },
-    { id: 'calendar', label: 'Calendar' }
+    { id: 'email', label: 'Email' }
   ];
 
   return (

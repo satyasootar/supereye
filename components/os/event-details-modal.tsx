@@ -46,9 +46,9 @@ export function EventDetailsModal({ eventId, open, onOpenChange }: { eventId: st
           <>
             <div className="h-16 bg-accent-blue/10 border-b border-border-subtle" />
             <div className="p-6 pt-4 space-y-6">
-              <div>
-                <h2 className="text-xl font-semibold mb-1">{evt.summary}</h2>
-              </div>
+              <DialogHeader>
+                <DialogTitle className="text-xl font-semibold mb-1 text-left">{evt.summary}</DialogTitle>
+              </DialogHeader>
               
               <div className="space-y-4">
                 <div className="flex items-start gap-3 text-text-secondary">

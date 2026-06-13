@@ -27,7 +27,7 @@ async function run() {
     console.log("Sending event payload to Google...");
     const result = await t.googlecalendar.api.events.create({
       calendarId: 'primary',
-      requestBody: event
+      event: event
     });
     
     console.log("SUCCESS! Created event:", result.summary);

@@ -8,12 +8,7 @@ import { EventDetailsModal } from './event-details-modal';
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// Generate 35 days for a 5-week month view (June 2026 starts on Mon, so 1 empty slot on Sun)
-const monthCells = Array.from({ length: 35 }, (_, i) => {
-  const date = i - 0; // Offset for Sunday start
-  if (date < 1 || date > 30) return null;
-  return date;
-});
+// Dynamic dates will be computed in the component
 
 type CalendarEvent = {
   id: string;
@@ -27,6 +22,21 @@ type CalendarEvent = {
 export function CalendarGrid() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentDay = now.getDate();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  // Generate a grid of 42 cells (6 rows)
+  const monthCells = useMemo(() => Array.from({ length: 42 }, (_, i) => {
+    const date = i - firstDayOfMonth + 1;
+    if (date < 1 || date > daysInMonth) return null;
+    return date;
+  }), [firstDayOfMonth, daysInMonth]);
 
   const syncMutation = useMutation({
     mutationFn: async () => {
@@ -62,8 +72,8 @@ export function CalendarGrid() {
       if (!dateStr) return;
 
       const dateObj = new Date(dateStr);
-      // If it's June 2026, we map it to the day
-      if (dateObj.getFullYear() === 2026 && dateObj.getMonth() === 5) {
+      // Map it to the day if it's in the current month/year
+      if (dateObj.getFullYear() === currentYear && dateObj.getMonth() === currentMonth) {
         const day = dateObj.getDate();
         if (!map[day]) map[day] = [];
         
@@ -99,7 +109,7 @@ export function CalendarGrid() {
             </button>
           </div>
           <h2 className="text-[20px] font-heading font-semibold text-text-primary ml-2">
-            June 2026
+            {monthName}
           </h2>
         </div>
 
@@ -133,9 +143,9 @@ export function CalendarGrid() {
       {/* Grid Container */}
       <div className="flex flex-col flex-1 bg-bg-app overflow-hidden p-4">
         {/* Days Grid */}
-        <div className="grid grid-cols-7 grid-rows-5 flex-1 bg-bg-base border border-border-subtle rounded-lg overflow-hidden">
+        <div className="grid grid-cols-7 grid-rows-6 flex-1 bg-bg-base border border-border-subtle rounded-lg overflow-hidden">
           {monthCells.map((date, i) => {
-            const isToday = date === 11;
+            const isToday = date === currentDay;
             const events = date ? eventsByDate[date] || [] : [];
             const isWeekend = i % 7 === 0 || i % 7 === 6;
 
@@ -145,7 +155,7 @@ export function CalendarGrid() {
                 className={cn(
                   "relative flex flex-col border-r border-b border-border-subtle min-h-0 bg-bg-base",
                   i % 7 === 6 && "border-r-0", // Remove right border for last col
-                  i >= 28 && "border-b-0" // Remove bottom border for last row
+                  i >= 35 && "border-b-0" // Remove bottom border for last row
                 )}
               >
                 {/* Date Header */}
