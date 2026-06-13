@@ -626,9 +626,24 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                 <iframe 
                   srcDoc={`<style>
                     :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
-                    body, html { background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; font-family: sans-serif; margin: 0; padding: 0; } 
-                    * { background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; border-color: ${isDark ? '#2A2D35' : '#E2E8F0'} !important; }
-                    img { background-color: transparent !important; }
+                    body, html { 
+                      background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; 
+                      color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; 
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+                      margin: 0; 
+                      padding: 36px !important; 
+                      box-sizing: border-box; 
+                      line-height: 1.6;
+                      word-wrap: break-word;
+                      ${!/<[a-z][\s\S]*>/i.test(hoveredEmail.body || '') ? 'white-space: pre-wrap;' : ''}
+                    } 
+                    * { 
+                      background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; 
+                      color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; 
+                      border-color: ${isDark ? '#2A2D35' : '#E2E8F0'} !important; 
+                      font-size: 32px !important;
+                    }
+                    img { background-color: transparent !important; max-width: 100%; height: auto; }
                   </style>${hoveredEmail.body}`} 
                   className="w-full h-full border-none bg-transparent"
                   sandbox=""
@@ -636,7 +651,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                 />
               </div>
             ) : (
-              <div className="text-[14px] text-text-primary leading-relaxed line-clamp-10 whitespace-pre-wrap p-4 bg-bg-base/40 h-full rounded-md border border-border-subtle/50">
+              <div className="text-[15px] text-text-primary leading-relaxed line-clamp-10 whitespace-pre-wrap p-4 bg-bg-base/40 h-full rounded-md border border-border-subtle/50">
                 {hoveredEmail.snippet}
               </div>
             )}
