@@ -2,7 +2,7 @@
 
 import { 
   ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, 
-  ChevronDown, MoreVertical, List
+  ChevronDown, MoreVertical, List, Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -25,8 +25,9 @@ import { useAppStore } from '@/lib/store/app-store';
 import { useQuery } from '@tanstack/react-query';
 
 export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' | 'right-panel' }) {
-  const { activeTabs } = useAppStore();
+  const { activeTabs, workspaceMode, setWorkspaceMode } = useAppStore();
   const isSplit = activeTabs.length > 1;
+  const isCalendarMode = workspaceMode === 'calendar';
 
   const [calsExpanded, setCalsExpanded] = useState(true);
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
@@ -94,7 +95,19 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
   }
 
   return (
-    <div className="flex h-full w-[260px] flex-col border-r border-border-subtle bg-bg-surface text-text-primary overflow-y-auto custom-scrollbar flex-shrink-0">
+    <div className="flex h-full w-full flex-col bg-bg-surface text-text-primary overflow-y-auto custom-scrollbar">
+      {/* Focus on Email button — only in calendar workspace mode */}
+      {isCalendarMode && (
+        <div className="px-3 pt-3 pb-1 flex-shrink-0">
+          <button
+            onClick={() => setWorkspaceMode('email')}
+            className="flex w-full items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] font-semibold text-accent-blue bg-accent-blue/8 border border-accent-blue/20 hover:bg-accent-blue/15 hover:border-accent-blue/40 transition-all"
+          >
+            <Mail className="h-3.5 w-3.5" />
+            Focus on Email
+          </button>
+        </div>
+      )}
       {/* Mini Calendar Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <span className="font-heading text-[14px] font-semibold">{monthName}</span>

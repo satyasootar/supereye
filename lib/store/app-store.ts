@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type TabId = 'chat' | 'email';
+export type WorkspaceMode = 'email' | 'calendar';
 
 interface AppState {
   activeTabs: TabId[];
@@ -11,6 +12,7 @@ interface AppState {
   isCommandPaletteOpen: boolean;
   isComposeOpen: boolean;
   emailCategory: string;
+  workspaceMode: WorkspaceMode;
   openTab: (tabId: TabId, multiSelect?: boolean) => void;
   closeTab: (tabId: TabId) => void;
   setSplitRatio: (ratio: number) => void;
@@ -19,6 +21,7 @@ interface AppState {
   setCommandPaletteOpen: (isOpen: boolean) => void;
   setComposeOpen: (isOpen: boolean) => void;
   setEmailCategory: (category: string) => void;
+  setWorkspaceMode: (mode: WorkspaceMode) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -31,6 +34,7 @@ export const useAppStore = create<AppState>()(
       isCommandPaletteOpen: false,
       isComposeOpen: false,
       emailCategory: 'ALL',
+      workspaceMode: 'email',
       openTab: (tabId, multiSelect = false) => set((state) => {
         if (multiSelect) {
           // Cannot have more than 2 tabs open
@@ -56,11 +60,12 @@ export const useAppStore = create<AppState>()(
       setCommandPaletteOpen: (isOpen) => set({ isCommandPaletteOpen: isOpen }),
       setComposeOpen: (isOpen) => set({ isComposeOpen: isOpen }),
       setEmailCategory: (category) => set({ emailCategory: category }),
+      setWorkspaceMode: (mode) => set({ workspaceMode: mode }),
     }),
     {
       name: 'app-storage',
       // Only persist these fields so we don't restore weird UI states like modals or selected items across sessions
-      partialize: (state) => ({ activeTabs: state.activeTabs, splitRatio: state.splitRatio }),
+      partialize: (state) => ({ activeTabs: state.activeTabs, splitRatio: state.splitRatio, workspaceMode: state.workspaceMode }),
     }
   )
 );
