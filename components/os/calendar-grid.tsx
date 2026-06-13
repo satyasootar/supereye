@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, Search, Settings, RefreshCw, ChevronDown } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { EventDetailsModal } from './event-details-modal';
@@ -47,7 +48,7 @@ const formatHourLabel = (h: number) => {
   return h > 12 ? `${h - 12} PM` : `${h} AM`;
 };
 
-export function CalendarGrid() {
+export function CalendarGrid({ isModal = false }: { isModal?: boolean }) {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const { calendarView, setCalendarView, currentDateStr, setCurrentDateStr } = useAppStore();
   const currentDate = useMemo(() => new Date(currentDateStr), [currentDateStr]);
@@ -73,7 +74,16 @@ export function CalendarGrid() {
       return;
     }
 
-    if (calendarView === 'Month') {
+    if (calendarView === 'Year') {
+      if (Math.abs(e.deltaY) > 15) {
+        lastScrollTimeRef.current = now;
+        if (e.deltaY > 0) {
+          setCurrentDate(prev => new Date(prev.getFullYear() + 1, prev.getMonth(), 1));
+        } else {
+          setCurrentDate(prev => new Date(prev.getFullYear() - 1, prev.getMonth(), 1));
+        }
+      }
+    } else if (calendarView === 'Month') {
       if (Math.abs(e.deltaY) > 15) {
         lastScrollTimeRef.current = now;
         if (e.deltaY > 0) {
@@ -303,7 +313,9 @@ export function CalendarGrid() {
   }, [data, searchQuery]);
 
   const handlePrev = () => {
-    if (calendarView === 'Month') {
+    if (calendarView === 'Year') {
+      setCurrentDate(prev => new Date(prev.getFullYear() - 1, prev.getMonth(), 1));
+    } else if (calendarView === 'Month') {
       setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
     } else if (calendarView === 'Week') {
       setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() - 7));
@@ -313,7 +325,9 @@ export function CalendarGrid() {
   };
 
   const handleNext = () => {
-    if (calendarView === 'Month') {
+    if (calendarView === 'Year') {
+      setCurrentDate(prev => new Date(prev.getFullYear() + 1, prev.getMonth(), 1));
+    } else if (calendarView === 'Month') {
       setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
     } else if (calendarView === 'Week') {
       setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + 7));
@@ -387,21 +401,26 @@ export function CalendarGrid() {
   return (
     <div className="flex flex-1 flex-col h-full bg-bg-app overflow-hidden">
       {/* Top Action Bar */}
-      <div className="flex h-14 items-center justify-between px-6 border-b border-border-subtle bg-bg-base flex-shrink-0">
+      <div className={cn(
+        "flex h-14 items-center justify-between border-b border-border-subtle bg-bg-base flex-shrink-0",
+        isModal ? "pl-6 pr-14" : "px-6"
+      )}>
         <div className="flex items-center gap-2">
           {/* Dropdown Selector for Calendar View */}
-          <div className="relative">
-            <select 
-              value={calendarView}
-              onChange={(e) => setCalendarView(e.target.value as 'Month' | 'Week' | 'Day')}
-              className="h-8 pl-2.5 pr-6 rounded-md bg-transparent hover:bg-bg-overlay/60 text-[13px] font-semibold text-text-secondary hover:text-text-primary outline-none transition-colors appearance-none cursor-pointer"
-            >
-              <option value="Day" className="bg-bg-elevated text-text-primary font-normal">Day</option>
-              <option value="Week" className="bg-bg-elevated text-text-primary font-normal">Week</option>
-              <option value="Month" className="bg-bg-elevated text-text-primary font-normal">Month</option>
-            </select>
-            <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted pointer-events-none" />
-          </div>
+          <Select 
+            value={calendarView} 
+            onValueChange={(val) => setCalendarView(val as 'Year' | 'Month' | 'Week' | 'Day')}
+          >
+            <SelectTrigger className="h-8 border-none bg-transparent hover:bg-bg-overlay/60 text-[13px] font-semibold text-text-secondary hover:text-text-primary focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors cursor-pointer data-[state=open]:bg-bg-overlay/60 data-[state=open]:text-text-primary">
+              <SelectValue placeholder="View" />
+            </SelectTrigger>
+            <SelectContent className="bg-bg-elevated text-text-primary border-border-subtle rounded-md shadow-xl">
+              <SelectItem value="Day" className="cursor-pointer">Day</SelectItem>
+              <SelectItem value="Week" className="cursor-pointer">Week</SelectItem>
+              <SelectItem value="Month" className="cursor-pointer">Month</SelectItem>
+              <SelectItem value="Year" className="cursor-pointer">Year</SelectItem>
+            </SelectContent>
+          </Select>
 
           <div className="h-4 w-[1px] bg-border-subtle mx-1" />
 
@@ -435,7 +454,9 @@ export function CalendarGrid() {
           <div className="h-4 w-[1px] bg-border-subtle mx-1" />
 
           <h2 className="text-[16px] font-bold text-text-primary pl-2 select-none">
-            {monthName}
+            {calendarView === 'Year' 
+              ? currentDate.getFullYear().toString()
+              : currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
           </h2>
         </div>
 
@@ -468,7 +489,10 @@ export function CalendarGrid() {
         </div>
       </div>
 
-      {calendarView === 'Month' ? (
+      {calendarView === 'Year' ? (
+        /* ════════════════════ YEAR VIEW GRID ════════════════════ */
+        <YearViewGrid currentDate={currentDate} setCurrentDate={setCurrentDate} setCalendarView={setCalendarView} />
+      ) : calendarView === 'Month' ? (
         /* ════════════════════ MONTH VIEW GRID ════════════════════ */
         <div onWheel={handleWheel} className="flex flex-col flex-1 bg-bg-app overflow-hidden p-4">
           {/* Weekday Headers */}
@@ -991,6 +1015,108 @@ export function CalendarGrid() {
         colorId={dragColorId}
         onColorIdChange={setDragColorId}
       />
+    </div>
+  );
+}
+
+function YearViewGrid({ 
+  currentDate, 
+  setCurrentDate, 
+  setCalendarView 
+}: { 
+  currentDate: Date;
+  setCurrentDate: (date: Date) => void;
+  setCalendarView: (view: 'Month' | 'Week' | 'Day' | 'Year') => void;
+}) {
+  const year = currentDate.getFullYear();
+  const now = new Date();
+
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const getMonthCells = (y: number, m: number) => {
+    const firstDayOfMonth = new Date(y, m, 1);
+    const startDayOfWeek = firstDayOfMonth.getDay();
+    return Array.from({ length: 42 }, (_, i) => {
+      return new Date(y, m, i - startDayOfWeek + 1);
+    });
+  };
+
+  const isTodayDate = (d: Date) => {
+    return d.getDate() === now.getDate() &&
+           d.getMonth() === now.getMonth() &&
+           d.getFullYear() === now.getFullYear();
+  };
+
+  const isSelectedDate = (d: Date) => {
+    return d.getDate() === currentDate.getDate() &&
+           d.getMonth() === currentDate.getMonth() &&
+           d.getFullYear() === currentDate.getFullYear();
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto no-scrollbar bg-bg-app p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-10 max-w-7xl mx-auto">
+        {months.map((monthName, m) => {
+          const cells = getMonthCells(year, m);
+          return (
+            <div key={m} className="flex flex-col select-none text-left">
+              {/* Month Header */}
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentDate(new Date(year, m, 1));
+                  setCalendarView('Month');
+                }}
+                className="text-[14px] font-bold text-text-primary hover:text-accent-blue transition-colors text-left mb-3 w-fit cursor-pointer"
+              >
+                {monthName}
+              </button>
+
+              {/* Weekday Headers */}
+              <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-text-secondary/60 mb-2">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                  <div key={i} className={cn(i === 0 || i === 6 ? "text-text-muted/65" : "text-text-secondary/60")}>{day}</div>
+                ))}
+              </div>
+
+              {/* Days Grid */}
+              <div className="grid grid-cols-7 gap-y-1 gap-x-0.5 text-center">
+                {cells.map((dateObj, i) => {
+                  const isToday = isTodayDate(dateObj);
+                  const isSelected = isSelectedDate(dateObj);
+                  const isCurrMonth = dateObj.getMonth() === m;
+
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => {
+                        setCurrentDate(dateObj);
+                        setCalendarView('Day');
+                      }}
+                      className={cn(
+                        "flex h-6 w-full items-center justify-center text-[11px] cursor-pointer transition-colors relative hover:bg-bg-overlay/50 rounded-full",
+                        !isCurrMonth && "text-text-muted/20 hover:text-text-muted/40",
+                        isCurrMonth && !isToday && !isSelected && "text-text-primary"
+                      )}
+                    >
+                      <span className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded-full text-[10.5px]",
+                        isSelected && "bg-accent-blue text-white font-bold shadow-sm",
+                        isToday && !isSelected && "border border-accent-blue/40 text-accent-blue font-bold"
+                      )}>
+                        {dateObj.getDate()}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

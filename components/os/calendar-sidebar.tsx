@@ -19,13 +19,19 @@ import { useAppStore } from '@/lib/store/app-store';
 
 import { useQuery } from '@tanstack/react-query';
 
-export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' | 'right-panel' }) {
+export function CalendarSidebar({ 
+  variant = 'default',
+  forceExpanded = false
+}: { 
+  variant?: 'default' | 'right-panel' | 'modal';
+  forceExpanded?: boolean;
+}) {
   const { 
     activeTabs, workspaceMode, setWorkspaceMode, 
     leftSidebarCollapsed, setLeftSidebarCollapsed,
     calendarView, setCalendarView, currentDateStr, setCurrentDateStr
   } = useAppStore();
-  const isSplit = activeTabs.length > 1 || (leftSidebarCollapsed && variant !== 'right-panel');
+  const isSplit = !forceExpanded && (activeTabs.length > 1 || (leftSidebarCollapsed && variant !== 'right-panel' && variant !== 'modal'));
   const isCalendarMode = workspaceMode === 'calendar';
 
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
@@ -164,9 +170,10 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
           </button>
         } />
         <div className="flex flex-col gap-2 mt-4">
-          <button title="Day View" onClick={() => setCalendarView('Day')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors text-[13px]", calendarView === 'Day' ? "bg-bg-highlight text-accent-blue font-bold" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>D</button>
-          <button title="Week View" onClick={() => setCalendarView('Week')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors text-[13px]", calendarView === 'Week' ? "bg-bg-highlight text-accent-blue font-bold" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>W</button>
-          <button title="Month View" onClick={() => setCalendarView('Month')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors text-[13px]", calendarView === 'Month' ? "bg-bg-highlight text-accent-blue font-bold" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>M</button>
+          <button title="Day View" onClick={() => setCalendarView('Day')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors text-[13px] cursor-pointer", calendarView === 'Day' ? "bg-bg-highlight text-accent-blue font-bold" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>D</button>
+          <button title="Week View" onClick={() => setCalendarView('Week')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors text-[13px] cursor-pointer", calendarView === 'Week' ? "bg-bg-highlight text-accent-blue font-bold" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>W</button>
+          <button title="Month View" onClick={() => setCalendarView('Month')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors text-[13px] cursor-pointer", calendarView === 'Month' ? "bg-bg-highlight text-accent-blue font-bold" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>M</button>
+          <button title="Year View" onClick={() => setCalendarView('Year')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors text-[13px] cursor-pointer", calendarView === 'Year' ? "bg-bg-highlight text-accent-blue font-bold" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>Y</button>
         </div>
       </div>
     );
@@ -192,11 +199,13 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <span className="font-heading text-[14px] font-semibold">{monthName}</span>
         <div className="flex items-center gap-1">
-          <CalendarModal trigger={
-            <button title="Full Calendar" className="p-1 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors mr-1">
-              <CalendarIcon className="h-4 w-4" />
-            </button>
-          } />
+          {!isCalendarMode && (
+            <CalendarModal trigger={
+              <button title="Full Calendar" className="p-1 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors mr-1 cursor-pointer">
+                <CalendarIcon className="h-4 w-4" />
+              </button>
+            } />
+          )}
           <button 
             onClick={handlePrevMonth}
             className="p-1 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors"

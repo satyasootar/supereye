@@ -14,7 +14,7 @@ interface AppState {
   emailCategory: string;
   workspaceMode: WorkspaceMode;
   leftSidebarCollapsed: boolean;
-  calendarView: 'Month' | 'Week' | 'Day';
+  calendarView: 'Month' | 'Week' | 'Day' | 'Year';
   currentDateStr: string;
   openTab: (tabId: TabId, multiSelect?: boolean) => void;
   closeTab: (tabId: TabId) => void;
@@ -26,7 +26,7 @@ interface AppState {
   setEmailCategory: (category: string) => void;
   setWorkspaceMode: (mode: WorkspaceMode) => void;
   setLeftSidebarCollapsed: (collapsed: boolean) => void;
-  setCalendarView: (view: 'Month' | 'Week' | 'Day') => void;
+  setCalendarView: (view: 'Month' | 'Week' | 'Day' | 'Year') => void;
   setCurrentDateStr: (dateStr: string) => void;
 }
 

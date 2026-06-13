@@ -132,60 +132,63 @@ export function CreateEventModal({
           {trigger}
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-[425px] bg-bg-surface border-border-strong text-text-primary">
-        <DialogHeader>
-          <DialogTitle>Create New Event</DialogTitle>
+      <DialogContent className="sm:max-w-[450px] bg-bg-surface border-border-strong text-text-primary p-6 shadow-2xl">
+        <DialogHeader className="mb-2">
+          <DialogTitle className="text-2xl font-semibold text-text-primary leading-tight">Create New Event</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          <div className="space-y-2">
-            <label htmlFor="title" className="text-sm font-medium">Event Title</label>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-1.5">
+            <label htmlFor="title" className="text-[13px] font-medium text-text-secondary">Event Title</label>
             <Input 
               id="title" 
               value={summary} 
               onChange={(e) => setSummary(e.target.value)} 
               placeholder="e.g. Sync Meeting" 
               required
-              className="bg-bg-overlay border-border-subtle"
+              className="rounded-md h-10 bg-bg-overlay border-border-default text-text-primary placeholder:text-text-muted transition-all"
             />
           </div>
-          <div className="space-y-2">
-            <label htmlFor="date" className="text-sm font-medium">Date</label>
+          
+          <div className="space-y-1.5">
+            <label htmlFor="date" className="text-[13px] font-medium text-text-secondary">Date</label>
             <Input 
               id="date" 
               type="date" 
               value={date} 
               onChange={(e) => setDate(e.target.value)} 
               required
-              className="bg-bg-overlay border-border-subtle"
+              className="rounded-md h-10 bg-bg-overlay border-border-default text-text-primary transition-all [color-scheme:dark]"
             />
           </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="start" className="text-sm font-medium">Start Time</label>
+            <div className="space-y-1.5">
+              <label htmlFor="start" className="text-[13px] font-medium text-text-secondary">Start Time</label>
               <Input 
                 id="start" 
                 type="time" 
                 value={startTime} 
                 onChange={(e) => setStartTime(e.target.value)} 
                 required
-                className="bg-bg-overlay border-border-subtle"
+                className="rounded-md h-10 bg-bg-overlay border-border-default text-text-primary transition-all [color-scheme:dark]"
               />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="end" className="text-sm font-medium">End Time</label>
+            <div className="space-y-1.5">
+              <label htmlFor="end" className="text-[13px] font-medium text-text-secondary">End Time</label>
               <Input 
                 id="end" 
                 type="time" 
                 value={endTime} 
                 onChange={(e) => setEndTime(e.target.value)} 
                 required
-                className="bg-bg-overlay border-border-subtle"
+                className="rounded-md h-10 bg-bg-overlay border-border-default text-text-primary transition-all [color-scheme:dark]"
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Event Color</label>
-            <div className="flex flex-wrap gap-2 pt-1">
+
+          <div className="space-y-2 pt-1">
+            <label className="text-[13px] font-medium text-text-secondary">Event Color</label>
+            <div className="flex flex-wrap gap-2.5 pt-1">
               {GOOGLE_COLORS.map((color) => (
                 <button
                   key={color.id}
@@ -193,37 +196,59 @@ export function CreateEventModal({
                   onClick={() => setColorId(color.id)}
                   title={color.name}
                   className={cn(
-                    "h-6 w-6 rounded-full transition-all focus:outline-none hover:scale-110",
+                    "h-6 w-6 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue focus-visible:ring-offset-2 focus-visible:ring-offset-bg-surface hover:scale-110 shadow-sm border border-black/10 cursor-pointer",
                     color.bg,
-                    colorId === color.id ? "ring-2 ring-white ring-offset-2 ring-offset-bg-surface scale-110" : ""
+                    colorId === color.id ? "ring-2 ring-white ring-offset-2 ring-offset-bg-surface scale-110 border-transparent" : "opacity-80 hover:opacity-100"
                   )}
                 />
               ))}
             </div>
           </div>
-          <div className="space-y-2">
-            <label htmlFor="attendees" className="text-sm font-medium">Attendees (comma separated)</label>
-            <Input 
-              id="attendees" 
-              value={attendees} 
-              onChange={(e) => setAttendees(e.target.value)} 
-              placeholder="user@example.com, user2@example.com" 
-              className="bg-bg-overlay border-border-subtle"
-            />
-            {attendees && (
-              <Button type="button" variant="outline" size="sm" onClick={checkAvailability}>
-                Check Availability
-              </Button>
-            )}
+
+          <div className="space-y-1.5 pt-1">
+            <label htmlFor="attendees" className="text-[13px] font-medium text-text-secondary flex justify-between items-center">
+              <span>Attendees <span className="text-text-muted font-normal">(comma separated)</span></span>
+            </label>
+            <div className="flex gap-2">
+              <Input 
+                id="attendees" 
+                value={attendees} 
+                onChange={(e) => setAttendees(e.target.value)} 
+                placeholder="user1@example.com, user2@example.com" 
+                className="rounded-md h-10 bg-bg-overlay border-border-default text-text-primary placeholder:text-text-muted transition-all"
+              />
+              {attendees && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="rounded-md h-10 px-4 bg-bg-highlight border-border-strong hover:bg-bg-overlay text-[13px] font-medium flex-shrink-0 cursor-pointer" 
+                  onClick={checkAvailability}
+                >
+                  Check Availability
+                </Button>
+              )}
+            </div>
             {availability && (
-              <div className="text-[12px] bg-bg-overlay p-2 rounded max-h-24 overflow-y-auto">
+              <div className="text-[12px] bg-bg-overlay p-3 rounded-md mt-2 max-h-32 overflow-y-auto custom-scrollbar border border-border-subtle text-text-secondary font-mono">
                 <pre>{JSON.stringify(availability.calendars, null, 2)}</pre>
               </div>
             )}
           </div>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={createMutation.isPending} className="bg-accent-blue text-white hover:bg-accent-blue/90">
+
+          <div className="flex justify-end gap-3 pt-6 mt-2 border-t border-border-subtle">
+            <Button 
+              type="button" 
+              variant="ghost" 
+              onClick={() => setOpen(false)}
+              className="rounded-md h-10 text-[14px] px-5 hover:bg-bg-overlay font-medium cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={createMutation.isPending} 
+              className="rounded-md bg-accent-blue text-white hover:bg-accent-blue/90 h-10 text-[14px] px-6 font-semibold shadow-sm transition-all cursor-pointer"
+            >
               {createMutation.isPending ? 'Creating...' : 'Create Event'}
             </Button>
           </div>
