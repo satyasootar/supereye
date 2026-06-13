@@ -14,6 +14,7 @@ interface AppState {
   emailCategory: string;
   workspaceMode: WorkspaceMode;
   leftSidebarCollapsed: boolean;
+  calendarView: 'Month' | 'Week' | 'Day';
   openTab: (tabId: TabId, multiSelect?: boolean) => void;
   closeTab: (tabId: TabId) => void;
   setSplitRatio: (ratio: number) => void;
@@ -24,6 +25,7 @@ interface AppState {
   setEmailCategory: (category: string) => void;
   setWorkspaceMode: (mode: WorkspaceMode) => void;
   setLeftSidebarCollapsed: (collapsed: boolean) => void;
+  setCalendarView: (view: 'Month' | 'Week' | 'Day') => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -38,6 +40,7 @@ export const useAppStore = create<AppState>()(
       emailCategory: 'ALL',
       workspaceMode: 'email',
       leftSidebarCollapsed: false,
+      calendarView: 'Month',
       openTab: (tabId, multiSelect = false) => set((state) => {
         if (multiSelect) {
           // Cannot have more than 2 tabs open
@@ -65,6 +68,7 @@ export const useAppStore = create<AppState>()(
       setEmailCategory: (category) => set({ emailCategory: category }),
       setWorkspaceMode: (mode) => set({ workspaceMode: mode }),
       setLeftSidebarCollapsed: (collapsed) => set({ leftSidebarCollapsed: collapsed }),
+      setCalendarView: (view) => set({ calendarView: view }),
     }),
     {
       name: 'app-storage',
@@ -73,7 +77,8 @@ export const useAppStore = create<AppState>()(
         activeTabs: state.activeTabs, 
         splitRatio: state.splitRatio, 
         workspaceMode: state.workspaceMode,
-        leftSidebarCollapsed: state.leftSidebarCollapsed 
+        leftSidebarCollapsed: state.leftSidebarCollapsed,
+        calendarView: state.calendarView
       }),
     }
   )

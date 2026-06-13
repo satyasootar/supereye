@@ -3,17 +3,45 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-export function CreateEventModal({ trigger }: { trigger?: ReactNode }) {
-  const [open, setOpen] = useState(false);
+export function CreateEventModal({ 
+  trigger,
+  initialDate,
+  initialStartTime,
+  initialEndTime,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange
+}: { 
+  trigger?: ReactNode;
+  initialDate?: string;
+  initialStartTime?: string;
+  initialEndTime?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : localOpen;
+  const setOpen = controlledOnOpenChange !== undefined ? controlledOnOpenChange : setLocalOpen;
+
   const [summary, setSummary] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [startTime, setStartTime] = useState('09:00');
-  const [endTime, setEndTime] = useState('10:00');
+  const [date, setDate] = useState(() => initialDate || new Date().toISOString().split('T')[0]);
+  const [startTime, setStartTime] = useState(() => initialStartTime || '09:00');
+  const [endTime, setEndTime] = useState(() => initialEndTime || '10:00');
   const [attendees, setAttendees] = useState('');
   const [availability, setAvailability] = useState<any>(null);
+
+  useEffect(() => {
+    if (open) {
+      if (initialDate) setDate(initialDate);
+      if (initialStartTime) setStartTime(initialStartTime);
+      if (initialEndTime) setEndTime(initialEndTime);
+      setSummary('');
+      setAttendees('');
+      setAvailability(null);
+    }
+  }, [open, initialDate, initialStartTime, initialEndTime]);
   
   const queryClient = useQueryClient();
 

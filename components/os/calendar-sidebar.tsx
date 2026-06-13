@@ -25,13 +25,16 @@ import { useAppStore } from '@/lib/store/app-store';
 import { useQuery } from '@tanstack/react-query';
 
 export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' | 'right-panel' }) {
-  const { activeTabs, workspaceMode, setWorkspaceMode, leftSidebarCollapsed, setLeftSidebarCollapsed } = useAppStore();
+  const { 
+    activeTabs, workspaceMode, setWorkspaceMode, 
+    leftSidebarCollapsed, setLeftSidebarCollapsed,
+    calendarView, setCalendarView 
+  } = useAppStore();
   const isSplit = activeTabs.length > 1 || (leftSidebarCollapsed && variant !== 'right-panel');
   const isCalendarMode = workspaceMode === 'calendar';
 
   const [calsExpanded, setCalsExpanded] = useState(true);
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
-  const [activeView, setActiveView] = useState('Month');
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -97,9 +100,9 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
           </button>
         } />
         <div className="flex flex-col gap-2 mt-4">
-          <button title="Day View" onClick={() => setActiveView('Day')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors", activeView === 'Day' ? "bg-bg-highlight text-accent-blue" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>D</button>
-          <button title="Week View" onClick={() => setActiveView('Week')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors", activeView === 'Week' ? "bg-bg-highlight text-accent-blue" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>W</button>
-          <button title="Month View" onClick={() => setActiveView('Month')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors", activeView === 'Month' ? "bg-bg-highlight text-accent-blue" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>M</button>
+          <button title="Day View" onClick={() => setCalendarView('Day')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors text-[13px]", calendarView === 'Day' ? "bg-bg-highlight text-accent-blue font-bold" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>D</button>
+          <button title="Week View" onClick={() => setCalendarView('Week')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors text-[13px]", calendarView === 'Week' ? "bg-bg-highlight text-accent-blue font-bold" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>W</button>
+          <button title="Month View" onClick={() => setCalendarView('Month')} className={cn("flex h-8 w-8 items-center justify-center rounded-md transition-colors text-[13px]", calendarView === 'Month' ? "bg-bg-highlight text-accent-blue font-bold" : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary")}>M</button>
         </div>
       </div>
     );
@@ -173,14 +176,14 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
       {variant !== 'right-panel' && (
         <div className="p-3 border-b border-border-subtle">
           <div className="flex bg-bg-elevated rounded-md p-1 border border-border-subtle">
-            {['Day', 'Week', 'Month', 'Agenda'].map(view => (
+            {['Day', 'Week', 'Month'].map(view => (
               <button
                 key={view}
-                onClick={() => setActiveView(view)}
+                onClick={() => setCalendarView(view as 'Day' | 'Week' | 'Month')}
                 className={cn(
                   "flex-1 rounded py-1 text-[11px] font-medium transition-colors",
-                  activeView === view 
-                    ? "bg-bg-highlight text-accent-blue shadow-sm" 
+                  calendarView === view 
+                    ? "bg-bg-highlight text-accent-blue shadow-sm font-bold" 
                     : "text-text-secondary hover:text-text-primary hover:bg-bg-overlay"
                 )}
               >
