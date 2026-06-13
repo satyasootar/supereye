@@ -461,29 +461,15 @@ export function CalendarGrid({ isModal = false }: { isModal?: boolean }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Search events"
-              placeholder="Search..." 
-              className="h-8 w-48 rounded-full bg-bg-overlay border-none pl-9 pr-3 text-[13px] outline-none focus:ring-1 focus:ring-accent-blue transition-shadow text-text-primary placeholder:text-text-muted"
-            />
-          </div>
           <div className="flex items-center">
             <button 
               type="button" 
               onClick={() => syncMutation.mutate()}
               disabled={syncMutation.isPending}
               title="Sync Calendar" 
-              className="p-2 rounded hover:bg-bg-overlay text-text-secondary transition-colors"
+              className="p-2 rounded hover:bg-bg-overlay text-text-secondary transition-colors cursor-pointer"
             >
               <RefreshCw className={cn("h-4 w-4", syncMutation.isPending && "animate-spin")} />
-            </button>
-            <button type="button" aria-label="Settings" className="p-2 rounded hover:bg-bg-overlay text-text-secondary transition-colors ml-2">
-              <Settings className="h-4 w-4" />
             </button>
           </div>
         </div>
