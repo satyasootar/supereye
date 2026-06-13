@@ -5,17 +5,18 @@ import { calendarEvents } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getTenant } from '@/lib/corsair';
 
-export async function GET(req: Request, { params }: { params: { eventId: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
+    const { eventId } = await params;
     const t = getTenant(session.user.id);
     const event = await t.googlecalendar.api.events.get({
       calendarId: 'primary',
-      eventId: params.eventId
+      eventId: eventId
     });
     return NextResponse.json({ event });
   } catch (error: any) {
@@ -23,18 +24,19 @@ export async function GET(req: Request, { params }: { params: { eventId: string 
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { eventId: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
+    const { eventId } = await params;
     const body = await req.json();
     const t = getTenant(session.user.id);
     const updatedEvent = await t.googlecalendar.api.events.update({
       calendarId: 'primary',
-      eventId: params.eventId,
+      eventId: eventId,
       requestBody: body
     });
 
@@ -49,7 +51,7 @@ export async function PATCH(req: Request, { params }: { params: { eventId: strin
       })
       .where(and(
         eq(calendarEvents.userId, session.user.id),
-        eq(calendarEvents.googleEventId, params.eventId)
+        eq(calendarEvents.googleEventId, eventId)
       ));
 
     return NextResponse.json({ event: updatedEvent });
@@ -58,24 +60,25 @@ export async function PATCH(req: Request, { params }: { params: { eventId: strin
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { eventId: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
+    const { eventId } = await params;
     const t = getTenant(session.user.id);
     await t.googlecalendar.api.events.delete({
       calendarId: 'primary',
-      eventId: params.eventId
+      eventId: eventId
     });
 
     // Delete from local cache
     await db.delete(calendarEvents)
       .where(and(
         eq(calendarEvents.userId, session.user.id),
-        eq(calendarEvents.googleEventId, params.eventId)
+        eq(calendarEvents.googleEventId, eventId)
       ));
 
     return NextResponse.json({ success: true });

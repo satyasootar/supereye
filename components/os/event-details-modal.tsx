@@ -38,6 +38,7 @@ export function EventDetailsModal({ eventId, open, onOpenChange }: { eventId: st
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[450px] bg-bg-surface border-border-strong text-text-primary p-0 overflow-hidden">
+        <DialogTitle className="sr-only">Event Details</DialogTitle>
         {isLoading || !evt ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 className="h-6 w-6 animate-spin text-accent-blue" />

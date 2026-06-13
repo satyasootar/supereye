@@ -26,7 +26,7 @@ type EmailMessage = {
   toAddresses?: any[];
 };
 
-export function EmailCompactPanel() {
+export function EmailCompactPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const { selectedEmailId, setSelectedEmailId, emailCategory, setWorkspaceMode } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();
@@ -99,21 +99,23 @@ export function EmailCompactPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-bg-app">
+    <div className="flex flex-col h-full overflow-hidden bg-bg-surface">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 h-12 border-b border-border-subtle flex-shrink-0 bg-bg-surface/50">
-        <div className="flex items-center gap-2">
-          <Inbox className="h-4 w-4 text-accent-blue" />
-          <span className="text-[14px] font-semibold text-text-primary">Inbox</span>
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-4 h-12 border-b border-border-subtle flex-shrink-0 bg-bg-surface/50">
+          <div className="flex items-center gap-2">
+            <Inbox className="h-4 w-4 text-accent-blue" />
+            <span className="text-[14px] font-semibold text-text-primary">Inbox</span>
+          </div>
+          <button
+            onClick={() => setWorkspaceMode('email')}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-medium text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20 transition-colors"
+          >
+            <Mail className="h-3.5 w-3.5" />
+            Focus on Email
+          </button>
         </div>
-        <button
-          onClick={() => setWorkspaceMode('email')}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-medium text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20 transition-colors"
-        >
-          <Mail className="h-3.5 w-3.5" />
-          Focus on Email
-        </button>
-      </div>
+      )}
 
       {/* Search */}
       <div className="px-3 py-2 border-b border-border-subtle flex-shrink-0">
@@ -181,8 +183,8 @@ export function EmailCompactPanel() {
                       key={email.id}
                       onClick={() => handleEmailClick(email)}
                       className={cn(
-                        "flex flex-col gap-0.5 px-4 py-2.5 border-b border-border-subtle/50 cursor-pointer transition-colors hover:bg-bg-surface/60",
-                        !email.isRead && "bg-bg-surface/30"
+                        "flex flex-col gap-0.5 px-4 py-2.5 border-b border-border-subtle/50 cursor-pointer transition-colors hover:bg-bg-overlay",
+                        !email.isRead && "bg-bg-highlight/30"
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">

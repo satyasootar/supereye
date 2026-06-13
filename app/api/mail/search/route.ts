@@ -40,14 +40,15 @@ export async function GET(req: Request) {
     }
     
     if (localQ) {
-      conditions.push(
-        or(
-          ilike(emails.subject, searchPattern),
-          ilike(emails.snippet, searchPattern),
-          ilike(emails.body, searchPattern),
-          ilike(emails.fromAddress, searchPattern)
-        )
+      const orCondition = or(
+        ilike(emails.subject, searchPattern),
+        ilike(emails.snippet, searchPattern),
+        ilike(emails.body, searchPattern),
+        ilike(emails.fromAddress, searchPattern)
       );
+      if (orCondition) {
+        conditions.push(orCondition);
+      }
     }
 
     // 1. Local DB Search

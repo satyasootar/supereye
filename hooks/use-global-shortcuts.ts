@@ -37,7 +37,8 @@ export function useGlobalShortcuts() {
         keyBuffer = [];
       } else if (combo.includes('GK')) {
         e.preventDefault();
-        openTab('calendar');
+        openTab('email');
+        useAppStore.getState().setWorkspaceMode('calendar');
         keyBuffer = [];
       } else if (combo.includes('GI')) {
         e.preventDefault();

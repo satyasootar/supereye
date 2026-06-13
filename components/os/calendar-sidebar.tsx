@@ -96,16 +96,18 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
 
   return (
     <div className="flex h-full w-full flex-col bg-bg-surface text-text-primary overflow-y-auto custom-scrollbar">
-      {/* Focus on Email button — only in calendar workspace mode */}
-      {isCalendarMode && (
-        <div className="px-3 pt-3 pb-1 flex-shrink-0">
-          <button
-            onClick={() => setWorkspaceMode('email')}
-            className="flex w-full items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] font-semibold text-accent-blue bg-accent-blue/8 border border-accent-blue/20 hover:bg-accent-blue/15 hover:border-accent-blue/40 transition-all"
-          >
-            <Mail className="h-3.5 w-3.5" />
-            Focus on Email
-          </button>
+      {/* New Event Button at the top for default (left) panel view, matching the Compose button styling in EmailSidebar */}
+      {variant === 'default' && (
+        <div className="px-3 py-2 border-b border-border-subtle flex-shrink-0">
+          <CreateEventModal trigger={
+            <button 
+              className="flex w-full h-10 items-center justify-center gap-2 rounded-md bg-accent-blue text-[14px] font-semibold text-white shadow-sm hover:bg-accent-blue-dim transition-colors group relative"
+              title="New Event"
+            >
+              <Plus className="h-4 w-4" />
+              New Event
+            </button>
+          } />
         </div>
       )}
       {/* Mini Calendar Header */}
@@ -261,13 +263,17 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
         )}
       </div>
 
-      {/* Quick Create Button */}
-      <div className="p-3 border-t border-border-subtle mt-auto">
-        <button className="flex w-full h-9 items-center justify-center gap-2 rounded-md bg-bg-highlight border border-accent-blue/30 text-[13px] font-semibold text-accent-blue shadow-sm hover:bg-accent-blue hover:text-white transition-colors group">
-          <Plus className="h-4 w-4" />
-          New Event
-        </button>
-      </div>
+      {/* Quick Create Button - Only show at bottom for right-panel variant */}
+      {variant === 'right-panel' && (
+        <div className="p-3 border-t border-border-subtle mt-auto flex-shrink-0">
+          <CreateEventModal trigger={
+            <button className="flex w-full h-9 items-center justify-center gap-2 rounded-md bg-bg-highlight border border-accent-blue/30 text-[13px] font-semibold text-accent-blue shadow-sm hover:bg-accent-blue hover:text-white transition-colors group">
+              <Plus className="h-4 w-4" />
+              New Event
+            </button>
+          } />
+        </div>
+      )}
     </div>
   );
 }

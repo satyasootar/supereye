@@ -10,6 +10,7 @@ export async function GET() {
       return NextResponse.json({ error: 'No users found' }, { status: 400 });
     }
     const userId = allUsers[0].id;
+    const t = getTenant(userId);
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 

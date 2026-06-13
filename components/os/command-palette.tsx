@@ -17,7 +17,7 @@ type Command = {
 };
 
 export function CommandPalette() {
-  const { isCommandPaletteOpen, setCommandPaletteOpen, openTab } = useAppStore();
+  const { isCommandPaletteOpen, setCommandPaletteOpen, openTab, setWorkspaceMode } = useAppStore();
   const { setTheme, theme } = useTheme();
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -53,7 +53,7 @@ export function CommandPalette() {
   const commands: Command[] = [
     // Recently Used
     { id: 'compose-email', category: 'Recently Used', label: 'Compose new email', icon: Mail, shortcut: 'C', action: () => openTab('email') },
-    { id: 'create-event', category: 'Recently Used', label: 'Create event', icon: Calendar, shortcut: 'N', action: () => openTab('calendar') },
+    { id: 'create-event', category: 'Recently Used', label: 'Create event', icon: Calendar, shortcut: 'N', action: () => { openTab('email'); setWorkspaceMode('calendar'); } },
     { id: 'ask-ai', category: 'Recently Used', label: 'Ask AI', icon: Sparkles, shortcut: '/', action: () => openTab('chat') },
     
     // Email Actions
@@ -61,8 +61,8 @@ export function CommandPalette() {
     { id: 'go-sent', category: 'Email Actions', label: 'Go to Sent', icon: Mail, shortcut: 'G S', action: () => openTab('email') },
     
     // Calendar Actions
-    { id: 'go-today', category: 'Calendar Actions', label: 'Go to today', icon: Calendar, shortcut: 'T', action: () => openTab('calendar') },
-    { id: 'switch-month', category: 'Calendar Actions', label: 'Switch to month view', icon: Calendar, shortcut: 'M', action: () => openTab('calendar') },
+    { id: 'go-today', category: 'Calendar Actions', label: 'Go to today', icon: Calendar, shortcut: 'T', action: () => { openTab('email'); setWorkspaceMode('calendar'); } },
+    { id: 'switch-month', category: 'Calendar Actions', label: 'Switch to month view', icon: Calendar, shortcut: 'M', action: () => { openTab('email'); setWorkspaceMode('calendar'); } },
     
     // AI Actions
     { id: 'ai-draft', category: 'AI Actions', label: 'Ask AI to draft reply', icon: Sparkles, action: () => openTab('chat') },

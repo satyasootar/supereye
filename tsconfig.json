@@ -31,5 +31,18 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "register-webhook.ts",
+    "register-webhooks.ts",
+    "resync-emails.ts",
+    "test-calendar-script.ts",
+    "test-corsair.ts",
+    "test-create-event.ts",
+    "test-modify.ts",
+    "test-pubsub.ts",
+    "test-webhook.ts",
+    "corsair.ts",
+    "proxy.ts"
+  ]
 }

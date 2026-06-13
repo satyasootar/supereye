@@ -109,16 +109,31 @@ export function EmailPane() {
                 >
                   {isRightPanelExpanded ? (
                     /* Expanded Email Panel */
-                    <div className="flex flex-col h-full w-[400px]">
-                      {/* Collapse Arrow */}
-                      <button
-                        onClick={() => setIsRightPanelExpanded(false)}
-                        className="absolute -left-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-border-subtle bg-bg-surface text-text-muted hover:text-text-primary shadow-sm hover:bg-bg-highlight transition-colors"
-                        title="Collapse Email Panel"
-                      >
-                        <ChevronRight className="h-3 w-3" />
-                      </button>
-                      <EmailCompactPanel />
+                    <div className="flex flex-col h-full w-[400px] bg-bg-surface">
+                      {/* Unified Right Panel Header */}
+                      <div className="flex h-12 flex-shrink-0 items-center justify-between px-3 border-b border-border-subtle bg-bg-surface">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setIsRightPanelExpanded(false)}
+                            className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-overlay transition-colors"
+                            title="Collapse Email Panel"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                          <Mail className="h-4 w-4 text-accent-blue" />
+                          <span className="text-[14px] font-semibold text-text-primary">Email</span>
+                        </div>
+                        <button
+                          onClick={() => setWorkspaceMode('email')}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-semibold text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20 transition-colors"
+                        >
+                          <Mail className="h-3.5 w-3.5" />
+                          Focus
+                        </button>
+                      </div>
+                      <div className="flex-1 overflow-hidden bg-bg-surface">
+                        <EmailCompactPanel hideHeader={true} />
+                      </div>
                     </div>
                   ) : (
                     /* Collapsed Email Dock */
@@ -134,11 +149,11 @@ export function EmailPane() {
 
                       <div className="w-6 border-t border-border-subtle my-1" />
 
-                      {/* Focus on Email */}
+                      {/* Switch to Email Focus */}
                       <button
                         onClick={() => setWorkspaceMode('email')}
-                        title="Focus on Email"
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:text-accent-blue hover:bg-accent-blue/10 transition-colors"
+                        title="Switch to Email Focus"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-blue/15 text-accent-blue hover:bg-accent-blue/25 transition-colors"
                       >
                         <Mail className="h-4 w-4" />
                       </button>
@@ -181,7 +196,7 @@ export function EmailPane() {
                 {selectedEmailId && (
                   <div
                     ref={overlayRef}
-                    className="flex h-full border-l border-border-strong relative animate-in slide-in-from-right-8 duration-200"
+                    className="flex h-full border-l border-border-subtle relative animate-in slide-in-from-right-8 duration-200"
                     style={{ width: `${100 - splitRatio}%` }}
                   >
                     {/* Resizer Handle */}
@@ -205,7 +220,7 @@ export function EmailPane() {
               <AnimatePresence initial={false}>
                 <motion.div
                   key={isRightPanelExpanded ? 'cal-expanded' : 'cal-collapsed'}
-                  className="relative flex-shrink-0 border-l border-border-strong bg-bg-surface overflow-hidden"
+                  className="relative flex-shrink-0 border-l border-border-subtle bg-bg-surface overflow-hidden"
                   initial={{ width: 0, opacity: 0 }}
                   animate={{ width: isRightPanelExpanded ? 320 : 48, opacity: 1 }}
                   exit={{ width: 0, opacity: 0 }}
@@ -213,28 +228,31 @@ export function EmailPane() {
                 >
                   {isRightPanelExpanded ? (
                     /* Expanded Calendar Panel */
-                    <div className="flex flex-col h-full w-[320px]">
-                      {/* Collapse Arrow */}
-                      <button
-                        onClick={() => setIsRightPanelExpanded(false)}
-                        className="absolute -left-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-border-subtle bg-bg-surface text-text-muted hover:text-text-primary shadow-sm hover:bg-bg-highlight transition-colors"
-                        title="Collapse Calendar"
-                      >
-                        <ChevronRight className="h-3 w-3" />
-                      </button>
-
-                      {/* Focus on Calendar button */}
-                      <div className="px-3 pt-3 pb-1 flex-shrink-0">
+                    <div className="flex flex-col h-full w-[320px] bg-bg-surface">
+                      {/* Unified Right Panel Header */}
+                      <div className="flex h-12 flex-shrink-0 items-center justify-between px-3 border-b border-border-subtle bg-bg-surface">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setIsRightPanelExpanded(false)}
+                            className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-overlay transition-colors"
+                            title="Collapse Calendar Panel"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                          <Calendar className="h-4 w-4 text-accent-blue" />
+                          <span className="text-[14px] font-semibold text-text-primary">Calendar</span>
+                        </div>
                         <button
                           onClick={() => setWorkspaceMode('calendar')}
-                          className="flex w-full items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] font-semibold text-accent-blue bg-accent-blue/8 border border-accent-blue/20 hover:bg-accent-blue/15 hover:border-accent-blue/40 transition-all"
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-semibold text-accent-blue bg-accent-blue/10 hover:bg-accent-blue/20 transition-colors"
                         >
                           <Calendar className="h-3.5 w-3.5" />
-                          Focus on Calendar
+                          Focus
                         </button>
                       </div>
-
-                      <CalendarSidebar variant="right-panel" />
+                      <div className="flex-1 overflow-hidden bg-bg-surface">
+                        <CalendarSidebar variant="right-panel" />
+                      </div>
                     </div>
                   ) : (
                     /* Collapsed Calendar Dock */
@@ -250,11 +268,11 @@ export function EmailPane() {
 
                       <div className="w-6 border-t border-border-subtle my-1" />
 
-                      {/* Focus on Calendar */}
+                      {/* Switch to Calendar Focus */}
                       <button
                         onClick={() => setWorkspaceMode('calendar')}
-                        title="Focus on Calendar"
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:text-accent-blue hover:bg-accent-blue/10 transition-colors"
+                        title="Switch to Calendar Focus"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-blue/15 text-accent-blue hover:bg-accent-blue/25 transition-colors"
                       >
                         <Calendar className="h-4 w-4" />
                       </button>
