@@ -24,6 +24,19 @@ export async function GET(req: NextRequest) {
     });
 
     console.log(`Successfully connected ${result.plugin} for tenant ${result.tenantId}`);
+
+    // Trigger initial sync and watch registration on successful OAuth connection
+    if (result.plugin === 'googlecalendar') {
+      const { syncCalendarForUser } = await import('@/lib/calendar/sync');
+      syncCalendarForUser(result.tenantId).catch(err => 
+        console.error('[OAuth Callback] Initial calendar sync failed:', err)
+      );
+    } else if (result.plugin === 'gmail') {
+      const { syncGmailForUser } = await import('@/lib/mail/sync');
+      syncGmailForUser(result.tenantId).catch(err => 
+        console.error('[OAuth Callback] Initial Gmail sync failed:', err)
+      );
+    }
   } catch (error: any) {
     console.error('OAuth Callback Error:', error);
     return NextResponse.json({ 

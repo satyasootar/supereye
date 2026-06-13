@@ -29,18 +29,21 @@ export function useSSE() {
       retryDelay.current = 1000; // Reset on successful connection attempt
 
       eventSource.onopen = () => {
+        console.log('[SSE] Connected to event stream.');
         retryDelay.current = 1000; // Reset backoff on successful connect
       };
 
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log('[SSE] Received event:', data);
           const eventType = data.type as SSEEventType;
 
           // Invalidate all query keys mapped to this event type
           const queryKeys = SSE_INVALIDATION_MAP[eventType];
           if (queryKeys) {
             for (const key of queryKeys) {
+              console.log(`[SSE] Invalidating query key:`, key);
               queryClient.invalidateQueries({ queryKey: key });
             }
           }
@@ -64,11 +67,12 @@ export function useSSE() {
             });
           }
         } catch (e) {
-          console.error('Failed to parse SSE data', e);
+          console.error('[SSE] Failed to parse SSE data', e);
         }
       };
 
-      eventSource.onerror = () => {
+      eventSource.onerror = (err) => {
+        console.error('[SSE] EventSource connection error or closed.', err);
         eventSource?.close();
         eventSource = null;
 

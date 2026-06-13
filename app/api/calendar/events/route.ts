@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { calendarEvents, emailEventLinks, emails } from '@/lib/db/schema';
+import { calendarEvents, emailEventLinks, emails, syncState } from '@/lib/db/schema';
 import { eq, gte, lte, and, asc } from 'drizzle-orm';
 import { getTenant } from '@/lib/corsair';
 
@@ -11,6 +11,29 @@ export async function GET() {
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const userId = session.user.id;
+
+  // Self-healing background sync and watch registration check
+  (async () => {
+    try {
+      const lastSync = await db.select()
+        .from(syncState)
+        .where(and(eq(syncState.userId, userId), eq(syncState.provider, 'googlecalendar')))
+        .limit(1);
+
+      const needsSync = !lastSync.length || !lastSync[0].lastSyncedAt || (Date.now() - lastSync[0].lastSyncedAt.getTime() > 15 * 60 * 1000);
+      if (needsSync) {
+        console.log(`[Calendar API] Auto-triggering background calendar sync for user ${userId}`);
+        const { syncCalendarForUser } = await import('@/lib/calendar/sync');
+        syncCalendarForUser(userId).catch(err => 
+          console.error('[Calendar API] Auto background sync failed:', err)
+        );
+      }
+    } catch (err) {
+      console.error('[Calendar API] Auto background sync check error:', err);
+    }
+  })();
 
   try {
     const startOfDay = new Date();

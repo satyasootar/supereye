@@ -35,26 +35,17 @@ export async function POST(req: Request) {
     }
 
     // 2. Register Calendar Webhook
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://your-localtunnel.loca.lt';
-    if (appUrl) {
-      try {
-        // We use a unique channel ID per user so we can identify them, 
-        // though Corsair processWebhook uses the query param ?tenantId=...
-        const channelId = `supereye-cal-${userId}-${Date.now()}`;
-        const watchRes = await t.googlecalendar.api.events.watch({
-          calendarId: 'primary',
-          requestBody: {
-            id: channelId,
-            type: 'web_hook',
-            address: `${appUrl}/api/webhooks/corsair?tenantId=${userId}`,
-            // Optional: TTL can be set, otherwise default is 30 days
-          }
-        });
+    try {
+      const { registerCalendarWatch } = await import('@/lib/calendar/sync');
+      const watchRes = await registerCalendarWatch(userId);
+      if (watchRes) {
         results.calendar = watchRes;
-      } catch (e: any) {
-        console.error('Failed to register Calendar watch:', e.message);
-        results.calendarError = e.message;
+      } else {
+        results.calendarError = 'Failed to register calendar watch';
       }
+    } catch (e: any) {
+      console.error('Failed to register Calendar watch:', e.message);
+      results.calendarError = e.message;
     }
 
     return NextResponse.json({ success: true, results });

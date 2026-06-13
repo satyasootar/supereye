@@ -15,6 +15,7 @@ export async function POST(req: Request) {
     
     // Read body as text first for processWebhook, then parse as JSON
     const bodyText = await req.text();
+    
     let payload: any = {};
     try {
       payload = bodyText ? JSON.parse(bodyText) : {};
@@ -72,7 +73,8 @@ export async function POST(req: Request) {
         await syncGmailForUser(userId);
       }, 2500);
     } else if (provider === 'googlecalendar') {
-      await syncCalendarForUser(userId);
+      await syncCalendarForUser(userId, true);
+      sseEmitter.emit(userId, { type: 'calendar:updated' });
     } else {
       sseEmitter.emit(userId, { type: 'sync:requested' });
     }

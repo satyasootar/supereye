@@ -65,6 +65,16 @@ class SSEEmitter {
   }
 }
 
-// Singleton instance — shared across all API routes in the same process
-export const sseEmitter = new SSEEmitter();
+const globalForSSE = globalThis as typeof globalThis & {
+  __supereyeSSEEmitter?: SSEEmitter;
+};
+
+// Singleton instance — shared across all API routes and persisted on globalThis in dev mode
+export const sseEmitter =
+  globalForSSE.__supereyeSSEEmitter ?? new SSEEmitter();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForSSE.__supereyeSSEEmitter = sseEmitter;
+}
+
 export type { SSEEvent };
