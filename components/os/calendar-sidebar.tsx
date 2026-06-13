@@ -257,10 +257,10 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
                 )}>
                   {dateObj.getDate()}
                 </span>
-                {hasEvent && (
+                {hasEvent && !isSelected && (
                   <div className={cn(
                     "absolute bottom-0.5 h-1 w-1 rounded-full",
-                    isSelected ? "bg-white" : isToday ? "bg-accent-blue" : "bg-text-muted"
+                    isToday ? "bg-accent-blue" : "bg-text-muted"
                   )} />
                 )}
               </div>
