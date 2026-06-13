@@ -29,6 +29,13 @@
       "when": 1781299278552,
       "tag": "0003_chemical_princess_powerful",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781354158249,
+      "tag": "0004_fearless_switch",
+      "breakpoints": true
     }
   ]
 }

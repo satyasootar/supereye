@@ -6,13 +6,31 @@ import { Input } from '@/components/ui/input';
 import { useState, ReactNode, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { cn } from '@/lib/utils';
+
+export const GOOGLE_COLORS = [
+  { id: '1', name: 'Lavender', bg: 'bg-[#a4bdfc]', hex: '#a4bdfc', text: 'text-[#1d1d1d]' },
+  { id: '2', name: 'Sage', bg: 'bg-[#7ae7bf]', hex: '#7ae7bf', text: 'text-[#1d1d1d]' },
+  { id: '3', name: 'Grape', bg: 'bg-[#dbadff]', hex: '#dbadff', text: 'text-[#1d1d1d]' },
+  { id: '4', name: 'Flamingo', bg: 'bg-[#ff887c]', hex: '#ff887c', text: 'text-[#1d1d1d]' },
+  { id: '5', name: 'Banana', bg: 'bg-[#fbd75b]', hex: '#fbd75b', text: 'text-[#1d1d1d]' },
+  { id: '6', name: 'Tangerine', bg: 'bg-[#ffb878]', hex: '#ffb878', text: 'text-[#1d1d1d]' },
+  { id: '7', name: 'Peacock', bg: 'bg-[#46d6db]', hex: '#46d6db', text: 'text-[#1d1d1d]' },
+  { id: '8', name: 'Graphite', bg: 'bg-[#e1e1e1]', hex: '#e1e1e1', text: 'text-[#1d1d1d]' },
+  { id: '9', name: 'Blueberry', bg: 'bg-[#5484ed]', hex: '#5484ed', text: 'text-white' },
+  { id: '10', name: 'Basil', bg: 'bg-[#51b749]', hex: '#51b749', text: 'text-white' },
+  { id: '11', name: 'Tomato', bg: 'bg-[#dc2127]', hex: '#dc2127', text: 'text-white' },
+];
+
 export function CreateEventModal({ 
   trigger,
   initialDate,
   initialStartTime,
   initialEndTime,
   open: controlledOpen,
-  onOpenChange: controlledOnOpenChange
+  onOpenChange: controlledOnOpenChange,
+  colorId: controlledColorId,
+  onColorIdChange: controlledOnColorIdChange
 }: { 
   trigger?: ReactNode;
   initialDate?: string;
@@ -20,10 +38,16 @@ export function CreateEventModal({
   initialEndTime?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  colorId?: string;
+  onColorIdChange?: (colorId: string) => void;
 }) {
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : localOpen;
   const setOpen = controlledOnOpenChange !== undefined ? controlledOnOpenChange : setLocalOpen;
+
+  const [localColorId, setLocalColorId] = useState('9');
+  const colorId = controlledColorId !== undefined ? controlledColorId : localColorId;
+  const setColorId = controlledOnColorIdChange !== undefined ? controlledOnColorIdChange : setLocalColorId;
 
   const [summary, setSummary] = useState('');
   const [date, setDate] = useState(() => initialDate || new Date().toISOString().split('T')[0]);
@@ -73,7 +97,8 @@ export function CreateEventModal({
       summary,
       start: { dateTime: startDateTime },
       end: { dateTime: endDateTime },
-      attendees: attendeeList.length > 0 ? attendeeList : undefined
+      attendees: attendeeList.length > 0 ? attendeeList : undefined,
+      colorId: colorId
     });
   };
 
@@ -156,6 +181,24 @@ export function CreateEventModal({
                 required
                 className="bg-bg-overlay border-border-subtle"
               />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Event Color</label>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {GOOGLE_COLORS.map((color) => (
+                <button
+                  key={color.id}
+                  type="button"
+                  onClick={() => setColorId(color.id)}
+                  title={color.name}
+                  className={cn(
+                    "h-6 w-6 rounded-full transition-all focus:outline-none hover:scale-110",
+                    color.bg,
+                    colorId === color.id ? "ring-2 ring-white ring-offset-2 ring-offset-bg-surface scale-110" : ""
+                  )}
+                />
+              ))}
             </div>
           </div>
           <div className="space-y-2">

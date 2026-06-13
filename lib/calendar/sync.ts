@@ -73,7 +73,8 @@ export async function syncCalendarForUser(userId: string) {
           displayName: event.organizer.displayName,
           self: event.organizer.self
         } : null,
-        htmlLink: event.htmlLink
+        htmlLink: event.htmlLink,
+        colorId: event.colorId
       });
     }
 
@@ -88,6 +89,7 @@ export async function syncCalendarForUser(userId: string) {
           endTime: sql`excluded.end_time`,
           status: sql`excluded.status`,
           attendees: sql`excluded.attendees`,
+          colorId: sql`excluded.color_id`,
         }
       });
       

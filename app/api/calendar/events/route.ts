@@ -49,7 +49,8 @@ export async function GET() {
       },
       location: row.event.location,
       attendees: row.event.attendees || [],
-      linkedEmailId: row.emailId
+      linkedEmailId: row.emailId,
+      colorId: row.event.colorId
     }));
 
     return NextResponse.json({ events: safeEvents });
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { summary, description, start, end, attendees, location } = body;
+    const { summary, description, start, end, attendees, location, colorId } = body;
 
     const t = getTenant(session.user.id);
     const createdEvent = await t.googlecalendar.api.events.create({
@@ -82,6 +83,7 @@ export async function POST(req: Request) {
         start,
         end,
         attendees,
+        colorId,
       }
     });
 
@@ -102,7 +104,8 @@ export async function POST(req: Request) {
         displayName: a.displayName,
         responseStatus: a.responseStatus
       })) : null,
-      htmlLink: createdEvent.htmlLink
+      htmlLink: createdEvent.htmlLink,
+      colorId: createdEvent.colorId
     });
 
     return NextResponse.json({ event: createdEvent });

@@ -89,6 +89,7 @@ export const calendarEvents = pgTable(
       self?: boolean;
     }>(),
     htmlLink: text('html_link'),
+    colorId: text('color_id'),
     sourceEmailId: uuid('source_email_id').references(() => emails.id, {
       onDelete: 'set null',
     }),

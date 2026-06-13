@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Search, Settings, RefreshCw, ChevronDown } f
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { EventDetailsModal } from './event-details-modal';
-import { CreateEventModal } from './create-event-modal';
+import { CreateEventModal, GOOGLE_COLORS } from './create-event-modal';
 import { useAppStore } from '@/lib/store/app-store';
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -17,6 +17,21 @@ type CalendarEvent = {
   end: { dateTime?: string; date?: string };
   location?: string;
   linkedEmailId?: string;
+  colorId?: string;
+};
+
+const googleColorMap: Record<string, string> = {
+  '1': 'bg-[#a4bdfc]/15 text-[#a4bdfc] border border-[#a4bdfc]/30 dark:bg-[#a4bdfc]/20 dark:border-[#a4bdfc]/35',
+  '2': 'bg-[#7ae7bf]/15 text-[#7ae7bf] border border-[#7ae7bf]/30 dark:bg-[#7ae7bf]/20 dark:border-[#7ae7bf]/35',
+  '3': 'bg-[#dbadff]/15 text-[#dbadff] border border-[#dbadff]/30 dark:bg-[#dbadff]/20 dark:border-[#dbadff]/35',
+  '4': 'bg-[#ff887c]/15 text-[#ff887c] border border-[#ff887c]/30 dark:bg-[#ff887c]/20 dark:border-[#ff887c]/35',
+  '5': 'bg-[#fbd75b]/15 text-[#fbd75b] border border-[#fbd75b]/30 dark:bg-[#fbd75b]/20 dark:border-[#fbd75b]/35',
+  '6': 'bg-[#ffb878]/15 text-[#ffb878] border border-[#ffb878]/30 dark:bg-[#ffb878]/20 dark:border-[#ffb878]/35',
+  '7': 'bg-[#46d6db]/15 text-[#46d6db] border border-[#46d6db]/30 dark:bg-[#46d6db]/20 dark:border-[#46d6db]/35',
+  '8': 'bg-[#e1e1e1]/15 text-[#e1e1e1] border border-[#e1e1e1]/30 dark:bg-[#e1e1e1]/20 dark:border-[#e1e1e1]/35',
+  '9': 'bg-[#5484ed]/15 text-[#5484ed] border border-[#5484ed]/30 dark:bg-[#5484ed]/20 dark:border-[#5484ed]/35',
+  '10': 'bg-[#51b749]/15 text-[#51b749] border border-[#51b749]/30 dark:bg-[#51b749]/20 dark:border-[#51b749]/35',
+  '11': 'bg-[#dc2127]/15 text-[#dc2127] border border-[#dc2127]/30 dark:bg-[#dc2127]/20 dark:border-[#dc2127]/35',
 };
 
 const formatDateKey = (date: Date) => {
@@ -111,6 +126,11 @@ export function CalendarGrid() {
   const [dragColIndex, setDragColIndex] = useState<number | null>(null);
   const [dragStartHour, setDragStartHour] = useState(0);
   const [dragEndHour, setDragEndHour] = useState(0);
+  const [dragColorId, setDragColorId] = useState('9'); // Default to Blueberry (9)
+
+  const activeColorClass = useMemo(() => {
+    return googleColorMap[dragColorId] || googleColorMap['9'];
+  }, [dragColorId]);
 
   // Create event states (controlled modal)
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -229,15 +249,6 @@ export function CalendarGrid() {
       (evt.location || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // Color definitions for events
-    const colors = [
-      'bg-accent-blue/10 text-accent-blue border border-accent-blue/20 dark:bg-accent-blue/20 dark:border-accent-blue/30',
-      'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 dark:bg-emerald-500/20 dark:border-emerald-500/30',
-      'bg-rose-500/10 text-rose-500 border border-rose-500/20 dark:bg-rose-500/20 dark:border-rose-500/30',
-      'bg-amber-500/10 text-amber-500 border border-amber-500/20 dark:bg-amber-500/20 dark:border-amber-500/30',
-      'bg-purple-500/10 text-purple-500 border border-purple-500/20 dark:bg-purple-500/20 dark:border-purple-500/30',
-    ];
-
     filteredData.forEach((evt, idx) => {
       const dateStr = evt.start.dateTime || evt.start.date;
       if (!dateStr) return;
@@ -246,12 +257,19 @@ export function CalendarGrid() {
       const key = formatDateKey(dateObj);
       if (!map[key]) map[key] = [];
       
-      let colorClass = colors[idx % colors.length];
-      const summaryLower = (evt.summary || '').toLowerCase();
-      if (summaryLower.includes('christmas') || summaryLower.includes('new year') || summaryLower.includes('holiday') || summaryLower.includes('pongal') || summaryLower.includes('sankranti') || summaryLower.includes('panchami') || summaryLower.includes('ramadan') || summaryLower.includes('jayanti') || summaryLower.includes('buddha') || summaryLower.includes('purnima')) {
-        colorClass = 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 dark:bg-emerald-500/20 dark:border-emerald-500/30';
-      } else if (summaryLower.includes('anniversary') || summaryLower.includes('birthday') || summaryLower.includes('hackathon')) {
-        colorClass = 'bg-rose-500/10 text-rose-500 border border-rose-500/20 dark:bg-rose-500/20 dark:border-rose-500/30';
+      let colorClass = evt.colorId ? googleColorMap[evt.colorId] : undefined;
+      if (!colorClass) {
+        // Fallback to cycling Google colors if no colorId is set
+        const cycleColorIds = ['9', '10', '4', '5', '3']; // Blueberry, Basil, Flamingo, Banana, Grape
+        const fallbackId = cycleColorIds[idx % cycleColorIds.length];
+        colorClass = googleColorMap[fallbackId] || googleColorMap['9'];
+        
+        const summaryLower = (evt.summary || '').toLowerCase();
+        if (summaryLower.includes('christmas') || summaryLower.includes('new year') || summaryLower.includes('holiday') || summaryLower.includes('pongal') || summaryLower.includes('sankranti') || summaryLower.includes('panchami') || summaryLower.includes('ramadan') || summaryLower.includes('jayanti') || summaryLower.includes('buddha') || summaryLower.includes('purnima')) {
+          colorClass = googleColorMap['10']; // Basil (Green)
+        } else if (summaryLower.includes('anniversary') || summaryLower.includes('birthday') || summaryLower.includes('hackathon')) {
+          colorClass = googleColorMap['4']; // Flamingo (Pink/Rose)
+        }
       }
 
       // Calculate timeRaw and durationRaw for placement in hourly grid
@@ -364,8 +382,6 @@ export function CalendarGrid() {
     setCreateStartTime(startTimeStr);
     setCreateEndTime(endTimeStr);
     setIsCreateOpen(true);
-
-    setDragColIndex(null);
   };
 
   return (
@@ -583,38 +599,49 @@ export function CalendarGrid() {
           </div>
 
           {/* All-Day Events row */}
-          <div className="grid grid-cols-[80px_1fr] border-b border-border-subtle bg-bg-base flex-shrink-0 min-h-[48px] py-1.5">
-            <div className="flex items-center justify-center text-[10px] text-text-muted font-bold border-r border-border-subtle">
-              ALL DAY
-            </div>
-            <div className="grid grid-cols-7 w-full">
-              {weekDays.map((dateObj, i) => {
-                const dateKey = formatDateKey(dateObj);
-                const dayEvents = eventsByDate[dateKey] || [];
-                const allDayEvents = dayEvents.filter(e => e.isAllDay);
-                return (
-                  <div key={i} className="px-1 flex flex-col gap-1 border-r border-border-subtle/50 last:border-r-0 justify-center h-full">
-                    {allDayEvents.map((evt, idx) => (
-                      <div 
-                        key={idx}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedEventId(evt.id);
-                        }}
-                        className={cn(
-                          "px-2 py-0.5 rounded-[4px] text-[10px] font-semibold cursor-pointer truncate shadow-sm text-center",
-                          evt.color
-                        )}
-                        title={evt.title}
-                      >
-                        {evt.title}
+          {(() => {
+            const hasAnyAllDayEvent = weekDays.some(dateObj => {
+              const dateKey = formatDateKey(dateObj);
+              const dayEvents = eventsByDate[dateKey] || [];
+              return dayEvents.some(e => e.isAllDay);
+            });
+            if (!hasAnyAllDayEvent) return null;
+
+            return (
+              <div className="grid grid-cols-[80px_1fr] border-b border-border-subtle bg-bg-base flex-shrink-0 min-h-[48px] py-1.5">
+                <div className="flex items-center justify-center text-[10px] text-text-muted font-bold border-r border-border-subtle">
+                  ALL DAY
+                </div>
+                <div className="grid grid-cols-7 w-full">
+                  {weekDays.map((dateObj, i) => {
+                    const dateKey = formatDateKey(dateObj);
+                    const dayEvents = eventsByDate[dateKey] || [];
+                    const allDayEvents = dayEvents.filter(e => e.isAllDay);
+                    return (
+                      <div key={i} className="px-1 flex flex-col gap-1 border-r border-border-subtle/50 last:border-r-0 justify-center h-full">
+                        {allDayEvents.map((evt, idx) => (
+                          <div 
+                            key={idx}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedEventId(evt.id);
+                            }}
+                            className={cn(
+                              "px-2 py-0.5 rounded-[4px] text-[10px] font-semibold cursor-pointer truncate shadow-sm text-center",
+                              evt.color
+                            )}
+                            title={evt.title}
+                          >
+                            {evt.title}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Hourly Scrollable Container */}
           <div 
@@ -667,16 +694,22 @@ export function CalendarGrid() {
                   return (
                     <div key={i} className="relative h-full w-full pointer-events-none">
                       {/* Drag Selection Overlay */}
-                      {isDragging && dragColIndex === i && (
+                      {(isDragging || isCreateOpen) && dragColIndex === i && (
                         <div 
-                          className="absolute left-1.5 right-1.5 bg-accent-blue/15 border-2 border-accent-blue/70 rounded-md pointer-events-none z-10 flex flex-col items-center justify-center text-[10px] text-accent-blue font-bold shadow-sm"
+                          className={cn(
+                            "absolute left-1.5 right-1.5 rounded-md px-2 py-1.5 text-[11px] font-semibold pointer-events-none z-10 flex flex-col shadow-sm transition-all",
+                            activeColorClass
+                          )}
                           style={{ 
                             top: `${Math.min(dragStartHour, dragEndHour) * 64}px`, 
                             height: `${Math.max(16, Math.abs(dragEndHour - dragStartHour) * 64)}px` 
                           }}
                         >
-                          {Math.abs(dragEndHour - dragStartHour) >= 0.5 && (
-                            <span className="bg-accent-blue text-white px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-semibold">New Event</span>
+                          <span className="truncate">New Event</span>
+                          {Math.abs(dragEndHour - dragStartHour) > 0.5 && (
+                            <span className="text-[9px] opacity-80 font-medium truncate mt-0.5">
+                              {formatHourLabel(Math.min(dragStartHour, dragEndHour))} - {formatHourLabel(Math.max(dragStartHour, dragEndHour))}
+                            </span>
                           )}
                         </div>
                       )}
@@ -695,6 +728,8 @@ export function CalendarGrid() {
                         return (
                           <div 
                             key={idx}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onMouseUp={(e) => e.stopPropagation()}
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedEventId(evt.id);
@@ -773,37 +808,38 @@ export function CalendarGrid() {
           </div>
 
           {/* All-Day Events row */}
-          <div className="grid grid-cols-[80px_1fr] border-b border-border-subtle bg-bg-base flex-shrink-0 min-h-[48px] py-2">
-            <div className="flex items-center justify-center text-[10px] text-text-muted font-bold border-r border-border-subtle">
-              {tzStringFull}
-            </div>
-            <div className="px-3 flex flex-col gap-1.5 justify-center">
-              {(() => {
-                const dateKey = formatDateKey(currentDate);
-                const dayEvents = eventsByDate[dateKey] || [];
-                const allDayEvents = dayEvents.filter(e => e.isAllDay);
-                if (allDayEvents.length === 0) {
-                  return <div className="text-[11px] text-text-muted/50 italic pl-1">No all-day events</div>;
-                }
-                return allDayEvents.map((evt, idx) => (
-                  <div 
-                    key={idx}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedEventId(evt.id);
-                    }}
-                    className={cn(
-                      "px-3 py-1 rounded-[6px] text-[11px] font-semibold cursor-pointer shadow-sm w-full transition-all hover:scale-[1.01]",
-                      evt.color
-                    )}
-                    title={evt.title}
-                  >
-                    {evt.title}
-                  </div>
-                ));
-              })()}
-            </div>
-          </div>
+          {(() => {
+            const dateKey = formatDateKey(currentDate);
+            const dayEvents = eventsByDate[dateKey] || [];
+            const allDayEvents = dayEvents.filter(e => e.isAllDay);
+            if (allDayEvents.length === 0) return null;
+
+            return (
+              <div className="grid grid-cols-[80px_1fr] border-b border-border-subtle bg-bg-base flex-shrink-0 min-h-[48px] py-2">
+                <div className="flex items-center justify-center text-[10px] text-text-muted font-bold border-r border-border-subtle">
+                  {tzStringFull}
+                </div>
+                <div className="px-3 flex flex-col gap-1.5 justify-center">
+                  {allDayEvents.map((evt, idx) => (
+                    <div 
+                      key={idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedEventId(evt.id);
+                      }}
+                      className={cn(
+                        "px-3 py-1 rounded-[6px] text-[11px] font-semibold cursor-pointer shadow-sm w-full transition-all hover:scale-[1.01]",
+                        evt.color
+                      )}
+                      title={evt.title}
+                    >
+                      {evt.title}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Hourly Scrollable Container */}
           <div 
@@ -846,16 +882,22 @@ export function CalendarGrid() {
               >
                 <div className="relative h-full w-full pointer-events-none">
                   {/* Drag Selection Overlay */}
-                  {isDragging && dragColIndex === 0 && (
+                  {(isDragging || isCreateOpen) && dragColIndex === 0 && (
                     <div 
-                      className="absolute left-3 right-3 bg-accent-blue/15 border-2 border-accent-blue/70 rounded-md pointer-events-none z-10 flex flex-col items-center justify-center text-[10px] text-accent-blue font-bold shadow-sm"
+                      className={cn(
+                        "absolute left-3 right-3 rounded-md px-3 py-2 text-[12px] font-semibold pointer-events-none z-10 flex flex-col shadow-sm transition-all",
+                        activeColorClass
+                      )}
                       style={{ 
                         top: `${Math.min(dragStartHour, dragEndHour) * 64}px`, 
                         height: `${Math.max(16, Math.abs(dragEndHour - dragStartHour) * 64)}px` 
                       }}
                     >
-                      {Math.abs(dragEndHour - dragStartHour) >= 0.5 && (
-                        <span className="bg-accent-blue text-white px-2 py-0.5 rounded text-[9px] uppercase tracking-wider font-semibold">New Event</span>
+                      <span className="truncate">New Event</span>
+                      {Math.abs(dragEndHour - dragStartHour) > 0.5 && (
+                        <span className="text-[10px] opacity-80 font-medium truncate mt-0.5">
+                          {formatHourLabel(Math.min(dragStartHour, dragEndHour))} - {formatHourLabel(Math.max(dragStartHour, dragEndHour))}
+                        </span>
                       )}
                     </div>
                   )}
@@ -877,6 +919,8 @@ export function CalendarGrid() {
                       return (
                         <div 
                           key={idx}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onMouseUp={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedEventId(evt.id);
@@ -935,10 +979,17 @@ export function CalendarGrid() {
       {/* Drag to Create Event Modal */}
       <CreateEventModal 
         open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
+        onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) {
+            setDragColIndex(null);
+          }
+        }}
         initialDate={createDate}
         initialStartTime={createStartTime}
         initialEndTime={createEndTime}
+        colorId={dragColorId}
+        onColorIdChange={setDragColorId}
       />
     </div>
   );

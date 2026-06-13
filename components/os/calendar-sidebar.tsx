@@ -275,27 +275,7 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
         </div>
       </div>
 
-      {/* View Switcher - Hide in right-panel variant */}
-      {variant !== 'right-panel' && (
-        <div className="p-3 border-b border-border-subtle">
-          <div className="flex bg-bg-elevated rounded-md p-1 border border-border-subtle">
-            {['Day', 'Week', 'Month'].map(view => (
-              <button
-                key={view}
-                onClick={() => setCalendarView(view as 'Day' | 'Week' | 'Month')}
-                className={cn(
-                  "flex-1 rounded py-1 text-[11px] font-medium transition-colors",
-                  calendarView === view 
-                    ? "bg-bg-highlight text-accent-blue shadow-sm font-bold" 
-                    : "text-text-secondary hover:text-text-primary hover:bg-bg-overlay"
-                )}
-              >
-                {view}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       {/* My Calendars - Hide in right-panel variant */}
       {variant !== 'right-panel' && (
