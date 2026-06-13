@@ -63,50 +63,50 @@
 }
 
 :root {
-    --bg-app: #F8F9FB;
+    --bg-app: #FAF8F5;
     --bg-base: #FFFFFF;
-    --bg-surface: #F3F4F6;
+    --bg-surface: #F4F1EB;
     --bg-elevated: #FFFFFF;
-    --bg-overlay: #F0F1F3;
-    --bg-highlight: #EBF3FF;
-    --border-subtle: #EBEDF0;
-    --border-default: #D1D5DB;
-    --border-strong: #9CA3AF;
-    --text-primary: #0F1117;
-    --text-secondary: #4B5563;
-    --text-muted: #9CA3AF;
+    --bg-overlay: #EAE5DD;
+    --bg-highlight: #E2ECE5;
+    --border-subtle: #EBE7DF;
+    --border-default: #D5CFC6;
+    --border-strong: #A49C90;
+    --text-primary: #111613;
+    --text-secondary: #2F3C34;
+    --text-muted: #526257;
     --text-inverse: #FFFFFF;
     
-    --accent-blue: #3B82F6;
-    --accent-blue-dim: #1D4ED8;
-    --accent-blue-glow: rgba(59,130,246,0.20);
+    --accent-blue: #5A775C;
+    --accent-blue-dim: #486049;
+    --accent-blue-glow: rgba(90, 119, 92, 0.15);
 }
 
 .dark {
-    --bg-app: #0C0D0F;
-    --bg-base: #111316;
-    --bg-surface: #181B1F;
-    --bg-elevated: #1F2226;
-    --bg-overlay: #252A30;
-    --bg-highlight: #2A2F38;
-    --border-subtle: #1E2228;
-    --border-default: #272C34;
-    --border-strong: #363D47;
-    --text-primary: #F2F4F7;
-    --text-secondary: #8D95A0;
-    --text-muted: #535C68;
-    --text-inverse: #0C0D0F;
+    --bg-app: #020202;
+    --bg-base: #040505;
+    --bg-surface: #080908;
+    --bg-elevated: #0d0f0e;
+    --bg-overlay: #1E2521;
+    --bg-highlight: #1A2820;
+    --border-subtle: #141A17;
+    --border-default: #202A24;
+    --border-strong: #34443A;
+    --text-primary: #f5f5f5;
+    --text-secondary: #d4d5d4;
+    --text-muted: #a0a8a3;
+    --text-inverse: #0A0D0C;
     
-    --accent-blue: #3B82F6;
-    --accent-blue-dim: #1D4ED8;
-    --accent-blue-glow: rgba(59,130,246,0.20);
+    --accent-blue: #4A6D55;
+    --accent-blue-dim: #3A5442;
+    --accent-blue-glow: rgba(74, 109, 85, 0.20);
 
     /* Other required shadcn vars */
-    --chart-1: #3B82F6;
-    --chart-2: #10B981;
-    --chart-3: #F59E0B;
-    --chart-4: #A855F7;
-    --chart-5: #EC4899;
+    --chart-1: #4A6D55;
+    --chart-2: #6E8E78;
+    --chart-3: #8FAF98;
+    --chart-4: #AFCDB8;
+    --chart-5: #D0ECD9;
 }
 
 @layer base {

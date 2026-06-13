@@ -287,14 +287,14 @@ export function EmailReader() {
                   <div className="pt-2 pb-4 flex items-center gap-3">
                     <button
                       onClick={() => setReplyMessageId(email.id)}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-strong text-text-primary text-[13px] hover:bg-bg-surface transition-colors shadow-sm bg-bg-app"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-accent-blue/30 text-accent-blue text-[13px] hover:bg-bg-highlight/50 hover:border-accent-blue/60 transition-colors shadow-sm bg-bg-app cursor-pointer"
                     >
                       <Reply className="h-4 w-4" />
                       Reply
                     </button>
                     <button
                       onClick={() => setReplyMessageId(email.id)}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-strong text-text-primary text-[13px] hover:bg-bg-surface transition-colors shadow-sm bg-bg-app"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-accent-blue/30 text-accent-blue text-[13px] hover:bg-bg-highlight/50 hover:border-accent-blue/60 transition-colors shadow-sm bg-bg-app cursor-pointer"
                     >
                       <Forward className="h-4 w-4" />
                       Forward

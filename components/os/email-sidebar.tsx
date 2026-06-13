@@ -4,11 +4,14 @@ import { useSession } from 'next-auth/react';
 import { 
   Inbox, Star, Clock, Send, FileText, Mail, AlertOctagon, Trash2, 
   ChevronDown, Plus, Settings, HelpCircle, HardDrive, Edit, 
-  BarChart, Flame, Paperclip, Users, Tag, ChevronLeft, ChevronRight, Calendar
+  BarChart, Flame, Paperclip, Users, Tag, ChevronLeft, ChevronRight, Calendar,
+  Sun, Moon, User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from 'next-themes';
+import { NotificationBell } from './notification-bell';
 
 const basePrimaryNav = [
   { icon: Inbox, label: 'Inbox', id: 'ALL' },
@@ -24,6 +27,12 @@ import { CalendarSidebar } from './calendar-sidebar';
 export function EmailSidebar() {
   const { data: session } = useSession();
   const { activeTabs, emailCategory, setEmailCategory, workspaceMode, leftSidebarCollapsed, setLeftSidebarCollapsed } = useAppStore();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const isSplit = activeTabs.length > 1;
   const isSidebarCollapsed = isSplit || leftSidebarCollapsed;
 
@@ -213,17 +222,82 @@ export function EmailSidebar() {
       transition={springTransition}
       className="h-full flex-shrink-0 border-r border-border-subtle bg-bg-surface overflow-hidden relative flex flex-col"
     >
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={isSidebarCollapsed ? 'collapsed' : 'expanded'}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.1 }}
-          className="flex-1 h-full"
-        >
-          {content}
-        </motion.div>
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={isSidebarCollapsed ? 'collapsed' : 'expanded'}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
+            className="h-full"
+          >
+            {content}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Bottom Utilities (Profile, Theme, Notifications) */}
+      <AnimatePresence initial={false}>
+        {isSidebarCollapsed ? (
+          <motion.div
+            key="collapsed-utils"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="border-t border-border-subtle py-4 px-1 bg-bg-surface/30 flex flex-col items-center gap-4 flex-shrink-0"
+          >
+            <NotificationBell align="start" side="right" />
+            <button 
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-md hover:bg-bg-overlay cursor-pointer" 
+              title="Toggle Theme"
+            >
+              {mounted && theme === 'dark' ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+            </button>
+            <button className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-highlight text-text-primary border border-border-subtle hover:bg-bg-overlay overflow-hidden flex-shrink-0 cursor-pointer" title={session?.user?.name || 'User'}>
+              {session?.user?.image ? (
+                <img src={session.user.image} alt="User" className="h-full w-full object-cover" />
+              ) : (
+                <User className="h-4 w-4" />
+              )}
+            </button>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="expanded-utils"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="border-t border-border-subtle p-3 bg-bg-surface/30 flex items-center justify-between gap-2 flex-shrink-0"
+          >
+            <div className="flex items-center gap-2 overflow-hidden">
+              <button className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-highlight text-text-primary border border-border-subtle hover:bg-bg-overlay overflow-hidden flex-shrink-0 cursor-pointer">
+                {session?.user?.image ? (
+                  <img src={session.user.image} alt="User" className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-4 w-4" />
+                )}
+              </button>
+              <div className="flex flex-col text-left overflow-hidden max-w-[110px]">
+                <span className="text-[12px] font-semibold text-text-primary truncate">{session?.user?.name || 'User'}</span>
+                <span className="text-[10px] text-text-muted truncate">{session?.user?.email}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <NotificationBell align="start" side="right" />
+              <button 
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-md hover:bg-bg-overlay cursor-pointer" 
+                title="Toggle Theme"
+              >
+                {mounted && theme === 'dark' ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+              </button>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </motion.div>
   );

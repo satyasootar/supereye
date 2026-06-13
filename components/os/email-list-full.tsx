@@ -55,8 +55,7 @@ const CATEGORY_TABS: { id: FilterCategory; label: string }[] = [
 
 export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const { activeTabs, emailCategory, setEmailCategory } = useAppStore();
-  const setSelectedEmailId = useAppStore(state => state.setSelectedEmailId);
+  const { activeTabs, emailCategory, setEmailCategory, selectedEmailId, setSelectedEmailId } = useAppStore();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   
@@ -515,6 +514,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                 <div className="flex flex-col w-full">
                   {group.emails.map(email => {
                     const isChecked = selectedIds.includes(email.id);
+                    const isSelected = selectedEmailId === email.id;
                     let displaySender = email.sender ? email.sender.split('<')[0].replace(/["']/g, '').trim() : 'Unknown';
                     if (!displaySender && email.sender) {
                       displaySender = email.sender.replace(/[<>]/g, '').trim();
@@ -536,8 +536,11 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                         onMouseMove={handleMouseMove}
                         onMouseLeave={handleMouseLeave}
                         className={cn(
-                          "group relative flex items-center gap-3 px-3 py-2 border-transparent hover:bg-bg-surface/50 transition-colors cursor-pointer rounded-md",
-                          !email.isRead && "bg-bg-surface/20",
+                          "group relative flex items-center gap-3 px-3 py-2 border-l-2 transition-colors cursor-pointer rounded-r-md",
+                          isSelected 
+                            ? "bg-bg-highlight border-accent-blue text-text-primary" 
+                            : "border-transparent text-text-secondary hover:bg-bg-overlay",
+                          !email.isRead && !isSelected && "bg-bg-surface/40",
                           isChecked && "bg-accent-blue/5"
                         )}
                       >
@@ -568,28 +571,9 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
 
                         {/* Actions & Date */}
                         <div className={cn("flex items-center gap-3 justify-end flex-shrink-0", isSplitView ? "w-[40px]" : "w-[120px]")}>
-                          {/* Hover Actions */}
-                          <div className={cn("hidden group-hover:flex items-center gap-2.5 text-text-secondary bg-bg-app px-2 absolute right-16", isSplitView && "right-[40px]")}>
-                            <button className="hover:text-text-primary transition-colors" title="Archive" onClick={(e) => e.stopPropagation()}>
-                              <Archive className="h-4 w-4" />
-                            </button>
-                            <button 
-                              className="hover:text-destructive transition-colors" 
-                              title="Delete" 
-                              onClick={(e) => { 
-                                e.stopPropagation(); 
-                                trashMutation.mutate(email.id);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                            <button className="hover:text-text-primary transition-colors" title="Mark Read" onClick={(e) => e.stopPropagation()}>
-                              <CheckCircle2 className="h-4 w-4" />
-                            </button>
-                          </div>
                           {/* Date */}
                           {!isSplitView && (
-                            <span className="text-[13px] font-medium text-text-muted group-hover:opacity-0 transition-opacity">
+                            <span className="text-[13px] font-medium text-text-muted">
                               {formatDisplayDate(email.date)}
                             </span>
                           )}

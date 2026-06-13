@@ -78,24 +78,9 @@ export function TopBar() {
       </nav>
 
       {/* Right: Utilities */}
-      <div className="flex items-center justify-end gap-3 w-[200px]">
-        <button className="text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-md hover:bg-bg-overlay" title="Search (⌘K)">
+      <div className="flex items-center justify-end w-[200px]">
+        <button className="text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-md hover:bg-bg-overlay cursor-pointer" title="Search (⌘K)">
           <Search className="h-[18px] w-[18px]" />
-        </button>
-        <NotificationBell />
-        <button 
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-md hover:bg-bg-overlay" 
-          title="Toggle Theme"
-        >
-          {mounted && theme === 'dark' ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-        </button>
-        <button className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-highlight text-text-primary ml-1 border border-border-subtle hover:bg-bg-overlay overflow-hidden">
-          {session?.user?.image ? (
-            <img src={session.user.image} alt="User" className="h-full w-full object-cover" />
-          ) : (
-            <User className="h-4 w-4" />
-          )}
         </button>
       </div>
     </header>

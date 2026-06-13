@@ -22,7 +22,13 @@ type Notification = {
   createdAt: string;
 };
 
-export function NotificationBell() {
+export function NotificationBell({ 
+  align = 'end', 
+  side = 'bottom' 
+}: { 
+  align?: 'start' | 'center' | 'end'; 
+  side?: 'top' | 'right' | 'bottom' | 'left';
+}) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const { openTab, setSelectedEmailId } = useAppStore();
@@ -71,7 +77,12 @@ export function NotificationBell() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[360px] p-0 mr-4 mt-2 bg-bg-surface border border-border-subtle shadow-2xl rounded-2xl overflow-hidden" align="end">
+      <PopoverContent 
+        className="w-[360px] p-0 bg-bg-surface border border-border-subtle shadow-2xl rounded-2xl overflow-hidden" 
+        align={align} 
+        side={side}
+        sideOffset={12}
+      >
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-border-subtle bg-bg-surface">
           <div className="flex items-center gap-2">
             <button 
