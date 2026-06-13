@@ -102,9 +102,11 @@ export function CreateEventModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || <Button>Create Event</Button>}
-      </DialogTrigger>
+      {trigger && (
+        <DialogTrigger asChild>
+          {trigger}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px] bg-bg-surface border-border-strong text-text-primary">
         <DialogHeader>
           <DialogTitle>Create New Event</DialogTitle>

@@ -5,7 +5,7 @@ import {
   ChevronDown, MoreVertical, List, Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { CalendarModal } from './calendar-modal';
 import { CreateEventModal } from './create-event-modal';
 
@@ -28,7 +28,7 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
   const { 
     activeTabs, workspaceMode, setWorkspaceMode, 
     leftSidebarCollapsed, setLeftSidebarCollapsed,
-    calendarView, setCalendarView 
+    calendarView, setCalendarView, currentDateStr, setCurrentDateStr
   } = useAppStore();
   const isSplit = activeTabs.length > 1 || (leftSidebarCollapsed && variant !== 'right-panel');
   const isCalendarMode = workspaceMode === 'calendar';
@@ -36,20 +36,54 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
   const [calsExpanded, setCalsExpanded] = useState(true);
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
 
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
-  const currentDay = now.getDate();
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-  const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const activeDate = useMemo(() => new Date(currentDateStr), [currentDateStr]);
+  const [viewedMonth, setViewedMonth] = useState(activeDate.getMonth());
+  const [viewedYear, setViewedYear] = useState(activeDate.getFullYear());
 
-  // Generate a grid of 42 cells (6 rows)
-  const miniCalDates = Array.from({ length: 42 }, (_, i) => {
-    const date = i - firstDayOfMonth + 1;
-    if (date < 1 || date > daysInMonth) return null;
-    return date;
-  });
+  // Keep viewed month/year in sync with the global selected date
+  useEffect(() => {
+    setViewedMonth(activeDate.getMonth());
+    setViewedYear(activeDate.getFullYear());
+  }, [currentDateStr, activeDate]);
+
+  const handlePrevMonth = () => {
+    setViewedMonth(prev => {
+      if (prev === 0) {
+        setViewedYear(y => y - 1);
+        return 11;
+      }
+      return prev - 1;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setViewedMonth(prev => {
+      if (prev === 11) {
+        setViewedYear(y => y + 1);
+        return 0;
+      }
+      return prev + 1;
+    });
+  };
+
+  const monthName = useMemo(() => {
+    const d = new Date(viewedYear, viewedMonth, 1);
+    return d.toLocaleString('default', { month: 'long', year: 'numeric' });
+  }, [viewedMonth, viewedYear]);
+
+  // Generate a grid of 42 cells (6 rows) starting from the Sunday before/on the 1st of viewedMonth
+  const miniCalDates = useMemo(() => {
+    const firstDayOfMonth = new Date(viewedYear, viewedMonth, 1);
+    const startDayOfWeek = firstDayOfMonth.getDay();
+    const dates: Date[] = [];
+    const startDate = new Date(viewedYear, viewedMonth, 1 - startDayOfWeek);
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      dates.push(d);
+    }
+    return dates;
+  }, [viewedMonth, viewedYear]);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ['calendar', 'events'],
@@ -61,24 +95,60 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
     }
   });
 
-  const eventDates = new Set(
-    (events || []).map(evt => {
-      const d = new Date(evt.start?.dateTime || evt.start?.date);
-      if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-        return d.getDate();
+  const formatDateKey = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const eventDates = useMemo(() => {
+    const set = new Set<string>();
+    if (!events) return set;
+    events.forEach(evt => {
+      const dateStr = evt.start?.dateTime || evt.start?.date;
+      if (dateStr) {
+        const d = new Date(dateStr);
+        set.add(formatDateKey(d));
       }
-      return null;
-    }).filter(Boolean)
-  );
+    });
+    return set;
+  }, [events]);
 
   const upcomingEventsList = [...(events || [])]
     .filter(evt => {
       const d = new Date(evt.start?.dateTime || evt.start?.date);
+      const now = new Date();
       // Let's just say "upcoming" means within the next 7 days, or just future events
       return d.getTime() + 86400000 >= now.getTime(); // Include today
     })
     .sort((a, b) => new Date(a.start?.dateTime || a.start?.date).getTime() - new Date(b.start?.dateTime || b.start?.date).getTime())
     .slice(0, 5);
+
+  const now = new Date();
+  const isTodayDate = (d: Date) => {
+    return d.getDate() === now.getDate() &&
+           d.getMonth() === now.getMonth() &&
+           d.getFullYear() === now.getFullYear();
+  };
+
+  const isSelectedDate = (d: Date) => {
+    return d.getDate() === activeDate.getDate() &&
+           d.getMonth() === activeDate.getMonth() &&
+           d.getFullYear() === activeDate.getFullYear();
+  };
+
+  const isCurrentMonth = (d: Date) => {
+    return d.getMonth() === viewedMonth && d.getFullYear() === viewedYear;
+  };
+
+  const getStartOfWeek = (d: Date) => {
+    const start = new Date(d);
+    const day = start.getDay();
+    start.setDate(start.getDate() - day);
+    start.setHours(0, 0, 0, 0);
+    return start.getTime();
+  };
 
   if (isSplit && variant !== 'right-panel') {
     return (
@@ -133,10 +203,16 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
               <CalendarIcon className="h-4 w-4" />
             </button>
           } />
-          <button className="p-1 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors">
+          <button 
+            onClick={handlePrevMonth}
+            className="p-1 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors"
+          >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <button className="p-1 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors">
+          <button 
+            onClick={handleNextMonth}
+            className="p-1 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors"
+          >
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
@@ -144,27 +220,54 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
 
       {/* Mini Calendar Grid */}
       <div className="px-4 pb-4 border-b border-border-subtle">
-        <div className="grid grid-cols-7 gap-1 text-center mb-1">
+        <div className="grid grid-cols-7 gap-y-1 gap-x-0 text-center mb-1">
           {miniCalDays.map(day => (
             <div key={day} className="text-[10px] font-mono text-text-muted">{day}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1 text-center">
-          {miniCalDates.map((date, i) => {
-            const isToday = date === currentDay;
-            const hasEvent = date && eventDates.has(date);
+        <div className="grid grid-cols-7 gap-y-1 gap-x-0 text-center">
+          {miniCalDates.map((dateObj, i) => {
+            const isToday = isTodayDate(dateObj);
+            const isSelected = isSelectedDate(dateObj);
+            const isCurrMonth = isCurrentMonth(dateObj);
+            const dateKey = formatDateKey(dateObj);
+            const hasEvent = eventDates.has(dateKey);
+            const isWeekView = calendarView === 'Week';
+            
+            // Check if cell is in the same week as activeDate
+            const inActiveWeek = isWeekView && (getStartOfWeek(dateObj) === getStartOfWeek(activeDate));
+
             return (
               <div 
                 key={i} 
+                onClick={() => setCurrentDateStr(dateObj.toISOString())}
                 className={cn(
-                  "relative flex h-7 w-7 items-center justify-center rounded-full text-[12px] cursor-pointer hover:bg-bg-overlay transition-colors mx-auto",
-                  !date && "opacity-0 pointer-events-none",
-                  isToday ? "bg-accent-blue text-white hover:bg-accent-blue-dim font-bold" : "text-text-secondary hover:text-text-primary"
+                  "relative flex h-8 w-full items-center justify-center text-[12px] cursor-pointer transition-colors select-none",
+                  isCurrMonth 
+                    ? "text-text-primary" 
+                    : "text-text-muted/30 hover:text-text-secondary",
+                  inActiveWeek 
+                    ? "bg-accent-blue/15 text-accent-blue font-medium" 
+                    : "hover:bg-bg-overlay rounded-full",
+                  inActiveWeek && i % 7 === 0 && "rounded-l-full",
+                  inActiveWeek && i % 7 === 6 && "rounded-r-full"
                 )}
               >
-                {date}
-                {hasEvent && !isToday && (
-                  <div className="absolute bottom-1 h-1 w-1 rounded-full bg-text-muted" />
+                <span className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-full transition-colors",
+                  isSelected 
+                    ? "bg-accent-blue text-white hover:bg-accent-blue-dim font-bold shadow-sm" 
+                    : isToday 
+                      ? "border border-accent-blue/40 text-accent-blue font-bold" 
+                      : ""
+                )}>
+                  {dateObj.getDate()}
+                </span>
+                {hasEvent && (
+                  <div className={cn(
+                    "absolute bottom-0.5 h-1 w-1 rounded-full",
+                    isSelected ? "bg-white" : isToday ? "bg-accent-blue" : "bg-text-muted"
+                  )} />
                 )}
               </div>
             );
@@ -255,7 +358,10 @@ export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' |
                 const d = new Date(evt.start?.dateTime || evt.start?.date);
                 const isAllDay = !evt.start?.dateTime;
                 const timeStr = isAllDay ? 'All day' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const isToday = d.getDate() === currentDay && d.getMonth() === currentMonth;
+                const todayDate = new Date();
+                const isToday = d.getDate() === todayDate.getDate() && 
+                                d.getMonth() === todayDate.getMonth() && 
+                                d.getFullYear() === todayDate.getFullYear();
                 const dateStr = isToday ? 'Today' : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
                 
                 return (
