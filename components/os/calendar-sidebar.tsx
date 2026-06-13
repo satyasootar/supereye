@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { CalendarModal } from './calendar-modal';
 
 const miniCalDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -31,7 +32,7 @@ const upcomingEvents = [
   { title: 'Muharram/Ashura', date: 'Jun 26, All day', color: 'bg-green-500' },
 ];
 
-export function CalendarSidebar() {
+export function CalendarSidebar({ variant = 'default' }: { variant?: 'default' | 'right-panel' }) {
   const { activeTabs } = useAppStore();
   const isSplit = activeTabs.length > 1;
 
@@ -39,7 +40,7 @@ export function CalendarSidebar() {
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
   const [activeView, setActiveView] = useState('Month');
 
-  if (isSplit) {
+  if (isSplit && variant !== 'right-panel') {
     return (
       <div className="flex h-full w-[48px] flex-col items-center border-r border-border-subtle bg-bg-surface text-text-primary py-4 gap-4 flex-shrink-0">
         <button className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-blue text-white hover:bg-accent-blue-dim transition-colors" title="New Event">
@@ -60,6 +61,11 @@ export function CalendarSidebar() {
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <span className="font-heading text-[14px] font-semibold">June 2026</span>
         <div className="flex items-center gap-1">
+          <CalendarModal trigger={
+            <button title="Full Calendar" className="p-1 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors mr-1">
+              <CalendarIcon className="h-4 w-4" />
+            </button>
+          } />
           <button className="p-1 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors">
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -99,64 +105,68 @@ export function CalendarSidebar() {
         </div>
       </div>
 
-      {/* View Switcher */}
-      <div className="p-3 border-b border-border-subtle">
-        <div className="flex bg-bg-elevated rounded-md p-1 border border-border-subtle">
-          {['Day', 'Week', 'Month', 'Agenda'].map(view => (
-            <button
-              key={view}
-              onClick={() => setActiveView(view)}
-              className={cn(
-                "flex-1 rounded py-1 text-[11px] font-medium transition-colors",
-                activeView === view 
-                  ? "bg-bg-highlight text-accent-blue shadow-sm" 
-                  : "text-text-secondary hover:text-text-primary hover:bg-bg-overlay"
-              )}
-            >
-              {view}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* My Calendars */}
-      <div className="mt-4 px-2">
-        <div className="flex items-center justify-between px-2 mb-1 group">
-          <button 
-            onClick={() => setCalsExpanded(!calsExpanded)}
-            className="flex items-center gap-1 text-[12px] font-semibold text-text-secondary hover:text-text-primary uppercase tracking-wider"
-          >
-            <ChevronDown className={cn("h-3 w-3 transition-transform", !calsExpanded && "-rotate-90")} />
-            My Calendars
-          </button>
-          <button className="p-1 text-text-muted hover:text-text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-            <Plus className="h-3 w-3" />
-          </button>
-        </div>
-
-        {calsExpanded && (
-          <div className="flex flex-col gap-0.5 mt-1">
-            {myCalendars.map(cal => (
-              <div key={cal.name} className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-bg-overlay group cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "flex h-4 w-4 items-center justify-center rounded-[4px] border",
-                    cal.active ? cal.color : "border-border-strong bg-transparent"
-                  )}>
-                    {cal.active && <div className="h-1.5 w-1.5 rounded-sm bg-white" />}
-                  </div>
-                  <span className={cn("text-[13px] truncate max-w-[140px]", cal.active ? "text-text-primary font-medium" : "text-text-secondary")}>
-                    {cal.name}
-                  </span>
-                </div>
-                <button className="p-0.5 text-text-muted hover:text-text-primary opacity-0 group-hover:opacity-100">
-                  <MoreVertical className="h-3 w-3" />
-                </button>
-              </div>
+      {/* View Switcher - Hide in right-panel variant */}
+      {variant !== 'right-panel' && (
+        <div className="p-3 border-b border-border-subtle">
+          <div className="flex bg-bg-elevated rounded-md p-1 border border-border-subtle">
+            {['Day', 'Week', 'Month', 'Agenda'].map(view => (
+              <button
+                key={view}
+                onClick={() => setActiveView(view)}
+                className={cn(
+                  "flex-1 rounded py-1 text-[11px] font-medium transition-colors",
+                  activeView === view 
+                    ? "bg-bg-highlight text-accent-blue shadow-sm" 
+                    : "text-text-secondary hover:text-text-primary hover:bg-bg-overlay"
+                )}
+              >
+                {view}
+              </button>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* My Calendars - Hide in right-panel variant */}
+      {variant !== 'right-panel' && (
+        <div className="mt-4 px-2">
+          <div className="flex items-center justify-between px-2 mb-1 group">
+            <button 
+              onClick={() => setCalsExpanded(!calsExpanded)}
+              className="flex items-center gap-1 text-[12px] font-semibold text-text-secondary hover:text-text-primary uppercase tracking-wider"
+            >
+              <ChevronDown className={cn("h-3 w-3 transition-transform", !calsExpanded && "-rotate-90")} />
+              My Calendars
+            </button>
+            <button className="p-1 text-text-muted hover:text-text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+              <Plus className="h-3 w-3" />
+            </button>
+          </div>
+
+          {calsExpanded && (
+            <div className="flex flex-col gap-0.5 mt-1">
+              {myCalendars.map(cal => (
+                <div key={cal.name} className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-bg-overlay group cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "flex h-4 w-4 items-center justify-center rounded-[4px] border",
+                      cal.active ? cal.color : "border-border-strong bg-transparent"
+                    )}>
+                      {cal.active && <div className="h-1.5 w-1.5 rounded-sm bg-white" />}
+                    </div>
+                    <span className={cn("text-[13px] truncate max-w-[140px]", cal.active ? "text-text-primary font-medium" : "text-text-secondary")}>
+                      {cal.name}
+                    </span>
+                  </div>
+                  <button className="p-0.5 text-text-muted hover:text-text-primary opacity-0 group-hover:opacity-100">
+                    <MoreVertical className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Upcoming */}
       <div className="mt-4 px-2 flex-1">

@@ -104,23 +104,9 @@ export function CalendarGrid() {
       </div>
 
       {/* Grid Container */}
-      <div className="flex flex-col flex-1 bg-border-subtle p-[1px] overflow-hidden">
-        {/* Day Headers */}
-        <div className="grid grid-cols-7 bg-bg-base flex-shrink-0">
-          {daysOfWeek.map((day, i) => (
-            <div key={day} className="py-2 text-center border-r border-border-subtle last:border-r-0">
-              <span className={cn(
-                "text-[12px] font-medium uppercase tracking-wider",
-                i === 0 || i === 6 ? "text-text-muted" : "text-text-secondary"
-              )}>
-                {day}
-              </span>
-            </div>
-          ))}
-        </div>
-
+      <div className="flex flex-col flex-1 bg-bg-app overflow-hidden p-4">
         {/* Days Grid */}
-        <div className="grid grid-cols-7 grid-rows-5 flex-1 bg-bg-base border-t border-border-subtle">
+        <div className="grid grid-cols-7 grid-rows-5 flex-1 bg-bg-base border border-border-subtle rounded-lg overflow-hidden">
           {monthCells.map((date, i) => {
             const isToday = date === 11;
             const events = date ? eventsByDate[date] || [] : [];
@@ -130,23 +116,30 @@ export function CalendarGrid() {
               <div 
                 key={i} 
                 className={cn(
-                  "relative flex flex-col border-r border-b border-border-subtle min-h-0",
-                  isWeekend ? "bg-bg-overlay/30" : "bg-bg-base",
+                  "relative flex flex-col border-r border-b border-border-subtle min-h-0 bg-bg-base",
                   i % 7 === 6 && "border-r-0", // Remove right border for last col
                   i >= 28 && "border-b-0" // Remove bottom border for last row
                 )}
               >
                 {/* Date Header */}
-                <div className="flex justify-center p-1">
+                <div className="flex flex-col items-center pt-2 pb-1">
+                  {i < 7 && (
+                    <span className={cn(
+                      "text-[11px] font-semibold uppercase tracking-widest mb-1",
+                      i === 0 || i === 6 ? "text-text-muted" : "text-text-secondary"
+                    )}>
+                      {daysOfWeek[i]}
+                    </span>
+                  )}
                   <div className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-mono",
+                    "flex h-7 min-w-[28px] px-1.5 items-center justify-center rounded-full text-[13px] font-medium transition-colors",
                     isToday 
-                      ? "bg-accent-blue text-white font-bold shadow-sm" 
+                      ? "bg-accent-blue text-white shadow-md" 
                       : date 
-                        ? "text-text-primary" 
+                        ? "text-text-primary hover:bg-bg-overlay cursor-pointer" 
                         : "text-transparent"
                   )}>
-                    {date}
+                    {date === 1 && !isToday ? '1 Jun' : date}
                   </div>
                 </div>
 
@@ -158,9 +151,9 @@ export function CalendarGrid() {
                     <div 
                       key={evtIndex}
                       className={cn(
-                        "flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium cursor-pointer transition-colors group",
+                        "flex items-center px-1.5 py-0.5 mx-1 rounded-[4px] text-[11px] font-medium cursor-pointer transition-colors group",
                         evt.isAllDay 
-                          ? cn(evt.color.replace('bg-', 'bg-').concat('/20'), "border-l-2", evt.color.replace('bg-', 'border-'), evt.color.replace('bg-', 'text-'))
+                          ? cn(evt.color, "text-white shadow-sm opacity-90 hover:opacity-100")
                           : "hover:bg-bg-overlay"
                       )}
                     >
