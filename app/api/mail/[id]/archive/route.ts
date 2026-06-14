@@ -17,14 +17,14 @@ export async function POST(
   const { id: emailId } = await params;
   
   try {
-    const existing = await db.select().from(emails).where(
-      and(
-        eq(emails.googleMessageId, emailId),
-        eq(emails.userId, session.user.id)
+    const existing = await db.query.emails.findFirst({
+      where: and(
+        eq(emails.userId, session.user.id),
+        eq(emails.googleMessageId, emailId)
       )
-    );
+    });
 
-    if (!existing.length) {
+    if (!existing) {
       return NextResponse.json({ error: 'Email not found' }, { status: 404 });
     }
 
@@ -39,9 +39,16 @@ export async function POST(
       },
     });
 
+    let newLabels = existing.labelIds || [];
+    newLabels = newLabels.filter((l: string) => l !== 'INBOX');
+
     // Update local db
     await db.update(emails)
-      .set({ isArchived: true })
+      .set({ 
+        isArchived: true,
+        labelIds: newLabels,
+        updatedAt: new Date()
+      })
       .where(eq(emails.googleMessageId, emailId));
 
     return NextResponse.json({ success: true });

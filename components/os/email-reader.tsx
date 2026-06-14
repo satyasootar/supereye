@@ -3,7 +3,7 @@
 import {
   Archive, Trash2, MoreVertical, Sparkles,
   Reply, Forward, Download,
-  CheckSquare, Printer, Clock, MoreHorizontal, ChevronUp, ChevronDown, ChevronsRight, MailOpen, X
+  CheckSquare, Printer, Clock, MoreHorizontal, ChevronUp, ChevronDown, ChevronsRight, MailOpen, X, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -23,6 +23,34 @@ export function EmailReader() {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const queryClient = useQueryClient();
+
+  const trashMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/mail/${encodeURIComponent(id)}/trash`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to trash email');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      setSelectedEmailId(null);
+    },
+    onError: () => {}
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/mail/${encodeURIComponent(id)}/archive`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to archive email');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      setSelectedEmailId(null);
+    },
+    onError: () => {}
+  });
 
   const { data: messages, isLoading, error } = useQuery({
     queryKey: ['email-thread', selectedEmailId],
@@ -141,34 +169,6 @@ export function EmailReader() {
     const match = address.match(/<([^>]+)>/);
     return match ? match[1] : address;
   };
-
-  const queryClient = useQueryClient();
-
-  const trashMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/mail/${encodeURIComponent(id)}/trash`, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to trash email');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['emails'] });
-      setSelectedEmailId(null);
-    },
-    onError: () => {}
-  });
-
-  const archiveMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/mail/${encodeURIComponent(id)}/archive`, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to archive email');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['emails'] });
-      setSelectedEmailId(null);
-    },
-    onError: () => {}
-  });
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -307,10 +307,10 @@ export function EmailReader() {
                       <CheckSquare className="h-4 w-4" />
                     </button>
                     <button onClick={handleArchive} disabled={archiveMutation.isPending} className={cn("p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors", archiveMutation.isPending && "opacity-50")} title="Archive">
-                      <Archive className="h-4 w-4" />
+                      {archiveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
                     </button>
                     <button onClick={handleTrash} disabled={trashMutation.isPending} className={cn("p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors", trashMutation.isPending && "opacity-50")} title="Trash">
-                      <Trash2 className="h-4 w-4" />
+                      {trashMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                     </button>
                     <button className="p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors" title="More">
                       <MoreHorizontal className="h-4 w-4" />

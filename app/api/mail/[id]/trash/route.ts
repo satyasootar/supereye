@@ -19,12 +19,29 @@ export async function POST(
     const t = getTenant(session.user.id);
 
     // Call Corsair to move the message to Trash
-    await t.gmail.api.messages.trash({ id });
+    await t.gmail.api.messages.trash({ userId: 'me', id });
+
+    // Fetch existing email to correctly update labels
+    const existing = await db.query.emails.findFirst({
+      where: and(
+        eq(emails.userId, session.user.id),
+        eq(emails.googleMessageId, id)
+      )
+    });
+
+    let newLabels = existing?.labelIds || [];
+    // Remove INBOX
+    newLabels = newLabels.filter((l: string) => l !== 'INBOX');
+    // Add TRASH
+    if (!newLabels.includes('TRASH')) {
+      newLabels.push('TRASH');
+    }
 
     // Update local DB to reflect the change immediately
     await db.update(emails)
       .set({ 
         isArchived: true, // We treat trash as archived/hidden from main views
+        labelIds: newLabels,
         updatedAt: new Date()
       })
       .where(

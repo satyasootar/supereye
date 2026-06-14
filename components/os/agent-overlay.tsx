@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store/app-store';
 import { ContextBanner } from './agent/context-banner';
 import { ConversationStream } from './agent/conversation-stream';
@@ -10,7 +10,20 @@ import { FloatingSuggestions } from './agent/floating-suggestions';
 import { BottomInput } from './agent/bottom-input';
 
 export function AgentOverlay() {
-  const { isAgentOpen, setAgentOpen } = useAppStore();
+  const {
+    isAgentOpen,
+    setAgentOpen,
+    agentMessages,
+    isAgentExecuting,
+    resetAgentSession,
+  } = useAppStore();
+
+  const canClear = agentMessages.length > 0 && !isAgentExecuting;
+
+  const handleClearChat = () => {
+    if (!canClear) return;
+    resetAgentSession();
+  };
 
   useEffect(() => {
     if (!isAgentOpen) return;
@@ -45,15 +58,29 @@ export function AgentOverlay() {
           {/* Light scrim — app stays visible underneath */}
           <div className="absolute inset-0 bg-black/15 backdrop-blur-[10px]" aria-hidden />
 
-          {/* Close button */}
-          <button
-            type="button"
-            onClick={() => setAgentOpen(false)}
-            className="absolute right-6 top-6 z-[210] flex h-9 w-9 items-center justify-center rounded-lg border border-border-default bg-bg-elevated/80 text-text-muted backdrop-blur-md transition-colors hover:text-text-primary"
-            aria-label="Close assistant"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {/* Header actions */}
+          <div className="absolute right-6 top-6 z-[210] flex items-center gap-2">
+            {agentMessages.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearChat}
+                disabled={!canClear}
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-border-default bg-bg-elevated/80 px-3 text-[12px] font-medium text-text-muted backdrop-blur-md transition-colors hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Clear chat"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Clear
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setAgentOpen(false)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-default bg-bg-elevated/80 text-text-muted backdrop-blur-md transition-colors hover:text-text-primary"
+              aria-label="Close assistant"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
 
           {/* Content — no giant chat card */}
           <div className="relative z-10 flex h-full flex-col pointer-events-none">

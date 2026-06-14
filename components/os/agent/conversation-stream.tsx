@@ -68,7 +68,7 @@ export function ConversationStream() {
   const lastContent = agentMessages[agentMessages.length - 1]?.content ?? '';
 
   const streamingIdx = agentMessages.findIndex((m) => m.isStreaming);
-  const hasActiveTurn = isAgentExecuting || agentSteps.length > 0;
+  const showActivity = isAgentExecuting || agentSteps.length > 0;
 
   // Split: history ends at last user message; streaming assistant rendered after timeline
   let historyMessages = agentMessages;
@@ -115,7 +115,7 @@ export function ConversationStream() {
         <MessageBubble key={msg.id} msg={msg} />
       ))}
 
-      {hasActiveTurn && <AgentExecutionTimeline />}
+      {showActivity && <AgentExecutionTimeline />}
 
       {streamingMessage && <MessageBubble msg={streamingMessage} />}
 
