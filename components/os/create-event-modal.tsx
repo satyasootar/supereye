@@ -23,6 +23,14 @@ export const GOOGLE_COLORS = [
   { id: '11', name: 'Tomato', bg: 'bg-[#dc2127]', hex: '#dc2127', text: 'text-white' },
 ];
 
+const getLocalDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export function CreateEventModal({
   trigger,
   initialDate,
@@ -51,7 +59,7 @@ export function CreateEventModal({
   const setColorId = controlledOnColorIdChange !== undefined ? controlledOnColorIdChange : setLocalColorId;
 
   const [summary, setSummary] = useState('');
-  const [date, setDate] = useState(() => initialDate || new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => initialDate || getLocalDateString());
   const [startTime, setStartTime] = useState(() => initialStartTime || '09:00');
   const [endTime, setEndTime] = useState(() => initialEndTime || '10:00');
   const [attendees, setAttendees] = useState<Attendee[]>([]);
@@ -99,6 +107,12 @@ export function CreateEventModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setCreateError(null);
+
+    const todayStr = getLocalDateString();
+    if (date < todayStr) {
+      setCreateError('Cannot create events in the past');
+      return;
+    }
 
     const startDateTime = new Date(`${date}T${startTime}:00`).toISOString();
     const endDateTime = new Date(`${date}T${endTime}:00`).toISOString();
@@ -215,8 +229,14 @@ export function CreateEventModal({
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
+              min={getLocalDateString()}
               className="h-10 rounded-md border-border-default bg-bg-overlay text-text-primary [color-scheme:dark]"
             />
+            {date < getLocalDateString() && (
+              <p className="text-[12px] text-destructive mt-1">
+                Cannot create events in the past.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -308,8 +328,8 @@ export function CreateEventModal({
             </Button>
             <Button
               type="submit"
-              disabled={createMutation.isPending}
-              className="h-10 rounded-md bg-accent-blue px-6 text-[14px] font-semibold text-white shadow-sm hover:bg-accent-blue/90"
+              disabled={createMutation.isPending || date < getLocalDateString()}
+              className="h-10 rounded-md bg-accent-blue px-6 text-[14px] font-semibold text-white shadow-sm hover:bg-accent-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createMutation.isPending ? 'Creating…' : addGoogleMeet ? 'Create with Meet' : 'Create Event'}
             </Button>
