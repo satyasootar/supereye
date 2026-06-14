@@ -28,8 +28,8 @@ export async function classifyEmailContent(input: {
   from: string;
   snippet: string;
   bodyPreview: string;
-}): Promise<EmailClassification> {
-  const { object } = await generateObject({
+}): Promise<{ classification: EmailClassification; usage: unknown }> {
+  const { object, usage } = await generateObject({
     model: getTriageModel(),
     schema: classificationSchema,
     prompt: `You triage incoming email for a busy professional. Classify as urgent or can_wait.
@@ -45,7 +45,7 @@ Snippet: ${input.snippet || '(empty)'}
 Body preview: ${input.bodyPreview || '(empty)'}`,
   });
 
-  return object;
+  return { classification: object, usage };
 }
 
 async function classifyAndPersistEmail(
@@ -60,7 +60,7 @@ async function classifyAndPersistEmail(
   );
 
   try {
-    const result = await classifyEmailContent({
+    const { classification: result, usage } = await classifyEmailContent({
       subject: row.subject || '',
       from: row.fromAddress || '',
       snippet: row.snippet || '',
@@ -77,6 +77,14 @@ async function classifyAndPersistEmail(
         updatedAt: new Date(),
       })
       .where(and(eq(emails.userId, userId), eq(emails.googleMessageId, row.googleMessageId)));
+
+    void import('@/lib/usage/log-usage').then(({ logAiUsage }) =>
+      logAiUsage(userId, {
+        feature: 'email_triage',
+        usage: usage as any,
+        metadata: { googleMessageId: row.googleMessageId, tier: result.tier },
+      })
+    );
 
     return result;
   } catch (error) {

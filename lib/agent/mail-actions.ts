@@ -1,6 +1,7 @@
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import { getTenant } from '@/lib/corsair';
 import { sseEmitter } from '@/lib/sse/emitter';
+import { logAiUsage } from '@/lib/usage/log-usage';
 
 export type SendEmailInput = {
   to: string | string[];
@@ -91,6 +92,14 @@ export async function sendEmailForUser(userId: string, input: SendEmailInput) {
   }
 
   sseEmitter.emit(userId, { type: 'sync:requested' });
+
+  void logAiUsage(userId, {
+    feature: 'agent_email_send',
+    metadata: {
+      subject: input.subject,
+      recipientCount: normalizeRecipients(input.to).length,
+    },
+  });
 
   return {
     success: true,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { auth } from '@/lib/auth';
+import { logAiUsage } from '@/lib/usage/log-usage';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -30,6 +31,12 @@ export async function POST(req: Request) {
       file,
       model: 'whisper-1',
       language: 'en',
+    });
+
+    void logAiUsage(session.user.id, {
+      feature: 'transcribe',
+      model: 'whisper-1',
+      metadata: { audioBytes: audio.size },
     });
 
     return NextResponse.json({ text: result.text?.trim() ?? '' });

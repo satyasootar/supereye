@@ -22,6 +22,7 @@ import {
   Monitor,
   LayoutPanelLeft,
   TerminalSquare,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,14 +31,16 @@ import { ProfileSection, ProfileRow } from '@/components/profile/profile-section
 import { WorkspaceLayoutSection } from '@/components/profile/workspace-layout-section';
 import { DeleteAccountSection } from '@/components/profile/delete-account-section';
 import { KeyboardShortcutsSection } from '@/components/profile/keyboard-shortcuts-section';
+import { UsageDashboardSection } from '@/components/profile/usage-dashboard-section';
 import { getPlugin } from '@/lib/plugins/registry';
 import { useAppStore } from '@/lib/store/app-store';
 import type { UserProfile } from '@/lib/user/profile';
 
-type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security' | 'shortcuts';
+type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security' | 'shortcuts' | 'dashboard';
 
 const TABS: { id: ProfileTab; label: string; icon: typeof User }[] = [
   { id: 'account', label: 'Account', icon: User },
+  { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
   { id: 'connections', label: 'Connections', icon: Link2 },
   { id: 'workspace', label: 'Workspace', icon: LayoutPanelLeft },
   { id: 'shortcuts', label: 'Shortcuts', icon: TerminalSquare },
@@ -172,7 +175,12 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+            <div
+              className={cn(
+                'mx-auto px-4 py-8 sm:px-6',
+                activeTab === 'dashboard' ? 'max-w-4xl' : 'max-w-2xl'
+              )}
+            >
               {activeTab === 'account' && (
                 <div className="flex flex-col gap-6">
                   <div className="flex items-center gap-5 rounded-xl border border-border-default bg-bg-elevated p-6">
@@ -289,6 +297,8 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
               )}
 
               {activeTab === 'shortcuts' && <KeyboardShortcutsSection />}
+
+              {activeTab === 'dashboard' && <UsageDashboardSection />}
 
               {activeTab === 'appearance' && (
                 <ProfileSection

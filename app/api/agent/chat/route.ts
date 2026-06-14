@@ -16,6 +16,7 @@ import {
   getOrCreateThread,
   getThreadMessages,
 } from '@/lib/agent/threads';
+import { logAiUsage } from '@/lib/usage/log-usage';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -155,11 +156,32 @@ export async function POST(req: Request) {
 
           fullText = summary.text;
           steps.completeRunning('Summary ready');
+
+          try {
+            await logAiUsage(userId, {
+              feature: 'chat_summary',
+              usage: summary.usage,
+              metadata: { threadId: thread.id },
+            });
+          } catch {
+            /* usage logging is best-effort */
+          }
         } else {
           steps.completeRunning('Response ready');
         }
 
         await addMessageToThread(thread.id, 'assistant', fullText);
+
+        try {
+          const usage = await result.usage;
+          await logAiUsage(userId, {
+            feature: 'chat',
+            usage,
+            metadata: { threadId: thread.id },
+          });
+        } catch {
+          /* usage logging is best-effort */
+        }
 
         for (const char of fullText) {
           emit({ type: 'text-delta', delta: char });

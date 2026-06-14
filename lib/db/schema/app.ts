@@ -297,3 +297,28 @@ export const workspaces = pgTable(
   },
   (table) => [index('idx_workspaces_user_id').on(table.userId)]
 );
+
+// ─── AI Usage Events ────────────────────────────────────────────────────
+export const aiUsageEvents = pgTable(
+  'ai_usage_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    feature: text('feature').notNull(),
+    model: text('model'),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    totalTokens: integer('total_tokens').notNull().default(0),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('idx_ai_usage_user_id').on(table.userId),
+    index('idx_ai_usage_feature').on(table.userId, table.feature),
+    index('idx_ai_usage_created_at').on(table.createdAt),
+  ]
+);

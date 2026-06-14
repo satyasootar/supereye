@@ -8,7 +8,7 @@ import {
   Sun, Moon, User, Archive, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -43,10 +43,27 @@ export function EmailSidebar() {
   const { primary, activePlugins } = useWorkspaceLayout();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-menu-trigger="profile"]')) {
+        return;
+      }
+      if (menuRef.current && !menuRef.current.contains(target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isMenuOpen]);
   const isSplit = activeTabs.length > 1;
   const isSidebarCollapsed = isSplit || leftSidebarCollapsed;
 
@@ -383,19 +400,16 @@ export function EmailSidebar() {
             className="border-t border-border-subtle py-4 px-1 bg-bg-surface/30 flex flex-col items-center gap-4 flex-shrink-0"
           >
             <NotificationBell align="start" side="right" />
-            <button 
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-md hover:bg-bg-overlay cursor-pointer" 
-              title="Toggle Theme"
-            >
-              {mounted && theme === 'dark' ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
-            </button>
             <button
               type="button"
-              onClick={goToProfile}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-highlight text-text-primary border border-border-subtle hover:bg-bg-overlay overflow-hidden flex-shrink-0 cursor-pointer"
-              title={session?.user?.name || 'Profile'}
-              aria-label="Open profile"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              data-menu-trigger="profile"
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-full bg-bg-highlight text-text-primary border border-border-subtle hover:bg-bg-overlay overflow-hidden flex-shrink-0 cursor-pointer transition-colors",
+                isMenuOpen && "border-accent-blue bg-bg-overlay"
+              )}
+              title={session?.user?.name || 'Profile Menu'}
+              aria-label="Open profile menu"
             >
               {session?.user?.image ? (
                 <img src={session.user.image} alt="User" className="h-full w-full object-cover" />
@@ -415,9 +429,13 @@ export function EmailSidebar() {
           >
             <button
               type="button"
-              onClick={goToProfile}
-              className="flex items-center gap-2 overflow-hidden rounded-md px-1 py-0.5 transition-colors hover:bg-bg-overlay"
-              aria-label="Open profile"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              data-menu-trigger="profile"
+              className={cn(
+                "flex items-center gap-2 overflow-hidden rounded-md px-1 py-0.5 transition-colors hover:bg-bg-overlay text-left cursor-pointer",
+                isMenuOpen && "bg-bg-overlay"
+              )}
+              aria-label="Open profile menu"
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-subtle bg-bg-highlight">
                 {session?.user?.image ? (
@@ -434,11 +452,85 @@ export function EmailSidebar() {
             <div className="flex items-center gap-1">
               <NotificationBell align="start" side="right" />
               <button 
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-md hover:bg-bg-overlay cursor-pointer" 
-                title="Toggle Theme"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                data-menu-trigger="profile"
+                className={cn(
+                  "text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-md hover:bg-bg-overlay cursor-pointer",
+                  isMenuOpen && "bg-bg-overlay text-text-primary"
+                )}
+                title="Open settings dropdown"
               >
-                {mounted && theme === 'dark' ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+                <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isMenuOpen && "rotate-180")} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Dropdown Menu Container */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            ref={menuRef}
+            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 8 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className={cn(
+              "absolute z-50 rounded-lg border border-border-subtle bg-bg-elevated p-1.5 shadow-xl flex flex-col min-w-[200px] select-none",
+              isSidebarCollapsed 
+                ? "left-14 bottom-4" 
+                : "left-3 right-3 bottom-14"
+            )}
+          >
+            <div className="px-2.5 py-1.5 border-b border-border-subtle/50 mb-1 flex flex-col">
+              <span className="text-[12px] font-semibold text-text-primary truncate">
+                {session?.user?.name || 'User'}
+              </span>
+              <span className="text-[10px] text-text-muted truncate mt-0.5">
+                {session?.user?.email}
+              </span>
+            </div>
+            
+            <button
+              type="button"
+              onClick={() => {
+                setIsMenuOpen(false);
+                goToProfile();
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-text-secondary hover:bg-bg-overlay hover:text-text-primary transition-colors cursor-pointer"
+            >
+              <User className="h-3.5 w-3.5 text-text-muted" />
+              View Profile
+            </button>
+            
+            <div className="h-px bg-border-subtle/40 my-1" />
+            
+            <div className="flex items-center justify-between px-2.5 py-1.5 text-[12px]">
+              <span className="text-text-secondary font-medium flex items-center gap-2">
+                {theme === 'dark' ? (
+                  <Moon className="h-3.5 w-3.5 text-text-muted" />
+                ) : (
+                  <Sun className="h-3.5 w-3.5 text-text-muted" />
+                )}
+                Dark Mode
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={theme === 'dark'}
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className={cn(
+                  'relative h-5 w-9 rounded-full transition-colors cursor-pointer flex-shrink-0',
+                  theme === 'dark' ? 'bg-accent-blue' : 'bg-bg-overlay'
+                )}
+              >
+                <span
+                  className={cn(
+                    'absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform',
+                    theme === 'dark' && 'translate-x-4'
+                  )}
+                />
               </button>
             </div>
           </motion.div>
