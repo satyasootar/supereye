@@ -3,36 +3,50 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { emails } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { sseEmitter } from '@/lib/sse/emitter';
+import { getTenant } from '@/lib/corsair';
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const userId = session.user.id;
-  const { id: messageId } = await params;
-
+  const { id: emailId } = await params;
+  
   try {
-    const { corsair } = await import('@/lib/corsair');
-    const t = corsair.withTenant(userId) as any;
+    const existing = await db.select().from(emails).where(
+      and(
+        eq(emails.googleMessageId, emailId),
+        eq(emails.userId, session.user.id)
+      )
+    );
 
-    await t.gmail.api.messages.modify({
+    if (!existing.length) {
+      return NextResponse.json({ error: 'Email not found' }, { status: 404 });
+    }
+
+    const t = getTenant(session.user.id);
+
+    // Gmail: Archiving means removing the 'INBOX' label
+    await t.gmail.api.users.messages.modify({
       userId: 'me',
-      id: messageId,
-      removeLabelIds: ['INBOX']
+      id: emailId,
+      requestBody: {
+        removeLabelIds: ['INBOX'],
+      },
     });
 
+    // Update local db
     await db.update(emails)
       .set({ isArchived: true })
-      .where(and(eq(emails.userId, userId), eq(emails.googleMessageId, messageId)));
-
-    sseEmitter.emit(userId, { type: 'email:updated' });
+      .where(eq(emails.googleMessageId, emailId));
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Archive error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Failed to archive email:', error);
+    return NextResponse.json({ error: 'Failed to archive email', details: error.message }, { status: 500 });
   }
 }

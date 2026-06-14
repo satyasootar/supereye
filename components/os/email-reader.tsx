@@ -8,10 +8,11 @@ import {
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '@/lib/store/app-store';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { EmailComposer } from './email-composer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export function EmailReader() {
   const selectedEmailId = useAppStore(state => state.selectedEmailId);
@@ -100,6 +101,86 @@ export function EmailReader() {
     return match ? match[1] : address;
   };
 
+  const queryClient = useQueryClient();
+
+  const trashMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/mail/${encodeURIComponent(id)}/trash`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to trash email');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      setSelectedEmailId(null);
+    },
+    onError: () => {}
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/mail/${encodeURIComponent(id)}/archive`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to archive email');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      setSelectedEmailId(null);
+    },
+    onError: () => {}
+  });
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      // Find the main email body iframe
+      const iframes = document.querySelectorAll('iframe');
+      let bodyHtml = '';
+      if (iframes.length > 0 && iframes[0].srcdoc) {
+        bodyHtml = iframes[0].srcdoc;
+      } else {
+        bodyHtml = messages.map((m: any) => m.body || m.snippet).join('<br><hr><br>');
+      }
+      
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${firstEmail.subject || 'Print Email'}</title>
+            <style>
+              body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+              .header { margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>${firstEmail.subject || 'No Subject'}</h1>
+              <p><strong>From:</strong> ${firstEmail.fromName || firstEmail.fromAddress}</p>
+            </div>
+            ${bodyHtml}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      // Give images time to load before printing
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    }
+  };
+
+  const handleTrash = () => {
+    if (firstEmail?.googleMessageId) {
+      trashMutation.mutate(firstEmail.googleMessageId);
+    }
+  };
+
+  const handleArchive = () => {
+    if (firstEmail?.googleMessageId) {
+      archiveMutation.mutate(firstEmail.googleMessageId);
+    }
+  };
+
   return (
     <div className="flex h-full flex-1 flex-col bg-bg-app overflow-hidden min-w-[400px]">
       {/* Thread Header */}
@@ -146,19 +227,48 @@ export function EmailReader() {
                       <Sparkles className="h-4 w-4" />
                       <span className="hidden sm:inline">Auto label similar</span>
                     </button>
-                    <button className="p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors" title="Print">
+                    <button onClick={handlePrint} className="p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors" title="Print">
                       <Printer className="h-4 w-4" />
                     </button>
-                    <button className="p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors" title="Snooze">
-                      <Clock className="h-4 w-4" />
-                    </button>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors" title="Snooze">
+                          <Clock className="h-4 w-4" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-56 p-1 border-border-subtle bg-bg-elevated shadow-xl rounded-xl" align="center" sideOffset={8}>
+                        <div className="flex flex-col text-[13px] font-medium text-text-primary">
+                          <div className="px-3 py-2 text-[12px] font-semibold text-text-muted uppercase tracking-wider">Snooze until</div>
+                          <button className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-bg-overlay transition-colors">
+                            <span>Later today</span>
+                            <span className="text-text-muted text-[12px]">6:00 PM</span>
+                          </button>
+                          <button className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-bg-overlay transition-colors">
+                            <span>Tomorrow</span>
+                            <span className="text-text-muted text-[12px]">8:00 AM</span>
+                          </button>
+                          <button className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-bg-overlay transition-colors">
+                            <span>This weekend</span>
+                            <span className="text-text-muted text-[12px]">Sat, 8:00 AM</span>
+                          </button>
+                          <button className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-bg-overlay transition-colors">
+                            <span>Next week</span>
+                            <span className="text-text-muted text-[12px]">Mon, 8:00 AM</span>
+                          </button>
+                          <div className="h-[1px] bg-border-subtle my-1"></div>
+                          <button className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-bg-overlay transition-colors">
+                            <span>Pick date & time</span>
+                          </button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                     <button className="p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors" title="Add to tasks">
                       <CheckSquare className="h-4 w-4" />
                     </button>
-                    <button className="p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors" title="Archive">
+                    <button onClick={handleArchive} disabled={archiveMutation.isPending} className={cn("p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors", archiveMutation.isPending && "opacity-50")} title="Archive">
                       <Archive className="h-4 w-4" />
                     </button>
-                    <button className="p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors" title="Trash">
+                    <button onClick={handleTrash} disabled={trashMutation.isPending} className={cn("p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors", trashMutation.isPending && "opacity-50")} title="Trash">
                       <Trash2 className="h-4 w-4" />
                     </button>
                     <button className="p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors" title="More">

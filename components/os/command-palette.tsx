@@ -54,8 +54,6 @@ export function CommandPalette() {
     // Recently Used
     { id: 'compose-email', category: 'Recently Used', label: 'Compose new email', icon: Mail, shortcut: 'C', action: () => openTab('email') },
     { id: 'create-event', category: 'Recently Used', label: 'Create event', icon: Calendar, shortcut: 'N', action: () => { openTab('email'); setWorkspaceMode('calendar'); } },
-    { id: 'ask-ai', category: 'Recently Used', label: 'Ask AI', icon: Sparkles, shortcut: '/', action: () => openTab('chat') },
-    
     // Email Actions
     { id: 'go-inbox', category: 'Email Actions', label: 'Go to Inbox', icon: Mail, shortcut: 'G I', action: () => openTab('email') },
     { id: 'go-sent', category: 'Email Actions', label: 'Go to Sent', icon: Mail, shortcut: 'G S', action: () => openTab('email') },
@@ -63,10 +61,6 @@ export function CommandPalette() {
     // Calendar Actions
     { id: 'go-today', category: 'Calendar Actions', label: 'Go to today', icon: Calendar, shortcut: 'T', action: () => { openTab('email'); setWorkspaceMode('calendar'); } },
     { id: 'switch-month', category: 'Calendar Actions', label: 'Switch to month view', icon: Calendar, shortcut: 'M', action: () => { openTab('email'); setWorkspaceMode('calendar'); } },
-    
-    // AI Actions
-    { id: 'ai-draft', category: 'AI Actions', label: 'Ask AI to draft reply', icon: Sparkles, action: () => openTab('chat') },
-    { id: 'ai-summary', category: 'AI Actions', label: 'Summarize inbox', icon: Sparkles, action: () => openTab('chat') },
     
     // App
     { id: 'settings', category: 'App', label: 'Open Settings', icon: Settings, shortcut: '⌘,', action: () => {} },

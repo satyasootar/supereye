@@ -61,8 +61,6 @@ export function EmailPane() {
   return (
     <LayoutGroup>
       <div className="flex h-full w-full overflow-hidden bg-bg-app">
-        {/* Sidebar — always present */}
-        <EmailSidebar />
 
         <AnimatePresence mode="wait" initial={false}>
           {isCalendarMode ? (

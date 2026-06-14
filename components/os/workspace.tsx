@@ -4,8 +4,8 @@ import { useAppStore } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
 import { useState, useRef } from 'react';
 import { EmailPane } from './email-pane';
+import { EmailSidebar } from './email-sidebar';
 
-import { ChatPane } from './chat-pane';
 import { useGlobalShortcuts } from '@/hooks/use-global-shortcuts';
 import { useSSE } from '@/hooks/use-sse';
 import { GlobalComposer } from './global-composer';
@@ -19,7 +19,6 @@ export function Workspace() {
 
   // Map of available panes
   const panes = {
-    chat: <ChatPane key="chat" />,
     email: <EmailPane key="email" />
   };
 
@@ -51,8 +50,11 @@ export function Workspace() {
   if (activeTabs.length === 1) {
     return (
       <>
-        <div className="h-full w-full bg-base">
-          {panes[activeTabs[0]]}
+        <div className="flex h-full w-full bg-base overflow-hidden">
+          <EmailSidebar />
+          <div className="flex-1 min-w-0 h-full">
+            {panes[activeTabs[0]]}
+          </div>
         </div>
         <GlobalComposer />
       </>
@@ -68,6 +70,7 @@ export function Workspace() {
       ref={containerRef}
       className="flex h-full w-full overflow-hidden"
     >
+      <EmailSidebar />
       <div 
         className="h-full" 
         style={{ width: `${splitRatio}%` }}

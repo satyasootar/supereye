@@ -21,7 +21,6 @@ export function AdvancedSearchFilter({ currentQuery, onSearch }: AdvancedSearchF
   const [excludes, setExcludes] = useState('');
   const [dateWithin, setDateWithin] = useState('1 day');
   const [hasAttachment, setHasAttachment] = useState(false);
-  const [excludeChats, setExcludeChats] = useState(false);
 
   // Parse current query to populate if possible? (Optional, skipping for simplicity)
   // We'll just build a query string when they submit
@@ -35,7 +34,6 @@ export function AdvancedSearchFilter({ currentQuery, onSearch }: AdvancedSearchF
     if (includes.trim()) q += `${includes.trim()} `;
     if (excludes.trim()) q += `-${excludes.trim().split(' ').join(' -')} `;
     if (hasAttachment) q += `has:attachment `;
-    if (excludeChats) q += `-in:chats `;
     
     // We append date logic (simplified for now as just a visual placeholder, Gmail uses newer_than:1d etc.)
     if (dateWithin !== '1 day') {
@@ -59,7 +57,6 @@ export function AdvancedSearchFilter({ currentQuery, onSearch }: AdvancedSearchF
     setExcludes('');
     setDateWithin('1 day');
     setHasAttachment(false);
-    setExcludeChats(false);
   };
 
   return (
@@ -148,10 +145,6 @@ export function AdvancedSearchFilter({ currentQuery, onSearch }: AdvancedSearchF
                 <label className="flex items-center gap-2 cursor-pointer text-text-secondary hover:text-text-primary">
                   <input type="checkbox" checked={hasAttachment} onChange={e => setHasAttachment(e.target.checked)} className="rounded border-border-subtle bg-transparent text-accent-blue focus:ring-accent-blue" />
                   Has attachment
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-text-secondary hover:text-text-primary">
-                  <input type="checkbox" checked={excludeChats} onChange={e => setExcludeChats(e.target.checked)} className="rounded border-border-subtle bg-transparent text-accent-blue focus:ring-accent-blue" />
-                  Don't include chats
                 </label>
               </div>
             </div>

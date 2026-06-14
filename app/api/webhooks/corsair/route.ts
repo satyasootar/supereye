@@ -45,6 +45,14 @@ export async function POST(req: Request) {
       }
     }
 
+    // If it's a Google Calendar push, we can extract userId from the channel ID
+    if (!userId) {
+      const channelId = req.headers.get('x-goog-channel-id');
+      if (channelId && channelId.startsWith('supereye-cal-')) {
+        userId = channelId.replace('supereye-cal-', '');
+      }
+    }
+
     if (!userId) {
       console.error('[Webhook] Missing tenant_id/userId in payload or query params', payload);
       return NextResponse.json({ error: 'Missing tenant_id/userId' }, { status: 400 });
@@ -61,7 +69,8 @@ export async function POST(req: Request) {
     try {
       const headersObject = Object.fromEntries(req.headers.entries());
       const queryObj = userId ? { tenantId: userId } : undefined;
-      await processWebhook(corsair, headersObject, bodyText, queryObj);
+      const safeBodyText = bodyText ? bodyText : '{}';
+      await processWebhook(corsair, headersObject, safeBodyText, queryObj);
     } catch (e) {
       console.warn(`[Webhook] Corsair processWebhook failed (often expected in local dev):`, e);
     }

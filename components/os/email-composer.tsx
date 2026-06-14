@@ -244,16 +244,16 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
               type="button" 
               onClick={handleSend}
               disabled={isSending}
-              className="flex items-center gap-2 px-6 py-2 bg-accent-blue hover:bg-accent-blue-dim text-white text-[15px] font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-2 bg-accent-blue hover:bg-accent-blue-dim text-text-inverse text-[15px] font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isSending ? 'Sending...' : scheduleAt ? 'Schedule' : 'Send'}
             </button>
-            <div className="w-[1px] bg-white/20"></div>
+            <div className="w-[1px] bg-border-subtle/20"></div>
             <button 
               type="button" 
               aria-label="Send options" 
               onClick={() => setShowScheduleSend(!showScheduleSend)}
-              className="flex items-center justify-center px-3 py-2 bg-accent-blue hover:bg-accent-blue-dim text-white transition-colors"
+              className="flex items-center justify-center px-3 py-2 bg-accent-blue hover:bg-accent-blue-dim text-text-inverse transition-colors"
             >
               <ChevronDown className="h-5 w-5" />
             </button>

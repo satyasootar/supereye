@@ -229,6 +229,29 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     }
   });
 
+  const bulkTrashMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(
+        ids.map(async (id) => {
+          const res = await fetch(`/api/mail/${id}/trash`, { method: 'POST' });
+          if (!res.ok) throw new Error(`Failed to trash email ${id}`);
+        })
+      );
+      return ids;
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });
+      queryClient.invalidateQueries({ queryKey: ['emails', 'search'] });
+      setSelectedIds([]); // Clear selection after deletion
+    }
+  });
+
+  const handleBulkDelete = () => {
+    if (selectedIds.length > 0) {
+      bulkTrashMutation.mutate(selectedIds);
+    }
+  };
+
   useEffect(() => {
     const newIds = emails.map(e => e.id);
     const currentIds = useAppStore.getState().currentEmailIds;
@@ -460,34 +483,46 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       {/* Categories Toolbar - Only show in INBOX and its sub-categories */}
       {['ALL', 'INBOX', 'CATEGORY_PROMOTIONS', 'CATEGORY_SOCIAL', 'CATEGORY_UPDATES'].includes(emailCategory) && (
         <div className="flex-none px-4 py-2 border-b border-border-subtle bg-bg-surface/50 overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-2">
-            {CATEGORY_TABS.map((tab) => {
-              const unreadCount = unreadData?.categories?.[tab.id] || 0;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setEmailCategory(tab.id)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-full whitespace-nowrap transition-colors",
-                    emailCategory === tab.id 
-                      ? "bg-accent-blue/10 text-accent-blue" 
-                      : "text-text-muted hover:text-text-primary hover:bg-bg-elevated"
-                  )}
-                >
-                  {tab.label}
-                  {unreadCount > 0 && (
-                    <span className={cn(
-                      "px-1.5 py-0.5 rounded-full text-[11px] leading-none font-bold",
-                      emailCategory === tab.id
-                        ? "bg-accent-blue text-white"
-                        : "bg-border-subtle text-text-secondary"
-                    )}>
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              {CATEGORY_TABS.map((tab) => {
+                const unreadCount = unreadData?.categories?.[tab.id] || 0;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setEmailCategory(tab.id)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-full whitespace-nowrap transition-colors",
+                      emailCategory === tab.id 
+                        ? "bg-accent-blue/10 text-accent-blue" 
+                        : "text-text-muted hover:text-text-primary hover:bg-bg-elevated"
+                    )}
+                  >
+                    {tab.label}
+                    {unreadCount > 0 && (
+                      <span className={cn(
+                        "px-1.5 py-0.5 rounded-full text-[11px] leading-none font-bold",
+                        emailCategory === tab.id
+                          ? "bg-accent-blue text-white"
+                          : "bg-border-subtle text-text-secondary"
+                      )}>
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {selectedIds.length > 0 && (
+              <button 
+                onClick={handleBulkDelete}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-destructive hover:bg-destructive/10 rounded-full cursor-pointer transition-colors"
+                title="Move selected to Trash"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Delete ({selectedIds.length})</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -544,17 +579,15 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                           isChecked && "bg-accent-blue/5"
                         )}
                       >
-                        {/* Checkbox (visible on hover or when selected) */}
-                        <div 
-                          className={cn("absolute left-2 top-1/2 -translate-y-1/2 w-6 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity", isChecked && "opacity-100")}
-                          onClick={(e) => { e.stopPropagation(); toggleSelect(email.id); }}
-                        >
-                          {isChecked ? <CheckSquare className="h-4 w-4 text-accent-blue" /> : <Square className="h-4 w-4 text-text-muted hover:text-text-primary" />}
-                        </div>
-
-                        {/* Sender */}
-                        <div className={cn("flex items-center gap-2 flex-shrink-0 transition-transform", isChecked || "group-hover:translate-x-6", isSplitView ? "w-[120px]" : "w-[200px]")}>
-                          <span className={cn("truncate text-[14px]", !email.isRead ? "font-semibold text-text-primary" : "text-text-muted font-normal")}>
+                        {/* Left section: Checkbox (optional) + Sender */}
+                        <div className={cn("flex items-center flex-shrink-0 gap-2", isSplitView ? "w-[120px]" : "w-[200px]")}>
+                          <div 
+                            className={cn("flex items-center justify-center cursor-pointer transition-opacity w-5 min-w-[20px] flex-shrink-0", (isChecked || isSelected) ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
+                            onClick={(e) => { e.stopPropagation(); toggleSelect(email.id); }}
+                          >
+                            {isChecked ? <CheckSquare className="h-4 w-4 text-accent-blue" /> : <Square className="h-4 w-4 text-text-muted hover:text-text-primary" />}
+                          </div>
+                          <span className={cn("truncate min-w-0 text-[14px] flex-1", !email.isRead ? "font-semibold text-text-primary" : "text-text-muted font-normal")}>
                             {displaySender} {email.threadCount && email.threadCount > 1 ? <span className="text-text-muted text-[12px] ml-1">{email.threadCount}</span> : null}
                           </span>
                         </div>

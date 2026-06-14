@@ -5,7 +5,7 @@ import {
   Inbox, Star, Clock, Send, FileText, Mail, AlertOctagon, Trash2, 
   ChevronDown, Plus, Settings, HelpCircle, HardDrive, Edit, 
   BarChart, Flame, Paperclip, Users, Tag, ChevronLeft, ChevronRight, Calendar,
-  Sun, Moon, User
+  Sun, Moon, User, Archive
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -17,6 +17,7 @@ const basePrimaryNav = [
   { icon: Inbox, label: 'Inbox', id: 'ALL' },
   { icon: FileText, label: 'Drafts', id: 'DRAFT' },
   { icon: Send, label: 'Sent', id: 'SENT' },
+  { icon: Archive, label: 'Archive', id: 'ARCHIVE' },
   { icon: Trash2, label: 'Trash', id: 'TRASH' },
 ];
 

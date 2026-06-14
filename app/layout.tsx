@@ -22,7 +22,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("dark antialiased", fontMono.variable, geist.variable, inter.variable)}
+      className={cn("antialiased", fontMono.variable, geist.variable, inter.variable)}
     >
       <body suppressHydrationWarning className="mx-auto max-w-[1600px] border-x border-border-subtle shadow-2xl relative h-screen">
         <Providers>{children}</Providers>

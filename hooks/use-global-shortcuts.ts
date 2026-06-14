@@ -27,11 +27,7 @@ export function useGlobalShortcuts() {
       // Check buffer
       const combo = keyBuffer.join('');
 
-      if (combo.includes('GC')) {
-        e.preventDefault();
-        openTab('chat');
-        keyBuffer = [];
-      } else if (combo.includes('GE')) {
+      if (combo.includes('GE')) {
         e.preventDefault();
         openTab('email');
         keyBuffer = [];

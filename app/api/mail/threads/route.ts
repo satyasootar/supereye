@@ -25,10 +25,14 @@ export async function GET(req: Request) {
 
     if (category === 'ALL') {
       baseQuery = baseQuery.where(eq(emails.userId, session.user.id)) as any;
+    } else if (category === 'ARCHIVE') {
+      baseQuery = baseQuery.where(
+        sql`${emails.userId} = ${session.user.id} AND ${emails.isArchived} = true`
+      ) as any;
     } else if (category === 'INBOX') {
       const categoryFilter = JSON.stringify([category]);
       baseQuery = baseQuery.where(
-        sql`${emails.userId} = ${session.user.id} AND (${emails.labelIds} @> ${categoryFilter}::jsonb OR ${emails.labelIds} IS NULL)`
+        sql`${emails.userId} = ${session.user.id} AND ${emails.isArchived} = false AND (${emails.labelIds} @> ${categoryFilter}::jsonb OR ${emails.labelIds} IS NULL)`
       ) as any;
     } else {
       const categoryFilter = JSON.stringify([category]);

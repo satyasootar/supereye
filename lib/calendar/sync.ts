@@ -105,15 +105,52 @@ export async function syncCalendarForUser(userId: string, isWebhook: boolean = f
     endOfWindow.setMonth(endOfWindow.getMonth() + 2);
     endOfWindow.setHours(23, 59, 59, 999);
 
-    const calendarResult = await t.googlecalendar.api.events.getMany({
-      calendarId: 'primary',
+    const getClientId = corsair.keys.googlecalendar.get_client_id;
+    const getClientSecret = corsair.keys.googlecalendar.get_client_secret;
+    const getRefreshToken = t.googlecalendar.keys.get_refresh_token;
+
+    const [clientId, clientSecret, refreshToken] = await Promise.all([
+      getClientId(),
+      getClientSecret(),
+      getRefreshToken(),
+    ]);
+
+    if (!clientId || !clientSecret || !refreshToken) {
+      throw new Error('Missing Google credentials for sync');
+    }
+
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      }),
+    });
+
+    if (!tokenRes.ok) throw new Error('Failed to refresh token');
+    const { access_token } = await tokenRes.json();
+
+    const params = new URLSearchParams({
       timeMin: startOfDay.toISOString(),
       timeMax: endOfWindow.toISOString(),
-      maxResults: 250,
-      singleEvents: true,
+      maxResults: '250',
+      singleEvents: 'true',
       orderBy: 'startTime',
-      showDeleted: true
+      showDeleted: 'true'
     });
+
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
+      headers: { Authorization: `Bearer ${access_token}` }
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch events from Google API: ${await res.text()}`);
+    }
+
+    const calendarResult = await res.json();
 
     const items = calendarResult.items || [];
     const toInsert = [];

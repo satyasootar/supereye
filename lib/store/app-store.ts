@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type TabId = 'chat' | 'email';
+export type TabId = 'email';
 export type WorkspaceMode = 'email' | 'calendar';
 
 interface AppState {
@@ -33,7 +33,7 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      activeTabs: ['chat'], // Default tab
+      activeTabs: ['email'], // Default tab
       splitRatio: 50,
       selectedEmailId: null,
       currentEmailIds: [],
