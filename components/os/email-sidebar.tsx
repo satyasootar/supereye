@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { NotificationBell } from './notification-bell';
@@ -26,6 +27,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CalendarSidebar } from './calendar-sidebar';
 
 export function EmailSidebar() {
+  const router = useRouter();
   const { data: session } = useSession();
   const { activeTabs, emailCategory, setEmailCategory, workspaceMode, leftSidebarCollapsed, setLeftSidebarCollapsed } = useAppStore();
   const { theme, setTheme } = useTheme();
@@ -59,6 +61,8 @@ export function EmailSidebar() {
 
   const [viewsExpanded, setViewsExpanded] = useState(true);
   const [triageExpanded, setTriageExpanded] = useState(false);
+
+  const goToProfile = () => router.push('/workspace/profile');
 
   const springTransition = {
     type: 'spring' as const,
@@ -257,7 +261,13 @@ export function EmailSidebar() {
             >
               {mounted && theme === 'dark' ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
             </button>
-            <button className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-highlight text-text-primary border border-border-subtle hover:bg-bg-overlay overflow-hidden flex-shrink-0 cursor-pointer" title={session?.user?.name || 'User'}>
+            <button
+              type="button"
+              onClick={goToProfile}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-highlight text-text-primary border border-border-subtle hover:bg-bg-overlay overflow-hidden flex-shrink-0 cursor-pointer"
+              title={session?.user?.name || 'Profile'}
+              aria-label="Open profile"
+            >
               {session?.user?.image ? (
                 <img src={session.user.image} alt="User" className="h-full w-full object-cover" />
               ) : (
@@ -274,19 +284,24 @@ export function EmailSidebar() {
             transition={{ duration: 0.15 }}
             className="border-t border-border-subtle p-3 bg-bg-surface/30 flex items-center justify-between gap-2 flex-shrink-0"
           >
-            <div className="flex items-center gap-2 overflow-hidden">
-              <button className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-highlight text-text-primary border border-border-subtle hover:bg-bg-overlay overflow-hidden flex-shrink-0 cursor-pointer">
+            <button
+              type="button"
+              onClick={goToProfile}
+              className="flex items-center gap-2 overflow-hidden rounded-md px-1 py-0.5 transition-colors hover:bg-bg-overlay"
+              aria-label="Open profile"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-subtle bg-bg-highlight">
                 {session?.user?.image ? (
                   <img src={session.user.image} alt="User" className="h-full w-full object-cover" />
                 ) : (
                   <User className="h-4 w-4" />
                 )}
-              </button>
+              </span>
               <div className="flex flex-col text-left overflow-hidden max-w-[110px]">
                 <span className="text-[12px] font-semibold text-text-primary truncate">{session?.user?.name || 'User'}</span>
                 <span className="text-[10px] text-text-muted truncate">{session?.user?.email}</span>
               </div>
-            </div>
+            </button>
             <div className="flex items-center gap-1">
               <NotificationBell align="start" side="right" />
               <button 

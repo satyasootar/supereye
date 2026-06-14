@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store/app-store';
 import { useTheme } from 'next-themes';
 import { Search, Mail, Calendar, Sparkles, Settings, Moon, TerminalSquare, X } from 'lucide-react';
@@ -17,6 +18,7 @@ type Command = {
 };
 
 export function CommandPalette() {
+  const router = useRouter();
   const { isCommandPaletteOpen, setCommandPaletteOpen, openTab, setWorkspaceMode } = useAppStore();
   const { setTheme, theme } = useTheme();
   const [search, setSearch] = useState('');
@@ -63,7 +65,7 @@ export function CommandPalette() {
     { id: 'switch-month', category: 'Calendar Actions', label: 'Switch to month view', icon: Calendar, shortcut: 'M', action: () => { openTab('email'); setWorkspaceMode('calendar'); } },
     
     // App
-    { id: 'settings', category: 'App', label: 'Open Settings', icon: Settings, shortcut: '⌘,', action: () => {} },
+    { id: 'settings', category: 'App', label: 'Open profile & settings', icon: Settings, shortcut: '⌘,', action: () => { setCommandPaletteOpen(false); router.push('/workspace/profile'); } },
     { id: 'theme', category: 'App', label: 'Toggle dark/light mode', icon: Moon, action: () => setTheme(theme === 'dark' ? 'light' : 'dark') },
     { id: 'shortcuts', category: 'App', label: 'Show keyboard shortcuts', icon: TerminalSquare, shortcut: '?', action: () => {} },
   ];
