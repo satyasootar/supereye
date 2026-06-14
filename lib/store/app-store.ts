@@ -17,6 +17,35 @@ export type AgentStep = {
   status: 'pending' | 'running' | 'done' | 'error';
 };
 
+export type AgentActionType =
+  | 'analyzing'
+  | 'email_draft'
+  | 'email_send'
+  | 'calendar_schedule'
+  | 'generic';
+
+export type AgentAction = {
+  id: string;
+  type: AgentActionType;
+  status: 'running' | 'done' | 'error';
+  title: string;
+  groupId?: string;
+  payload?: {
+    to?: string | string[];
+    subject?: string;
+    body?: string;
+    phase?: string;
+    date?: string;
+    startTime?: string;
+    endTime?: string;
+    summary?: string;
+    attendees?: string[];
+    timeZone?: string;
+    toolName?: string;
+    message?: string;
+  };
+};
+
 interface AppState {
   activeTabs: TabId[];
   splitRatio: number; // 50 for 50/50 split
@@ -31,7 +60,9 @@ interface AppState {
   currentDateStr: string;
   isAgentOpen: boolean;
   agentMessages: AgentMessage[];
+  agentThreadId: string | null;
   agentSteps: AgentStep[];
+  agentActions: AgentAction[];
   isAgentExecuting: boolean;
   openTab: (tabId: TabId, multiSelect?: boolean) => void;
   closeTab: (tabId: TabId) => void;
@@ -52,7 +83,12 @@ interface AppState {
   appendAgentMessageContent: (id: string, delta: string) => void;
   setAgentSteps: (steps: AgentStep[]) => void;
   updateAgentStep: (id: string, patch: Partial<AgentStep>) => void;
+  setAgentActions: (actions: AgentAction[]) => void;
+  addAgentAction: (action: AgentAction) => void;
+  updateAgentAction: (id: string, patch: Partial<AgentAction>) => void;
   setAgentExecuting: (executing: boolean) => void;
+  setAgentThreadId: (threadId: string | null) => void;
+  startNewAgentThread: () => void;
   resetAgentSession: () => void;
 }
 
@@ -72,7 +108,9 @@ export const useAppStore = create<AppState>()(
       currentDateStr: new Date().toISOString(),
       isAgentOpen: false,
       agentMessages: [],
+      agentThreadId: null,
       agentSteps: [],
+      agentActions: [],
       isAgentExecuting: false,
       openTab: (tabId, multiSelect = false) => set((state) => {
         if (multiSelect) {
@@ -124,10 +162,37 @@ export const useAppStore = create<AppState>()(
           s.id === id ? { ...s, ...patch } : s
         ),
       })),
+      setAgentActions: (actions) => set({ agentActions: actions }),
+      addAgentAction: (action) => set((state) => ({
+        agentActions: [...state.agentActions, action],
+      })),
+      updateAgentAction: (id, patch) => set((state) => ({
+        agentActions: state.agentActions.map((a) =>
+          a.id === id
+            ? {
+                ...a,
+                ...patch,
+                payload: patch.payload
+                  ? { ...a.payload, ...patch.payload }
+                  : a.payload,
+              }
+            : a
+        ),
+      })),
       setAgentExecuting: (executing) => set({ isAgentExecuting: executing }),
-      resetAgentSession: () => set({
+      setAgentThreadId: (threadId) => set({ agentThreadId: threadId }),
+      startNewAgentThread: () => set({
+        agentThreadId: null,
         agentMessages: [],
         agentSteps: [],
+        agentActions: [],
+        isAgentExecuting: false,
+      }),
+      resetAgentSession: () => set({
+        agentMessages: [],
+        agentThreadId: null,
+        agentSteps: [],
+        agentActions: [],
         isAgentExecuting: false,
       }),
     }),
@@ -140,7 +205,8 @@ export const useAppStore = create<AppState>()(
         workspaceMode: state.workspaceMode,
         leftSidebarCollapsed: state.leftSidebarCollapsed,
         calendarView: state.calendarView,
-        currentDateStr: state.currentDateStr
+        currentDateStr: state.currentDateStr,
+        agentThreadId: state.agentThreadId,
       }),
     }
   )

@@ -2,7 +2,8 @@ import { db } from '@/lib/db';
 import { calendarEvents } from '@/lib/db/schema';
 import { getTenant } from '@/lib/corsair';
 import { sseEmitter } from '@/lib/sse/emitter';
-import { resolveEventWindow, type EventTimeInput } from '@/lib/agent/datetime';
+import { resolveEventWindow, type EventTimeInput, resolveTimeZone, getTodayInTimezone, zonedLocalToUtc } from '@/lib/agent/datetime';
+import { and, eq } from 'drizzle-orm';
 
 export type CreateCalendarEventInput = EventTimeInput & {
   summary: string;
@@ -118,6 +119,193 @@ export async function createCalendarEventForUser(
   return created;
 }
 
+export type CalendarEventSummary = {
+  id: string;
+  summary: string;
+  start?: string;
+  end?: string;
+  attendees?: string[];
+};
+
+function dayBounds(date: string, timeZone: string) {
+  const start = zonedLocalToUtc(date, '00:00', timeZone);
+  const end = zonedLocalToUtc(date, '23:59', timeZone);
+  end.setMinutes(59, 59, 999);
+  return { start, end };
+}
+
+function formatEventTime(
+  start: { dateTime?: string; date?: string } | undefined,
+  timeZone: string
+): string | undefined {
+  if (!start?.dateTime && !start?.date) return undefined;
+  const value = start.dateTime ?? start.date;
+  if (!value) return undefined;
+  const instant = new Date(value);
+  if (Number.isNaN(instant.getTime())) return value;
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short',
+  }).format(instant);
+}
+
+function normalizeGoogleEvent(
+  event: {
+    id?: string;
+    summary?: string;
+    start?: { dateTime?: string; date?: string };
+    end?: { dateTime?: string; date?: string };
+    attendees?: Array<{ email?: string }>;
+  },
+  timeZone: string
+): CalendarEventSummary | null {
+  if (!event.id) return null;
+  return {
+    id: event.id,
+    summary: event.summary || 'Untitled event',
+    start: formatEventTime(event.start, timeZone),
+    end: formatEventTime(event.end, timeZone),
+    attendees: event.attendees
+      ?.map((a) => a.email)
+      .filter((email): email is string => !!email),
+  };
+}
+
+/** List events for a day from live Google Calendar (not stale cache). */
+export async function listCalendarEventsForUser(
+  userId: string,
+  options?: { date?: string; timeZone?: string }
+) {
+  const tenant = getTenant(userId);
+  const timeZone = resolveTimeZone(options?.timeZone);
+  const date = options?.date ?? getTodayInTimezone(timeZone);
+  const { start, end } = dayBounds(date, timeZone);
+
+  const result = await tenant.googlecalendar.api.events.getMany({
+    calendarId: 'primary',
+    timeMin: start.toISOString(),
+    timeMax: end.toISOString(),
+    singleEvents: true,
+    orderBy: 'startTime',
+    maxResults: 250,
+  });
+
+  if (isCorsairError(result)) {
+    throw new Error(`Failed to list events: ${result.error}`);
+  }
+
+  const items = Array.isArray(result.items) ? result.items : [];
+  return {
+    date,
+    timeZone,
+    events: items
+      .map((event) => normalizeGoogleEvent(event, timeZone))
+      .filter((event): event is CalendarEventSummary => !!event),
+  };
+}
+
+async function removeLocalCalendarEvent(userId: string, googleEventId: string) {
+  await db
+    .delete(calendarEvents)
+    .where(
+      and(eq(calendarEvents.userId, userId), eq(calendarEvents.googleEventId, googleEventId))
+    );
+}
+
+/** Delete one event by Google event id (`id` from list_calendar_events). */
+export async function deleteCalendarEventForUser(userId: string, googleEventId: string) {
+  const tenant = getTenant(userId);
+  const id = googleEventId.trim();
+  if (!id) throw new Error('Google event id is required');
+
+  let removedFromGoogle = true;
+
+  try {
+    const result = await tenant.googlecalendar.api.events.delete({
+      calendarId: 'primary',
+      id,
+    });
+
+    if (isCorsairError(result)) {
+      if (!/not found/i.test(result.error)) {
+        throw new Error(`Delete failed: ${result.error}`);
+      }
+      removedFromGoogle = false;
+    }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/not found/i.test(msg)) {
+      removedFromGoogle = false;
+    } else {
+      throw e instanceof Error ? e : new Error(msg);
+    }
+  }
+
+  await removeLocalCalendarEvent(userId, id);
+  sseEmitter.emit(userId, { type: 'calendar:updated' });
+
+  return { success: true, id, removedFromGoogle };
+}
+
+/** Delete all events on a given day. Use for "clear my schedule today". */
+export async function clearCalendarScheduleForUser(
+  userId: string,
+  options?: { date?: string; timeZone?: string }
+) {
+  const timeZone = resolveTimeZone(options?.timeZone);
+  const { date, events } = await listCalendarEventsForUser(userId, { ...options, timeZone });
+
+  if (events.length === 0) {
+    return { success: true, date, timeZone, deleted: [], alreadyGone: [], failed: [] };
+  }
+
+  const deleted: CalendarEventSummary[] = [];
+  const alreadyGone: CalendarEventSummary[] = [];
+  const failed: Array<{ event: CalendarEventSummary; error: string }> = [];
+
+  for (const event of events) {
+    try {
+      const result = await deleteCalendarEventForUser(userId, event.id);
+      if (result.removedFromGoogle) deleted.push(event);
+      else alreadyGone.push(event);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Delete failed';
+      failed.push({ event, error: msg });
+    }
+  }
+
+  sseEmitter.emit(userId, { type: 'calendar:updated' });
+
+  return {
+    success: failed.length === 0,
+    date,
+    timeZone,
+    deleted,
+    alreadyGone,
+    failed,
+  };
+}
+
+type RawDeleteParams = {
+  calendarId?: string;
+  id?: string;
+  eventId?: string;
+};
+
+export async function deleteCalendarEventFromRawParams(userId: string, params: RawDeleteParams) {
+  const googleEventId = params.id ?? params.eventId;
+  if (!googleEventId) {
+    throw new Error('events.delete requires id (Google event id from list_calendar_events)');
+  }
+  return deleteCalendarEventForUser(userId, googleEventId);
+}
+
 type RawCreateParams = {
   calendarId?: string;
   event?: Record<string, unknown>;
@@ -169,26 +357,6 @@ export async function createCalendarEventFromRawParams(
     timeZone,
     attendees,
   });
-}
-
-export function createScriptTenant(userId: string, defaultTimeZone?: string) {
-  const tenant = getTenant(userId);
-  const eventsApi = tenant.googlecalendar.api.events;
-
-  return {
-    ...tenant,
-    googlecalendar: {
-      ...tenant.googlecalendar,
-      api: {
-        ...tenant.googlecalendar.api,
-        events: {
-          ...eventsApi,
-          create: (params: RawCreateParams) =>
-            createCalendarEventFromRawParams(userId, params, defaultTimeZone),
-        },
-      },
-    },
-  };
 }
 
 export function extractToolFailure(output: unknown): string | null {

@@ -200,3 +200,47 @@ export const scheduledEmails = pgTable(
     index('idx_scheduled_emails_time').on(table.scheduledAt),
   ]
 );
+
+// ─── Agent Chat Threads ─────────────────────────────────────────────────
+export const agentThreads = pgTable(
+  'agent_threads',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    title: text('title').notNull().default('New chat'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastMessageAt: timestamp('last_message_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('idx_agent_threads_user_id').on(table.userId),
+    index('idx_agent_threads_last_message_at').on(table.lastMessageAt),
+  ]
+);
+
+export const agentMessages = pgTable(
+  'agent_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    threadId: uuid('thread_id')
+      .notNull()
+      .references(() => agentThreads.id, { onDelete: 'cascade' }),
+    role: text('role').notNull(), // user | assistant | system
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('idx_agent_messages_thread_id').on(table.threadId),
+    index('idx_agent_messages_created_at').on(table.createdAt),
+  ]
+);

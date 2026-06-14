@@ -6,7 +6,8 @@ import { useAppStore } from '@/lib/store/app-store';
 import { useAgentContext } from '@/hooks/use-agent-context';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
-import { AgentExecutionTimeline } from './agent-execution-timeline';
+import { ActionStream } from './action-stream';
+import { AgentAvatar } from './agent-avatar';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -25,52 +26,62 @@ function StreamingCursor() {
   );
 }
 
-function MessageBubble({ msg }: { msg: { id: string; role: string; content: string; isStreaming?: boolean } }) {
+function MessageRow({
+  msg,
+}: {
+  msg: { id: string; role: string; content: string; isStreaming?: boolean };
+}) {
+  const isUser = msg.role === 'user';
+
   return (
     <motion.div
-      key={msg.id}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className={cn(
-        'max-w-[700px] rounded-xl border px-5 py-4 backdrop-blur-xl',
-        msg.role === 'user'
-          ? 'ml-auto border-border-default bg-bg-surface/80'
-          : 'border-border-default bg-bg-elevated/60'
-      )}
+      className={cn('flex gap-3', isUser && 'flex-row-reverse')}
     >
-      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-        {msg.role === 'user' ? 'You' : 'Assistant'}
-      </p>
+      {!isUser && <AgentAvatar size={28} working={!!msg.isStreaming} className="mt-1 shrink-0" />}
 
-      {msg.role === 'user' ? (
-        <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-text-primary">
-          {msg.content}
+      <div
+        className={cn(
+          'max-w-[min(640px,85%)] rounded-xl border px-5 py-4 backdrop-blur-xl',
+          isUser
+            ? 'border-border-default bg-bg-surface/80'
+            : 'border-border-default bg-bg-elevated/60'
+        )}
+      >
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
+          {isUser ? 'You' : 'Assistant'}
         </p>
-      ) : (
-        <div className="text-[15px] leading-relaxed text-text-primary [&>ul]:mb-3 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:mb-3 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-2.5 [&>p:last-child]:mb-0 [&>strong]:font-semibold [&>strong]:text-text-primary">
-          {msg.content ? (
-            <ReactMarkdown>{msg.content}</ReactMarkdown>
-          ) : msg.isStreaming ? (
-            <span className="text-text-muted">Thinking</span>
-          ) : null}
-          {msg.isStreaming && <StreamingCursor />}
-        </div>
-      )}
+
+        {isUser ? (
+          <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-text-primary">
+            {msg.content}
+          </p>
+        ) : (
+          <div className="text-[15px] leading-relaxed text-text-primary [&>ul]:mb-3 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:mb-3 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-2.5 [&>p:last-child]:mb-0 [&>strong]:font-semibold [&>strong]:text-text-primary">
+            {msg.content ? (
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
+            ) : msg.isStreaming ? (
+              <span className="agent-shimmer-text text-[14px]">Composing response</span>
+            ) : null}
+            {msg.isStreaming && <StreamingCursor />}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }
 
 export function ConversationStream() {
-  const { agentMessages, agentSteps, isAgentExecuting } = useAppStore();
+  const { agentMessages, agentActions, isAgentExecuting } = useAppStore();
   const { userName } = useAgentContext();
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastContent = agentMessages[agentMessages.length - 1]?.content ?? '';
 
   const streamingIdx = agentMessages.findIndex((m) => m.isStreaming);
-  const showActivity = isAgentExecuting || agentSteps.length > 0;
+  const showActions = agentActions.length > 0 || isAgentExecuting;
 
-  // Split: history ends at last user message; streaming assistant rendered after timeline
   let historyMessages = agentMessages;
   let streamingMessage = null;
 
@@ -87,37 +98,40 @@ export function ConversationStream() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [agentMessages.length, lastContent, agentSteps.length]);
+  }, [agentMessages.length, lastContent, agentActions.length]);
 
-  const showGreeting = agentMessages.length === 0;
+  const showGreeting = agentMessages.length === 0 && !isAgentExecuting;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {showGreeting && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="max-w-[700px] rounded-xl border border-border-default bg-bg-elevated/60 px-5 py-4 backdrop-blur-xl"
+          className="flex gap-3"
         >
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-            Assistant
-          </p>
-          <p className="text-[15px] leading-relaxed text-text-primary">
-            {getGreeting()} {userName}.
-            <br />
-            How can I help today?
-          </p>
+          <AgentAvatar size={28} className="mt-1 shrink-0" />
+          <div className="max-w-[640px] rounded-xl border border-border-default bg-bg-elevated/60 px-5 py-4 backdrop-blur-xl">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
+              Assistant
+            </p>
+            <p className="text-[15px] leading-relaxed text-text-primary">
+              {getGreeting()} {userName}.
+              <br />
+              How can I help today?
+            </p>
+          </div>
         </motion.div>
       )}
 
       {historyMessages.map((msg) => (
-        <MessageBubble key={msg.id} msg={msg} />
+        <MessageRow key={msg.id} msg={msg} />
       ))}
 
-      {showActivity && <AgentExecutionTimeline />}
+      {showActions && <ActionStream />}
 
-      {streamingMessage && <MessageBubble msg={streamingMessage} />}
+      {streamingMessage && <MessageRow msg={streamingMessage} />}
 
       <div ref={bottomRef} />
     </div>

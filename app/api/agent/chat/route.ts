@@ -1,10 +1,21 @@
 import { streamText, stepCountIs, generateText } from 'ai';
 import { auth } from '@/lib/auth';
-import { AgentStepEmitter } from '@/lib/agent/stream-events';
+import { AgentStepEmitter, AgentActionEmitter } from '@/lib/agent/stream-events';
 import type { AgentStreamEvent } from '@/lib/agent/stream-events';
-import { createCorsairAgentTools, getToolStepLabel, formatAgentError, summarizeToolFailures } from '@/lib/agent/corsair-tools';
+import {
+  createCorsairAgentTools,
+  getToolStepLabel,
+  formatAgentError,
+  summarizeToolFailures,
+} from '@/lib/agent/corsair-tools';
 import { getAgentModel, getAgentProviderLabel, assertAgentConfigured } from '@/lib/agent/model';
 import { buildAgentSystemPrompt } from '@/lib/agent/system-prompt';
+import {
+  addMessageToThread,
+  ensureThreadTitleFromFirstMessage,
+  getOrCreateThread,
+  getThreadMessages,
+} from '@/lib/agent/threads';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -23,18 +34,42 @@ export async function POST(req: Request) {
   }
 
   const userId = session.user.id;
-  const { messages, context } = await req.json();
+  const body = await req.json();
+  const { message, threadId: incomingThreadId, context } = body;
 
-  if (!Array.isArray(messages) || messages.length === 0) {
-    return new Response(JSON.stringify({ error: 'Messages required' }), { status: 400 });
+  const userMessage =
+    typeof message === 'string'
+      ? message.trim()
+      : typeof body.messages === 'object' && Array.isArray(body.messages)
+        ? [...body.messages].reverse().find((m: { role: string }) => m.role === 'user')?.content?.trim()
+        : '';
+
+  if (!userMessage) {
+    return new Response(JSON.stringify({ error: 'Message required' }), { status: 400 });
   }
+
+  let thread;
+  try {
+    thread = await getOrCreateThread(userId, incomingThreadId ?? null, userMessage);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Thread error';
+    return new Response(JSON.stringify({ error: msg }), { status: 404 });
+  }
+
+  await addMessageToThread(thread.id, 'user', userMessage);
+  await ensureThreadTitleFromFirstMessage(thread.id, userMessage);
+
+  const dbMessages = await getThreadMessages(thread.id);
+  const messages = dbMessages
+    .filter((m) => m.role === 'user' || m.role === 'assistant')
+    .map((m) => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    }));
 
   const encoder = new TextEncoder();
   const model = getAgentModel();
   const providerLabel = getAgentProviderLabel();
-
-  const lastUserMessage = [...messages].reverse().find((m: { role: string }) => m.role === 'user');
-  const prompt = lastUserMessage?.content ?? messages[messages.length - 1]?.content;
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -42,7 +77,10 @@ export async function POST(req: Request) {
         controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       };
 
+      emit({ type: 'thread', threadId: thread.id });
+
       const steps = new AgentStepEmitter(emit);
+      const actions = new AgentActionEmitter(emit);
 
       try {
         steps.push('Connected to assistant', 'done');
@@ -50,6 +88,7 @@ export async function POST(req: Request) {
 
         const agentTools = createCorsairAgentTools(userId, steps, {
           timeZone: context?.timeZone,
+          actions,
         });
         steps.completeRunning(`Corsair tools ready (${Object.keys(agentTools).length})`);
 
@@ -58,7 +97,7 @@ export async function POST(req: Request) {
         const result = streamText({
           model,
           tools: agentTools,
-          stopWhen: stepCountIs(10),
+          stopWhen: stepCountIs(12),
           maxRetries: 1,
           system: buildAgentSystemPrompt({
             userName: context?.userName,
@@ -70,10 +109,7 @@ export async function POST(req: Request) {
             nowLocal: context?.nowLocal,
             todayDate: context?.todayDate,
           }),
-          messages: messages.map((m: { role: string; content: string }) => ({
-            role: m.role as 'user' | 'assistant',
-            content: m.content,
-          })),
+          messages,
           experimental_onToolCallStart: ({ toolCall }) => {
             steps.subStep(getToolStepLabel(toolCall.toolName));
           },
@@ -108,8 +144,12 @@ export async function POST(req: Request) {
           const summary = await generateText({
             model,
             maxRetries: 1,
-            prompt: `The user asked: "${prompt}"\n\nHere is the data from Corsair tools:\n\n${contextData}\n\nRules:
-- If any tool output contains "error" or success is false, say the action FAILED and include the error. Never claim success unless create_calendar_event returned success:true with an id.
+            prompt: `The user asked: "${userMessage}"\n\nHere is the data from Corsair tools:\n\n${contextData}\n\nRules:
+- If any tool output contains "error" or success is false, say the action FAILED and include the error.
+- Never claim an email was sent unless send_email returned success:true.
+- Never claim an event was created unless create_calendar_event returned success:true with an id.
+- For schedule clears, use clear_calendar_schedule results (deleted/alreadyGone/failed arrays). Do not repeat the same paragraph twice.
+- Keep the response concise — one short summary, no redundant troubleshooting unless something failed.
 - Otherwise provide a clear, helpful summary using markdown lists where appropriate.`,
           });
 
@@ -118,6 +158,8 @@ export async function POST(req: Request) {
         } else {
           steps.completeRunning('Response ready');
         }
+
+        await addMessageToThread(thread.id, 'assistant', fullText);
 
         for (const char of fullText) {
           emit({ type: 'text-delta', delta: char });

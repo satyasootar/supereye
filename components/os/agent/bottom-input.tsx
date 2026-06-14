@@ -1,39 +1,63 @@
 'use client';
 
-import { useState, FormEvent, KeyboardEvent, useCallback } from 'react';
+import { useState, FormEvent, KeyboardEvent, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Mic, ArrowUp, Square } from 'lucide-react';
+import { Mic, ArrowUp, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useAgentChat } from '@/hooks/use-agent-chat';
 import { useVoiceInput } from '@/hooks/use-voice-input';
-import { VoiceVisualizer } from './voice-visualizer';
+import { InlineVoiceBar } from './inline-voice-bar';
+import { ThreadHistoryPopover } from './thread-history-popover';
 import { cn } from '@/lib/utils';
 
 export function BottomInput() {
   const [input, setInput] = useState('');
   const { isAgentExecuting } = useAppStore();
   const { sendMessage } = useAgentChat();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleTranscript = useCallback((prefix: string, spoken: string) => {
-    // Replace voice text each event — never append duplicates
     setInput(prefix ? `${prefix} ${spoken}`.trim() : spoken);
   }, []);
 
-  const { isListening, isSupported, audioLevel, interimText, start, stop } =
-    useVoiceInput(handleTranscript);
+  const {
+    isListening,
+    isSupported,
+    isProcessing,
+    audioLevel,
+    elapsedSec,
+    error,
+    mode,
+    start,
+    cancel,
+    confirm,
+  } = useVoiceInput(handleTranscript);
 
-  const handleVoiceToggle = () => {
-    if (isListening) {
-      stop();
-    } else {
-      start(input);
-    }
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  }, [input, isListening]);
+
+  const handleVoiceStart = () => {
+    if (!isListening && !isProcessing) start(input);
+  };
+
+  const handleVoiceConfirm = () => {
+    confirm();
+    textareaRef.current?.focus();
+  };
+
+  const handleVoiceCancel = () => {
+    cancel();
+    textareaRef.current?.focus();
   };
 
   const handleSubmit = async (e?: FormEvent) => {
     e?.preventDefault();
-    if (!input.trim() || isAgentExecuting) return;
-    if (isListening) stop();
+    if (!input.trim() || isAgentExecuting || isProcessing) return;
+    if (isListening) confirm();
     const text = input;
     setInput('');
     await sendMessage(text);
@@ -46,66 +70,78 @@ export function BottomInput() {
     }
   };
 
-  return (
-    <>
-      <VoiceVisualizer
-        isListening={isListening}
-        audioLevel={audioLevel}
-        interimText={interimText}
-        onStop={stop}
-      />
+  const showVoiceBar = isListening || isProcessing;
+  const placeholder = isProcessing
+    ? 'Processing your voice…'
+    : isListening
+      ? mode === 'whisper'
+        ? 'Recording… tap ✓ to transcribe into the box'
+        : 'Speak now — words appear here as you talk…'
+      : 'Ask your assistant...';
 
-      <motion.div
-        className="pointer-events-auto fixed bottom-6 left-1/2 z-[210] w-full max-w-2xl -translate-x-1/2 px-4"
-        initial={{ opacity: 0, scale: 0.98, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+  return (
+    <motion.div
+      className="pointer-events-auto fixed bottom-6 left-1/2 z-[210] w-full max-w-2xl -translate-x-1/2 px-4"
+      initial={{ opacity: 0, scale: 0.98, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+    >
+      <form
+        onSubmit={handleSubmit}
+        className={cn(
+          'overflow-hidden rounded-xl border border-border-default',
+          'bg-bg-elevated/90 shadow-xl shadow-black/25 backdrop-blur-xl',
+          showVoiceBar && 'border-accent-blue/35 ring-1 ring-accent-blue/15'
+        )}
       >
-        <form
-          onSubmit={handleSubmit}
-          className={cn(
-            'flex items-end gap-2 rounded-xl border border-border-default',
-            'bg-bg-elevated/90 p-2 shadow-xl shadow-black/25 backdrop-blur-xl',
-            isListening && 'border-accent-blue/40 ring-1 ring-accent-blue/20'
-          )}
-        >
-          <textarea
-            rows={1}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={isListening ? 'Listening…' : 'Ask your assistant...'}
-            disabled={isAgentExecuting}
-            autoFocus
-            className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-[14px] leading-relaxed text-text-primary outline-none placeholder:text-text-muted disabled:opacity-60"
-          />
+        <div className="flex items-end gap-2 p-2">
+          <div className="flex shrink-0 items-center pb-1 pl-1">
+            {!showVoiceBar && <ThreadHistoryPopover />}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              disabled={isAgentExecuting || isProcessing}
+              autoFocus
+              className={cn(
+                'max-h-32 min-h-[44px] w-full resize-none bg-transparent px-3 py-2.5',
+                'text-[14px] leading-relaxed text-text-primary outline-none',
+                'placeholder:text-text-muted disabled:opacity-60',
+                showVoiceBar && 'caret-accent-blue'
+              )}
+            />
+            {error && (
+              <p className="px-3 pb-1 text-[11px] text-destructive">{error}</p>
+            )}
+          </div>
 
           <div className="flex shrink-0 items-center gap-1.5 pb-1 pr-1">
-            {isSupported && (
+            {isSupported && !showVoiceBar && (
               <button
                 type="button"
-                onClick={handleVoiceToggle}
+                onClick={handleVoiceStart}
                 disabled={isAgentExecuting}
                 className={cn(
                   'flex h-9 w-9 items-center justify-center rounded-lg border transition-all',
-                  isListening
-                    ? 'border-accent-blue/50 bg-accent-blue/15 text-accent-blue'
-                    : 'border-border-subtle bg-bg-surface text-text-muted hover:border-border-default hover:text-text-primary',
+                  'border-border-subtle bg-bg-surface text-text-muted',
+                  'hover:border-border-default hover:text-text-primary',
                   'disabled:opacity-40'
                 )}
-                aria-label={isListening ? 'Stop listening' : 'Voice input'}
+                aria-label="Voice input"
               >
-                {isListening ? (
-                  <Square className="h-3.5 w-3.5 fill-current" />
-                ) : (
-                  <Mic className="h-4 w-4" />
-                )}
+                <Mic className="h-4 w-4" />
               </button>
             )}
 
             <button
               type="submit"
-              disabled={isAgentExecuting || !input.trim()}
+              disabled={isAgentExecuting || isProcessing || !input.trim()}
               className={cn(
                 'flex h-9 w-9 items-center justify-center rounded-lg transition-all',
                 'bg-accent-blue text-text-inverse hover:bg-accent-blue-dim',
@@ -113,11 +149,25 @@ export function BottomInput() {
               )}
               aria-label="Send message"
             >
-              <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+              {isProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+              )}
             </button>
           </div>
-        </form>
-      </motion.div>
-    </>
+        </div>
+
+        {showVoiceBar && (
+          <InlineVoiceBar
+            audioLevel={audioLevel}
+            elapsedSec={elapsedSec}
+            processing={isProcessing}
+            onCancel={handleVoiceCancel}
+            onConfirm={handleVoiceConfirm}
+          />
+        )}
+      </form>
+    </motion.div>
   );
 }

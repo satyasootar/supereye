@@ -2,28 +2,26 @@
 
 import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Trash2 } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useAppStore } from '@/lib/store/app-store';
+import { useAgentThreads } from '@/hooks/use-agent-threads';
 import { ContextBanner } from './agent/context-banner';
 import { ConversationStream } from './agent/conversation-stream';
 import { FloatingSuggestions } from './agent/floating-suggestions';
 import { BottomInput } from './agent/bottom-input';
 
 export function AgentOverlay() {
-  const {
-    isAgentOpen,
-    setAgentOpen,
-    agentMessages,
-    isAgentExecuting,
-    resetAgentSession,
-  } = useAppStore();
+  const { isAgentOpen, setAgentOpen, agentThreadId, isAgentExecuting } = useAppStore();
+  const { loadThread } = useAgentThreads();
 
-  const canClear = agentMessages.length > 0 && !isAgentExecuting;
+  useEffect(() => {
+    if (!isAgentOpen || !agentThreadId || isAgentExecuting) return;
+    if (useAppStore.getState().agentMessages.length > 0) return;
 
-  const handleClearChat = () => {
-    if (!canClear) return;
-    resetAgentSession();
-  };
+    loadThread(agentThreadId).catch(() => {
+      useAppStore.getState().setAgentThreadId(null);
+    });
+  }, [isAgentOpen, agentThreadId, isAgentExecuting, loadThread]);
 
   useEffect(() => {
     if (!isAgentOpen) return;
@@ -55,23 +53,9 @@ export function AgentOverlay() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
         >
-          {/* Light scrim — app stays visible underneath */}
           <div className="absolute inset-0 bg-black/15 backdrop-blur-[10px]" aria-hidden />
 
-          {/* Header actions */}
-          <div className="absolute right-6 top-6 z-[210] flex items-center gap-2">
-            {agentMessages.length > 0 && (
-              <button
-                type="button"
-                onClick={handleClearChat}
-                disabled={!canClear}
-                className="flex h-9 items-center gap-1.5 rounded-lg border border-border-default bg-bg-elevated/80 px-3 text-[12px] font-medium text-text-muted backdrop-blur-md transition-colors hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Clear chat"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Clear
-              </button>
-            )}
+          <div className="absolute right-6 top-6 z-[210]">
             <button
               type="button"
               onClick={() => setAgentOpen(false)}
@@ -82,16 +66,17 @@ export function AgentOverlay() {
             </button>
           </div>
 
-          {/* Content — no giant chat card */}
-          <div className="relative z-10 flex h-full flex-col pointer-events-none">
-            <div className="flex-1 overflow-y-auto px-6 pt-8 pb-36 pointer-events-auto custom-scrollbar">
-              <div className="mx-auto flex max-w-[700px] flex-col gap-4">
-                <ContextBanner />
-                <FloatingSuggestions />
-                <ConversationStream />
+          <div className="relative z-10 flex h-full pointer-events-none">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div className="flex-1 overflow-y-auto px-6 pt-8 pb-36 pointer-events-auto custom-scrollbar">
+                <div className="mx-auto flex max-w-[700px] flex-col gap-4">
+                  <ContextBanner />
+                  <FloatingSuggestions />
+                  <ConversationStream />
+                </div>
               </div>
+              <BottomInput />
             </div>
-            <BottomInput />
           </div>
         </motion.div>
       )}
