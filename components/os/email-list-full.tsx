@@ -405,7 +405,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   const groupedEmails = groupEmailsByDate(emails);
 
   return (
-    <div className="flex h-full flex-col bg-bg-app flex-1 overflow-hidden">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-app">
       {/* Header */}
       <div className="flex h-[60px] flex-shrink-0 items-center justify-between px-6 border-b border-border-subtle bg-bg-app">
         <div className="flex items-center gap-3 text-text-primary">
@@ -610,7 +610,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       )}
 
       {/* Email List Content */}
-      <div className="flex-1 overflow-y-auto no-scrollbar px-6 py-4">
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-4">
         {(isLoading && !isSearching) || (isSearching && isSearchLoading) ? (
           <div className="flex flex-col w-full animate-pulse gap-1">
             {Array.from({ length: 12 }).map((_, idx) => (

@@ -50,9 +50,9 @@ export function Workspace() {
   if (activeTabs.length === 1) {
     return (
       <>
-        <div className="flex h-full w-full bg-base overflow-hidden">
+        <div className="flex h-full min-h-0 w-full overflow-hidden bg-base">
           <EmailSidebar />
-          <div className="flex-1 min-w-0 h-full">
+          <div className="flex h-full min-h-0 min-w-0 flex-1">
             {panes[activeTabs[0]]}
           </div>
         </div>
@@ -70,7 +70,7 @@ export function Workspace() {
   return (
     <div 
       ref={containerRef}
-      className="flex h-full w-full overflow-hidden"
+      className="flex h-full min-h-0 w-full overflow-hidden"
     >
       <EmailSidebar />
       <div 

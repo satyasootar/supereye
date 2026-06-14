@@ -45,3 +45,52 @@ export function resolveFocusMode(
 export function eventHasModifier(e: Pick<KeyboardEvent, 'ctrlKey' | 'metaKey'>) {
   return e.ctrlKey || e.metaKey;
 }
+
+const SCROLL_KEY_DIRECTION: Record<string, 'up' | 'down'> = {
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  PageUp: 'up',
+  PageDown: 'down',
+};
+
+export function getScrollableAncestor(el: Element | null): HTMLElement | null {
+  if (!el) return null;
+
+  let node: Element | null = el;
+  while (node && node !== document.body) {
+    if (!(node instanceof HTMLElement)) break;
+    const { overflowY } = window.getComputedStyle(node);
+    if (
+      (overflowY === 'auto' || overflowY === 'scroll') &&
+      node.scrollHeight > node.clientHeight + 1
+    ) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+
+  return null;
+}
+
+export function canScrollVertically(
+  el: HTMLElement,
+  direction: 'up' | 'down'
+): boolean {
+  if (direction === 'down') {
+    return el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+  }
+  return el.scrollTop > 0;
+}
+
+export function shouldAllowNativeScroll(
+  target: Element | null,
+  key: string
+): boolean {
+  const direction = SCROLL_KEY_DIRECTION[key];
+  if (!direction) return false;
+
+  const scrollEl = getScrollableAncestor(target);
+  if (!scrollEl) return false;
+
+  return canScrollVertically(scrollEl, direction);
+}

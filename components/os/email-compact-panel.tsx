@@ -99,7 +99,7 @@ export function EmailCompactPanel({ hideHeader = false }: { hideHeader?: boolean
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-bg-surface">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-bg-surface">
       {/* Header */}
       {!hideHeader && (
         <div className="flex items-center justify-between px-4 h-12 border-b border-border-subtle flex-shrink-0 bg-bg-surface/50">
@@ -145,7 +145,7 @@ export function EmailCompactPanel({ hideHeader = false }: { hideHeader?: boolean
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 20, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 flex flex-col overflow-hidden"
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
           >
             {/* Back button */}
             <button
@@ -155,7 +155,7 @@ export function EmailCompactPanel({ hideHeader = false }: { hideHeader?: boolean
               <ChevronLeft className="h-3.5 w-3.5" />
               Back to inbox
             </button>
-            <div className="flex-1 overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-hidden">
               <EmailReader />
             </div>
           </motion.div>
@@ -166,7 +166,7 @@ export function EmailCompactPanel({ hideHeader = false }: { hideHeader?: boolean
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -20, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 overflow-y-auto custom-scrollbar"
+            className="custom-scrollbar min-h-0 flex-1 overflow-y-auto"
           >
             {isLoading ? (
               <div className="flex flex-col gap-2 w-full p-3 animate-pulse">

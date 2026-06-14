@@ -223,7 +223,7 @@ export function EmailReader() {
   };
 
   return (
-    <div className="flex h-full flex-1 flex-col bg-bg-app overflow-hidden min-w-[400px]">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-app min-w-[400px]">
       {/* Thread Header */}
       <div className="relative flex-shrink-0 border-b border-border-subtle bg-bg-base z-10">
         <AnimatePresence initial={false}>
@@ -341,7 +341,7 @@ export function EmailReader() {
       </div>
 
       {/* Scrollable Thread Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 relative">
+      <div className="custom-scrollbar relative min-h-0 flex-1 overflow-y-auto p-6">
         <div className="max-w-[700px] mx-auto flex flex-col gap-6">
           
           {messages.map((email: any, index: number) => {
@@ -415,15 +415,36 @@ export function EmailReader() {
                                     a { color: #3b82f6 !important; }
                                     img { background-color: transparent !important; max-width: 100%; height: auto; }
                                   </style>${email.body}`}
-                      className="w-full h-full min-h-[150px] border-none bg-transparent"
+                      className="w-full min-h-[150px] border-none bg-transparent"
                       sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
                       onLoad={(e) => {
-                        // Very basic iframe auto-resize attempt if same-origin wasn't an issue, 
-                        // but since emails often have cross-origin images, we just give it a flexible min-height
                         const iframe = e.target as HTMLIFrameElement;
                         try {
-                          if (iframe.contentWindow?.document.body) {
-                            iframe.style.height = iframe.contentWindow.document.body.scrollHeight + 30 + 'px';
+                          const doc = iframe.contentDocument || iframe.contentWindow?.document;
+                          if (!doc) return;
+                          
+                          const resizeIframe = () => {
+                            if (doc.body) {
+                              iframe.style.height = doc.body.scrollHeight + 30 + 'px';
+                            }
+                          };
+
+                          // Initial resize
+                          resizeIframe();
+
+                          // Observe height changes using ResizeObserver
+                          if (doc.body && typeof ResizeObserver !== 'undefined') {
+                            const observer = new ResizeObserver(() => {
+                              resizeIframe();
+                            });
+                            observer.observe(doc.body);
+                          } else {
+                            // Fallback polling for image loading
+                            let count = 0;
+                            const interval = setInterval(() => {
+                              resizeIframe();
+                              if (++count > 15) clearInterval(interval);
+                            }, 200);
                           }
                         } catch (err) {}
                       }}

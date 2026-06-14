@@ -67,10 +67,10 @@ function EmailMainPanel() {
   };
 
   return (
-    <div className="flex flex-1 overflow-hidden" ref={containerRef}>
+    <div className="flex h-full min-h-0 flex-1 overflow-hidden" ref={containerRef}>
       <div
         ref={listRef}
-        className="h-full flex-shrink-0 overflow-hidden"
+        className="flex h-full min-h-0 flex-shrink-0 flex-col overflow-hidden"
         style={{ width: selectedEmailId ? `${splitRatio}%` : '100%' }}
       >
         <EmailListFull />
@@ -78,7 +78,7 @@ function EmailMainPanel() {
       {selectedEmailId && (
         <div
           ref={overlayRef}
-          className="relative flex h-full border-l border-border-subtle animate-in slide-in-from-right-8 duration-200"
+          className="relative flex h-full min-h-0 min-w-0 flex-1 border-l border-border-subtle animate-in slide-in-from-right-8 duration-200"
           style={{ width: `${100 - splitRatio}%` }}
         >
           <div
@@ -90,7 +90,7 @@ function EmailMainPanel() {
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
           />
-          <div className="h-full flex-1 overflow-hidden">
+          <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
             <EmailReader />
           </div>
         </div>
@@ -126,7 +126,7 @@ function SecondaryPanel({
       transition={springTransition}
     >
       {expanded ? (
-        <div className="flex h-full flex-col bg-bg-surface" style={{ width }}>
+        <div className="flex h-full min-h-0 flex-col bg-bg-surface" style={{ width }}>
           <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-border-subtle bg-bg-surface px-3">
             <div className="flex items-center gap-2">
               <button
@@ -151,7 +151,7 @@ function SecondaryPanel({
               Focus
             </button>
           </div>
-          <div className="flex-1 overflow-hidden bg-bg-surface">
+          <div className="min-h-0 flex-1 overflow-hidden bg-bg-surface">
             {isEmail && <EmailCompactPanel hideHeader />}
             {isCalendar && <CalendarSidebar variant="right-panel" />}
           </div>
@@ -258,18 +258,18 @@ export function PluginWorkspace() {
 
   return (
     <LayoutGroup>
-      <div className="flex h-full w-full overflow-hidden bg-bg-app">
+      <div className="flex h-full min-h-0 w-full overflow-hidden bg-bg-app">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={`layout-${primary}-${sidebar ?? 'solo'}`}
-            className="flex h-full flex-1 overflow-hidden"
+            className="flex h-full min-h-0 flex-1 overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
             <motion.div
-              className="h-full flex-1 overflow-hidden"
+              className="h-full min-h-0 flex-1 overflow-hidden"
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ ...springTransition, delay: 0.05 }}

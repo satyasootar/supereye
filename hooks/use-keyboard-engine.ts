@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import type { BindingContext, KeyStep } from '@/lib/keyboard/types';
 import { dispatchAction } from '@/lib/keyboard/action-handlers';
-import { resolveFocusMode, isEditableElement, eventHasModifier } from '@/lib/keyboard/focus-context';
+import { resolveFocusMode, isEditableElement, eventHasModifier, shouldAllowNativeScroll } from '@/lib/keyboard/focus-context';
 import {
   keyEventToStep,
   SEQUENCE_TIMEOUT_MS,
@@ -79,6 +79,10 @@ export function useKeyboardEngine() {
       }
 
       if (isEditableElement(target) && !eventHasModifier(e)) return;
+
+      if (!eventHasModifier(e) && shouldAllowNativeScroll(target, step.key)) {
+        return;
+      }
 
       const isPrefixContinuation = pressedRef.current.length > 0;
 
