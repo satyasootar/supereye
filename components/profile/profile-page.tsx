@@ -20,19 +20,24 @@ import {
   Sun,
   Moon,
   Monitor,
+  LayoutPanelLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ProfileSection, ProfileRow } from '@/components/profile/profile-section';
+import { WorkspaceLayoutSection } from '@/components/profile/workspace-layout-section';
+import { DeleteAccountSection } from '@/components/profile/delete-account-section';
+import { getPlugin } from '@/lib/plugins/registry';
 import { useAppStore } from '@/lib/store/app-store';
 import type { UserProfile } from '@/lib/user/profile';
 
-type ProfileTab = 'account' | 'connections' | 'appearance' | 'security';
+type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security';
 
 const TABS: { id: ProfileTab; label: string; icon: typeof User }[] = [
   { id: 'account', label: 'Account', icon: User },
   { id: 'connections', label: 'Connections', icon: Link2 },
+  { id: 'workspace', label: 'Workspace', icon: LayoutPanelLeft },
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'security', label: 'Security', icon: Shield },
 ];
@@ -59,13 +64,13 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
     [router]
   );
 
-  const connectIntegration = async (plugin: 'gmail' | 'googlecalendar') => {
-    setConnecting(plugin);
+  const connectIntegration = async (corsairPlugin: string) => {
+    setConnecting(corsairPlugin);
     try {
       const res = await fetch('/api/integrations/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plugin }),
+        body: JSON.stringify({ plugin: corsairPlugin }),
       });
       if (!res.ok) throw new Error('Failed to start connection');
       const { authUrl } = await res.json();
@@ -220,15 +225,16 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                     description="Supereye uses separate OAuth connections for Gmail and Calendar. These power email sync, scheduling, and your AI assistant."
                   >
                     {profile.integrations.map((integration) => {
-                      const Icon = integration.plugin === 'gmail' ? Mail : Calendar;
+                      const meta = getPlugin(integration.id);
+                      const Icon = integration.id === 'email' ? Mail : Calendar;
                       return (
                         <ProfileRow
-                          key={integration.plugin}
+                          key={integration.id}
                           label={integration.label}
                           description={
                             integration.connected
                               ? `Connected · last synced ${integration.connectedAt ? format(new Date(integration.connectedAt), 'MMM d, yyyy') : 'recently'}`
-                              : 'Not connected — connect to enable features'
+                              : meta?.description ?? 'Not connected'
                           }
                         >
                           <div className="flex items-center gap-2">
@@ -242,10 +248,10 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                                 size="sm"
                                 variant="outline"
                                 className="gap-1.5 border-border-default"
-                                disabled={connecting === integration.plugin}
-                                onClick={() => connectIntegration(integration.plugin)}
+                                disabled={connecting === integration.corsairPlugin}
+                                onClick={() => connectIntegration(integration.corsairPlugin)}
                               >
-                                {connecting === integration.plugin ? (
+                                {connecting === integration.corsairPlugin ? (
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                 ) : (
                                   <Icon className="h-3.5 w-3.5" />
@@ -270,6 +276,12 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                       change.
                     </p>
                   </ProfileSection>
+                </div>
+              )}
+
+              {activeTab === 'workspace' && (
+                <div className="flex flex-col gap-6">
+                  <WorkspaceLayoutSection />
                 </div>
               )}
 
@@ -374,6 +386,8 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                       </Button>
                     </div>
                   </ProfileSection>
+
+                  <DeleteAccountSection email={profile.email} />
                 </div>
               )}
             </div>

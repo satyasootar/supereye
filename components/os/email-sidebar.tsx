@@ -24,12 +24,15 @@ const basePrimaryNav = [
 
 import { useAppStore } from '@/lib/store/app-store';
 import { useQuery } from '@tanstack/react-query';
+import { useWorkspaceLayout } from '@/hooks/use-workspace-layout';
 import { CalendarSidebar } from './calendar-sidebar';
+import { WorkspaceSwitcher } from './workspace-switcher';
 
 export function EmailSidebar() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { activeTabs, emailCategory, setEmailCategory, workspaceMode, leftSidebarCollapsed, setLeftSidebarCollapsed } = useAppStore();
+  const { activeTabs, emailCategory, setEmailCategory, leftSidebarCollapsed, setLeftSidebarCollapsed } = useAppStore();
+  const { primary, activePlugins } = useWorkspaceLayout();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -46,7 +49,8 @@ export function EmailSidebar() {
       if (!res.ok) throw new Error('Failed to fetch');
       return res.json();
     },
-    refetchInterval: 30000, // refresh every 30 seconds
+    enabled: activePlugins.includes('email'),
+    refetchInterval: 30000,
   });
 
   const { data: labelsData } = useQuery({
@@ -56,7 +60,8 @@ export function EmailSidebar() {
       if (!res.ok) throw new Error('Failed to fetch labels');
       return res.json();
     },
-    staleTime: 60000 * 5, // Cache labels for 5 minutes
+    enabled: activePlugins.includes('email'),
+    staleTime: 60000 * 5,
   });
 
   const [viewsExpanded, setViewsExpanded] = useState(true);
@@ -89,7 +94,10 @@ export function EmailSidebar() {
     return { ...item, count, active };
   });
 
-  if (workspaceMode === 'calendar') {
+  const showCalendarNav = activePlugins.includes('calendar') && primary === 'calendar';
+  const showEmailNav = activePlugins.includes('email') && !showCalendarNav;
+
+  if (showCalendarNav) {
     if (isSidebarCollapsed) {
       content = (
         <div className="flex-1 w-[48px] overflow-hidden">
@@ -118,7 +126,7 @@ export function EmailSidebar() {
         </div>
       );
     }
-  } else {
+  } else if (showEmailNav) {
     if (isSidebarCollapsed) {
       content = (
         <div className="flex h-full w-[48px] flex-col items-center bg-bg-surface text-text-primary py-3 gap-3">
@@ -218,6 +226,19 @@ export function EmailSidebar() {
         </div>
       );
     }
+  } else {
+    content = (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-2 text-center">
+        <p className="text-[11px] text-text-muted">No plugins connected</p>
+        <button
+          type="button"
+          onClick={() => router.push('/workspace/onboarding')}
+          className="text-[11px] font-medium text-accent-blue hover:underline"
+        >
+          Connect
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -227,6 +248,16 @@ export function EmailSidebar() {
       transition={springTransition}
       className="h-full flex-shrink-0 border-r border-border-subtle bg-bg-surface overflow-hidden relative flex flex-col"
     >
+      {!isSidebarCollapsed && (
+        <div className="shrink-0 border-b border-border-subtle px-2 py-2">
+          <WorkspaceSwitcher />
+        </div>
+      )}
+      {isSidebarCollapsed && (
+        <div className="flex shrink-0 justify-center border-b border-border-subtle py-2">
+          <WorkspaceSwitcher collapsed />
+        </div>
+      )}
       <div className="flex-1 min-h-0 overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div

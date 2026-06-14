@@ -1,10 +1,8 @@
 /**
  * Corsair SDK initialization.
- * Configures Gmail and Google Calendar plugins with PostgreSQL storage.
- * Multi-tenancy is enabled — each user gets isolated credentials.
- *
- * IMPORTANT: The root corsair.ts re-exports this file for CLI compatibility.
- * The Corsair CLI (npx corsair setup/auth) looks for corsair.ts in the project root.
+ * Integrations (OAuth tokens) are stored per user via tenantId = session.user.id.
+ * Workspaces are UI compositions — each workspace assigns up to 2 connected plugins
+ * to primary/sidebar panels without duplicating Corsair credentials.
  */
 import { createCorsair } from 'corsair';
 import { gmail } from '@corsair-dev/gmail';

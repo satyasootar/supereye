@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { corsair } from '@/lib/corsair';
 import { processOAuthCallback } from 'corsair/oauth';
 import { redirect } from 'next/navigation';
+import { getUserPreferences } from '@/lib/user/preferences';
+import { syncWorkspacesFromPlugins } from '@/lib/workspaces/workspaces';
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -14,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/corsair/callback`;
 
-  let successUrl = '/workspace';
+  let successUrl = '/workspace/onboarding?connected=1';
 
   try {
     const result = await processOAuthCallback(corsair, {
@@ -37,6 +39,13 @@ export async function GET(req: NextRequest) {
         console.error('[OAuth Callback] Initial Gmail sync failed:', err)
       );
     }
+
+    await syncWorkspacesFromPlugins(result.tenantId);
+
+    const prefs = await getUserPreferences(result.tenantId);
+    successUrl = prefs.onboardingCompleted
+      ? '/workspace'
+      : '/workspace/onboarding?connected=1';
   } catch (error: any) {
     console.error('OAuth Callback Error:', error);
     return NextResponse.json({ 

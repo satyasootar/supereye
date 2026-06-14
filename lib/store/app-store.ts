@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import {
+  layoutToWorkspaceMode,
+  resolveWorkspaceLayout,
+  workspaceModeToLayout,
+} from '@/lib/plugins/layout';
+import type { PluginId } from '@/lib/plugins/types';
 
 export type TabId = 'email';
 export type WorkspaceMode = 'email' | 'calendar';
@@ -55,6 +61,9 @@ interface AppState {
   isComposeOpen: boolean;
   emailCategory: string;
   workspaceMode: WorkspaceMode;
+  primaryPluginId: PluginId;
+  sidebarPluginId: PluginId | null;
+  activeWorkspaceId: string | null;
   leftSidebarCollapsed: boolean;
   calendarView: 'Month' | 'Week' | 'Day' | 'Year';
   currentDateStr: string;
@@ -73,6 +82,17 @@ interface AppState {
   setComposeOpen: (isOpen: boolean) => void;
   setEmailCategory: (category: string) => void;
   setWorkspaceMode: (mode: WorkspaceMode) => void;
+  setLayoutMode: (primary: PluginId, sidebar?: PluginId | null) => void;
+  syncLayoutWithPlugins: (activePlugins: PluginId[]) => void;
+  applyServerLayout: (
+    layout: { primary: PluginId; sidebar: PluginId | null },
+    activePlugins: PluginId[]
+  ) => void;
+  applyWorkspaceLayout: (
+    layout: { primary: PluginId; sidebar: PluginId | null },
+    workspacePlugins: PluginId[]
+  ) => void;
+  setActiveWorkspaceId: (id: string | null) => void;
   setLeftSidebarCollapsed: (collapsed: boolean) => void;
   setCalendarView: (view: 'Month' | 'Week' | 'Day' | 'Year') => void;
   setCurrentDateStr: (dateStr: string) => void;
@@ -103,6 +123,9 @@ export const useAppStore = create<AppState>()(
       isComposeOpen: false,
       emailCategory: 'ALL',
       workspaceMode: 'email',
+      primaryPluginId: 'email',
+      sidebarPluginId: 'calendar',
+      activeWorkspaceId: null,
       leftSidebarCollapsed: false,
       calendarView: 'Month',
       currentDateStr: new Date().toISOString(),
@@ -137,7 +160,72 @@ export const useAppStore = create<AppState>()(
       setCommandPaletteOpen: (isOpen) => set({ isCommandPaletteOpen: isOpen }),
       setComposeOpen: (isOpen) => set({ isComposeOpen: isOpen }),
       setEmailCategory: (category) => set({ emailCategory: category }),
-      setWorkspaceMode: (mode) => set({ workspaceMode: mode }),
+      setWorkspaceMode: (mode) =>
+        set((state) => {
+          const layout = workspaceModeToLayout(mode, [
+            'email',
+            'calendar',
+          ] as PluginId[]);
+          return {
+            workspaceMode: mode,
+            primaryPluginId: layout.primary,
+            sidebarPluginId: layout.sidebar,
+          };
+        }),
+      setLayoutMode: (primary, sidebar) =>
+        set((state) => ({
+          primaryPluginId: primary,
+          sidebarPluginId:
+            sidebar !== undefined
+              ? sidebar
+              : state.sidebarPluginId === primary
+                ? null
+                : state.sidebarPluginId,
+          workspaceMode: layoutToWorkspaceMode(primary),
+        })),
+      syncLayoutWithPlugins: (activePlugins) =>
+        set((state) => {
+          const layout = resolveWorkspaceLayout(activePlugins, {
+            primaryPluginId: state.primaryPluginId,
+            sidebarPluginId: state.sidebarPluginId,
+          });
+          return {
+            primaryPluginId: layout.primary,
+            sidebarPluginId: layout.sidebar,
+            workspaceMode: layoutToWorkspaceMode(layout.primary),
+          };
+        }),
+      applyServerLayout: (layout, activePlugins) =>
+        set((state) => {
+          const resolved = resolveWorkspaceLayout(activePlugins, {
+            primaryPluginId: layout.primary,
+            sidebarPluginId: layout.sidebar,
+          });
+          if (
+            state.primaryPluginId === resolved.primary &&
+            state.sidebarPluginId === resolved.sidebar
+          ) {
+            return state;
+          }
+          return {
+            primaryPluginId: resolved.primary,
+            sidebarPluginId: resolved.sidebar,
+            workspaceMode: layoutToWorkspaceMode(resolved.primary),
+          };
+        }),
+      applyWorkspaceLayout: (layout, workspacePlugins) =>
+        set(() => {
+          const resolved = resolveWorkspaceLayout(workspacePlugins, {
+            primaryPluginId: layout.primary,
+            sidebarPluginId: layout.sidebar,
+          });
+          return {
+            primaryPluginId: resolved.primary,
+            sidebarPluginId: resolved.sidebar,
+            workspaceMode: layoutToWorkspaceMode(resolved.primary),
+          };
+        }),
+      setActiveWorkspaceId: (id) => set({ activeWorkspaceId: id }),
       setLeftSidebarCollapsed: (collapsed) => set({ leftSidebarCollapsed: collapsed }),
       setCalendarView: (view) => set({ calendarView: view }),
       setCurrentDateStr: (dateStr) => set({ currentDateStr: dateStr }),
@@ -203,6 +291,9 @@ export const useAppStore = create<AppState>()(
         activeTabs: state.activeTabs, 
         splitRatio: state.splitRatio, 
         workspaceMode: state.workspaceMode,
+        primaryPluginId: state.primaryPluginId,
+        sidebarPluginId: state.sidebarPluginId,
+        activeWorkspaceId: state.activeWorkspaceId,
         leftSidebarCollapsed: state.leftSidebarCollapsed,
         calendarView: state.calendarView,
         currentDateStr: state.currentDateStr,

@@ -10,6 +10,7 @@ import {
   boolean,
   jsonb,
   uuid,
+  integer,
   index,
   unique,
 } from 'drizzle-orm/pg-core';
@@ -243,4 +244,38 @@ export const agentMessages = pgTable(
     index('idx_agent_messages_thread_id').on(table.threadId),
     index('idx_agent_messages_created_at').on(table.createdAt),
   ]
+);
+
+// ─── User Preferences ───────────────────────────────────────────────────
+export const userPreferences = pgTable('user_preferences', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  onboardingCompleted: boolean('onboarding_completed').notNull().default(false),
+  activeWorkspaceId: uuid('active_workspace_id'),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// ─── Workspaces (max 2 plugins each) ────────────────────────────────────
+export const workspaces = pgTable(
+  'workspaces',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull().default('Workspace'),
+    primaryPluginId: text('primary_plugin_id').notNull(),
+    sidebarPluginId: text('sidebar_plugin_id'),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index('idx_workspaces_user_id').on(table.userId)]
 );

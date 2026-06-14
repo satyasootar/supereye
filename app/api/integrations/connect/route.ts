@@ -1,10 +1,8 @@
-/**
- * Generate Corsair OAuth URL for connecting Gmail or Calendar.
- * Called when user clicks "Connect Gmail" or "Connect Calendar" in the dashboard.
- */
 import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { isValidCorsairPlugin } from '@/lib/plugins/registry';
+import { generateOAuthUrl } from 'corsair/oauth';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -21,23 +19,31 @@ export async function POST(request: NextRequest) {
     ? await request.formData()
     : await request.json();
   const plugin = body.get
-    ? (body.get('plugin') as 'gmail' | 'googlecalendar' | null)
-    : (body.plugin as 'gmail' | 'googlecalendar');
+    ? (body.get('plugin') as string | null)
+    : (body.plugin as string);
 
-  if (!plugin || !['gmail', 'googlecalendar'].includes(plugin)) {
+  if (!plugin || !isValidCorsairPlugin(plugin)) {
     return Response.json(
-      { error: 'Invalid plugin. Must be "gmail" or "googlecalendar".' },
+      { error: 'Invalid plugin.' },
       { status: 400 }
+    );
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    console.error('NEXT_PUBLIC_APP_URL is not set');
+    return Response.json(
+      { error: 'App URL not configured. Set NEXT_PUBLIC_APP_URL in .env.local.' },
+      { status: 503 }
     );
   }
 
   try {
     const { corsair } = await import('@/lib/corsair');
 
-    // Generate OAuth URL scoped to this specific user
-    const authUrl = await (corsair as any)[plugin].oauth.getAuthUrl({
+    const { url: authUrl } = await generateOAuthUrl(corsair, plugin, {
       tenantId: session.user.id,
-      redirectUri: `${process.env.NEXT_PUBLIC_APP_URL}/api/corsair/callback`,
+      redirectUri: `${appUrl}/api/corsair/callback`,
     });
 
     if (isFormRequest) {
@@ -47,8 +53,15 @@ export async function POST(request: NextRequest) {
     return Response.json({ authUrl });
   } catch (error) {
     console.error(`Failed to generate ${plugin} auth URL:`, error);
+    const message =
+      error instanceof Error ? error.message : 'Failed to generate auth URL';
     return Response.json(
-      { error: 'Failed to generate auth URL' },
+      {
+        error:
+          message.includes('client_id') || message.includes('credentials')
+            ? `${plugin} is not configured. Run: npx corsair setup --${plugin}`
+            : 'Failed to generate auth URL',
+      },
       { status: 500 }
     );
   }
