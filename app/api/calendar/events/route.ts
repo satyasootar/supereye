@@ -3,7 +3,8 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { calendarEvents, emailEventLinks, emails, syncState } from '@/lib/db/schema';
 import { eq, gte, lte, and, asc } from 'drizzle-orm';
-import { getTenant } from '@/lib/corsair';
+import { createGoogleCalendarEvent } from '@/lib/calendar/create-event';
+import { sseEmitter } from '@/lib/sse/emitter';
 
 export async function GET() {
   const session = await auth();
@@ -94,20 +95,26 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { summary, description, start, end, attendees, location, colorId } = body;
+    const {
+      summary,
+      description,
+      start,
+      end,
+      attendees,
+      location,
+      colorId,
+      addGoogleMeet,
+    } = body;
 
-    const t = getTenant(session.user.id);
-    const createdEvent = await t.googlecalendar.api.events.create({
-      calendarId: 'primary',
-      event: {
-        summary,
-        description,
-        location,
-        start,
-        end,
-        attendees,
-        colorId,
-      }
+    const createdEvent = await createGoogleCalendarEvent(session.user.id, {
+      summary,
+      description,
+      location,
+      start,
+      end,
+      attendees,
+      colorId,
+      addGoogleMeet: !!addGoogleMeet,
     });
 
     // Save to local DB cache
@@ -122,7 +129,7 @@ export async function POST(req: Request) {
       endTime: createdEvent.end?.dateTime ? new Date(createdEvent.end.dateTime) : (createdEvent.end?.date ? new Date(createdEvent.end.date) : null),
       isAllDay: !!createdEvent.start?.date,
       status: createdEvent.status || 'confirmed',
-      attendees: createdEvent.attendees ? createdEvent.attendees.map((a: any) => ({
+      attendees: createdEvent.attendees ? createdEvent.attendees.map((a) => ({
         email: a.email,
         displayName: a.displayName,
         responseStatus: a.responseStatus
@@ -130,6 +137,8 @@ export async function POST(req: Request) {
       htmlLink: createdEvent.htmlLink,
       colorId: createdEvent.colorId
     });
+
+    sseEmitter.emit(session.user.id, { type: 'calendar:updated' });
 
     return NextResponse.json({ event: createdEvent });
   } catch (error: any) {

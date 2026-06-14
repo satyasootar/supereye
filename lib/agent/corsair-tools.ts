@@ -166,6 +166,10 @@ function createWriteTools(
         description: z.string().optional(),
         location: z.string().optional(),
         attendees: z.array(z.string()).optional().describe('Attendee email addresses'),
+        addGoogleMeet: z
+          .boolean()
+          .optional()
+          .describe('Add a Google Meet video link to the event'),
       }),
       execute: async (input) => {
         const stepId = steps?.subStep('Creating calendar event');

@@ -3,6 +3,7 @@ import { calendarEvents, syncState } from '@/lib/db/schema';
 import { sql, and, eq, inArray, notInArray, gte, lte } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
 import { getTenant, corsair } from '@/lib/corsair';
+import { extractMeetLink, resolveEventLocation } from '@/lib/calendar/meet';
 
 export async function registerCalendarWatch(userId: string) {
   try {
@@ -167,13 +168,16 @@ export async function syncCalendarForUser(userId: string, isWebhook: boolean = f
       const startTime = event.start?.dateTime ? new Date(event.start.dateTime) : (event.start?.date ? new Date(event.start.date) : null);
       const endTime = event.end?.dateTime ? new Date(event.end.dateTime) : (event.end?.date ? new Date(event.end.date) : null);
       
+      const meetLink = extractMeetLink(event);
+      const location = resolveEventLocation(event.location, meetLink);
+
       toInsert.push({
         userId,
         googleEventId: event.id,
         calendarId: 'primary',
         title: event.summary,
         description: event.description,
-        location: event.location,
+        location,
         startTime,
         endTime,
         isAllDay: !!event.start?.date,

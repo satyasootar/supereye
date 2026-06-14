@@ -1,15 +1,16 @@
 import { db } from '@/lib/db';
 import { calendarEvents } from '@/lib/db/schema';
-import { getTenant } from '@/lib/corsair';
 import { sseEmitter } from '@/lib/sse/emitter';
 import { resolveEventWindow, type EventTimeInput, resolveTimeZone, getTodayInTimezone, zonedLocalToUtc } from '@/lib/agent/datetime';
 import { and, eq } from 'drizzle-orm';
+import { createGoogleCalendarEvent } from '@/lib/calendar/create-event';
 
 export type CreateCalendarEventInput = EventTimeInput & {
   summary: string;
   description?: string;
   location?: string;
   attendees?: string[];
+  addGoogleMeet?: boolean;
 };
 
 type CalendarEventPayload = {
@@ -68,12 +69,16 @@ export async function createCalendarEventForUser(
   userId: string,
   input: CreateCalendarEventInput
 ) {
-  const tenant = getTenant(userId);
   const { event, startUtc, endUtc } = buildEventPayload(input);
 
-  const created = await tenant.googlecalendar.api.events.create({
-    calendarId: 'primary',
-    event,
+  const created = await createGoogleCalendarEvent(userId, {
+    summary: event.summary,
+    description: event.description,
+    location: event.location,
+    start: event.start,
+    end: event.end,
+    attendees: event.attendees,
+    addGoogleMeet: input.addGoogleMeet,
   });
 
   assertCreatedEvent(created, 'Calendar event creation');
