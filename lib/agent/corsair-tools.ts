@@ -1,8 +1,13 @@
 import { tool, type ToolSet } from 'ai';
 import { z } from 'zod';
 import { buildCorsairToolDefs, type CorsairToolDef } from '@corsair-dev/mcp';
-import { corsair, getTenant } from '@/lib/corsair';
-import { createCalendarEventForUser } from '@/lib/agent/calendar-actions';
+import { corsair } from '@/lib/corsair';
+import {
+  createCalendarEventForUser,
+  createScriptTenant,
+  extractToolFailure,
+} from '@/lib/agent/calendar-actions';
+import { DEFAULT_TIMEZONE, resolveTimeZone } from '@/lib/agent/datetime';
 import type { AgentStepEmitter } from '@/lib/agent/stream-events';
 
 const TOOL_STEP_LABELS: Record<string, string> = {
@@ -20,13 +25,17 @@ function parseToolOutput(result: { content: { type: string; text?: string }[]; i
     .join('\n');
 
   if (result.isError) {
-    return { error: text };
+    throw new Error(text || 'Tool execution failed');
   }
 
   try {
-    return JSON.parse(text);
-  } catch {
-    return text;
+    const parsed = JSON.parse(text);
+    const failure = extractToolFailure(parsed);
+    if (failure) throw new Error(failure);
+    return parsed;
+  } catch (e: unknown) {
+    if (e instanceof SyntaxError) return text;
+    throw e;
   }
 }
 
@@ -37,6 +46,7 @@ function zodShapeToInputSchema(shape: CorsairToolDef['shape']) {
 function wrapHandler(
   def: CorsairToolDef,
   userId: string,
+  defaultTimeZone: string,
   steps?: AgentStepEmitter
 ) {
   return async (args: Record<string, unknown>) => {
@@ -46,7 +56,7 @@ function wrapHandler(
       let result;
 
       if (def.name === 'run_script' && typeof args.code === 'string') {
-        const tenant = getTenant(userId);
+        const tenant = createScriptTenant(userId, defaultTimeZone);
         const fn = new Function(
           'corsair',
           'tenant',
@@ -68,6 +78,8 @@ function wrapHandler(
         result = await def.handler(args);
       }
 
+      const parsed = parseToolOutput(result);
+
       if (def.name === 'list_operations') {
         steps?.completeRunning('Operations catalog loaded');
       } else if (def.name === 'get_schema') {
@@ -78,33 +90,61 @@ function wrapHandler(
         steps?.completeRunning();
       }
 
-      return parseToolOutput(result);
+      return parsed;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Tool execution failed';
       if (stepId) steps?.update(stepId, { status: 'error', label: msg });
-      return { error: msg };
+      throw new Error(msg);
     }
   };
 }
 
-function createWriteTools(userId: string, steps?: AgentStepEmitter): ToolSet {
+function createWriteTools(
+  userId: string,
+  defaultTimeZone: string,
+  steps?: AgentStepEmitter
+): ToolSet {
   return {
     create_calendar_event: tool({
       description:
-        'Create a new Google Calendar event for the user. Use this for scheduling meetings. Prefer this over run_script for creating events.',
+        'Create a Google Calendar event. Use date + startTime + endTime in the user local timezone. Returns success only when Google confirms creation.',
       inputSchema: z.object({
         summary: z.string().describe('Event title'),
-        startDateTime: z.string().describe('Start time in ISO 8601, e.g. 2026-06-15T14:00:00.000Z'),
-        endDateTime: z.string().describe('End time in ISO 8601'),
+        date: z
+          .string()
+          .optional()
+          .describe('Event date in YYYY-MM-DD or DD/MM/YYYY in user timezone'),
+        startTime: z
+          .string()
+          .optional()
+          .describe('Start time in user timezone, 24-hour HH:mm or h:mm AM/PM, e.g. 15:00'),
+        endTime: z
+          .string()
+          .optional()
+          .describe('End time in user timezone, 24-hour HH:mm or h:mm AM/PM, e.g. 16:00'),
+        startDateTime: z
+          .string()
+          .optional()
+          .describe('Alternative: start datetime in user timezone, e.g. 2026-06-16T15:00:00'),
+        endDateTime: z
+          .string()
+          .optional()
+          .describe('Alternative: end datetime in user timezone, e.g. 2026-06-16T16:00:00'),
+        timeZone: z
+          .string()
+          .optional()
+          .describe(`IANA timezone. Defaults to ${defaultTimeZone}`),
         description: z.string().optional(),
         location: z.string().optional(),
         attendees: z.array(z.string()).optional().describe('Attendee email addresses'),
-        timeZone: z.string().optional().describe('IANA timezone, e.g. America/New_York'),
       }),
       execute: async (input) => {
         const stepId = steps?.subStep('Creating calendar event');
         try {
-          const event = await createCalendarEventForUser(userId, input);
+          const event = await createCalendarEventForUser(userId, {
+            ...input,
+            timeZone: resolveTimeZone(input.timeZone ?? defaultTimeZone),
+          });
           steps?.completeRunning(`Created "${event.summary}"`);
           return {
             success: true,
@@ -113,11 +153,12 @@ function createWriteTools(userId: string, steps?: AgentStepEmitter): ToolSet {
             htmlLink: event.htmlLink,
             start: event.start,
             end: event.end,
+            timeZone: input.timeZone ?? defaultTimeZone,
           };
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : 'Failed to create event';
           if (stepId) steps?.update(stepId, { status: 'error', label: msg });
-          return { error: msg };
+          throw new Error(msg);
         }
       },
     }),
@@ -128,7 +169,12 @@ function createWriteTools(userId: string, steps?: AgentStepEmitter): ToolSet {
  * Build Vercel AI SDK tools from Corsair's MCP tool definitions.
  * Gives the agent full access to list/discover/execute any Corsair operation.
  */
-export function createCorsairAgentTools(userId: string, steps?: AgentStepEmitter): ToolSet {
+export function createCorsairAgentTools(
+  userId: string,
+  steps?: AgentStepEmitter,
+  options?: { timeZone?: string }
+): ToolSet {
+  const defaultTimeZone = resolveTimeZone(options?.timeZone ?? DEFAULT_TIMEZONE);
   const defs = buildCorsairToolDefs({
     corsair,
     tenantId: userId,
@@ -136,14 +182,14 @@ export function createCorsairAgentTools(userId: string, steps?: AgentStepEmitter
   });
 
   const tools: ToolSet = {
-    ...createWriteTools(userId, steps),
+    ...createWriteTools(userId, defaultTimeZone, steps),
   };
 
   for (const def of defs) {
     tools[def.name] = tool({
       description: def.description,
       inputSchema: zodShapeToInputSchema(def.shape),
-      execute: wrapHandler(def, userId, steps),
+      execute: wrapHandler(def, userId, defaultTimeZone, steps),
     });
   }
 
@@ -170,4 +216,18 @@ export function formatAgentError(e: unknown): string {
   }
   if (e instanceof Error) return e.message;
   return 'Agent request failed';
+}
+
+export function summarizeToolFailures(
+  toolResults: Array<{ toolName: string; output: unknown }>
+): string | null {
+  const failures = toolResults
+    .map((result) => {
+      const failure = extractToolFailure(result.output);
+      return failure ? `${result.toolName}: ${failure}` : null;
+    })
+    .filter((msg): msg is string => !!msg);
+
+  if (failures.length === 0) return null;
+  return failures.map((msg) => `- ${msg}`).join('\n');
 }

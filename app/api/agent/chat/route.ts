@@ -2,7 +2,7 @@ import { streamText, stepCountIs, generateText } from 'ai';
 import { auth } from '@/lib/auth';
 import { AgentStepEmitter } from '@/lib/agent/stream-events';
 import type { AgentStreamEvent } from '@/lib/agent/stream-events';
-import { createCorsairAgentTools, getToolStepLabel, formatAgentError } from '@/lib/agent/corsair-tools';
+import { createCorsairAgentTools, getToolStepLabel, formatAgentError, summarizeToolFailures } from '@/lib/agent/corsair-tools';
 import { getAgentModel, getAgentProviderLabel, assertAgentConfigured } from '@/lib/agent/model';
 import { buildAgentSystemPrompt } from '@/lib/agent/system-prompt';
 
@@ -48,7 +48,9 @@ export async function POST(req: Request) {
         steps.push('Connected to assistant', 'done');
         steps.push('Loading Corsair integration tools', 'running');
 
-        const agentTools = createCorsairAgentTools(userId, steps);
+        const agentTools = createCorsairAgentTools(userId, steps, {
+          timeZone: context?.timeZone,
+        });
         steps.completeRunning(`Corsair tools ready (${Object.keys(agentTools).length})`);
 
         steps.push('Analyzing your request', 'running');
@@ -64,6 +66,9 @@ export async function POST(req: Request) {
             workspaceMode: context?.workspaceMode,
             folder: context?.folder,
             providerLabel,
+            timeZone: context?.timeZone,
+            nowLocal: context?.nowLocal,
+            todayDate: context?.todayDate,
           }),
           messages: messages.map((m: { role: string; content: string }) => ({
             role: m.role as 'user' | 'assistant',
@@ -71,9 +76,6 @@ export async function POST(req: Request) {
           })),
           experimental_onToolCallStart: ({ toolCall }) => {
             steps.subStep(getToolStepLabel(toolCall.toolName));
-          },
-          experimental_onToolCallFinish: () => {
-            steps.completeRunning();
           },
         });
 
@@ -83,36 +85,43 @@ export async function POST(req: Request) {
         const messageId = `msg-${Date.now()}`;
         emit({ type: 'text-start', messageId });
 
-        let fullText = '';
+        let streamedText = '';
         for await (const delta of result.textStream) {
-          fullText += delta;
-          emit({ type: 'text-delta', delta });
+          streamedText += delta;
         }
 
-        if (!fullText.trim()) {
-          const toolResults = await result.toolResults;
-          if (toolResults.length > 0) {
-            steps.push('Synthesizing results', 'running');
+        const toolResults = await result.toolResults;
+        const toolFailures = summarizeToolFailures(toolResults);
 
-            const contextData = toolResults
-              .map((r) => `${r.toolName}:\n${JSON.stringify(r.output, null, 2)}`)
-              .join('\n\n');
+        let fullText = streamedText;
 
-            const summary = await generateText({
-              model,
-              maxRetries: 1,
-              prompt: `The user asked: "${prompt}"\n\nHere is the data from Corsair tools:\n\n${contextData}\n\nProvide a clear, helpful summary using markdown lists where appropriate.`,
-            });
+        if (toolFailures) {
+          fullText = `I could not complete that action:\n\n${toolFailures}`;
+          steps.push('Action failed', 'error');
+        } else if (!fullText.trim() && toolResults.length > 0) {
+          steps.push('Synthesizing results', 'running');
 
-            fullText = summary.text;
-            for (const char of fullText) {
-              emit({ type: 'text-delta', delta: char });
-              await new Promise((r) => setTimeout(r, 6));
-            }
-            steps.completeRunning('Summary ready');
-          }
+          const contextData = toolResults
+            .map((r) => `${r.toolName}:\n${JSON.stringify(r.output, null, 2)}`)
+            .join('\n\n');
+
+          const summary = await generateText({
+            model,
+            maxRetries: 1,
+            prompt: `The user asked: "${prompt}"\n\nHere is the data from Corsair tools:\n\n${contextData}\n\nRules:
+- If any tool output contains "error" or success is false, say the action FAILED and include the error. Never claim success unless create_calendar_event returned success:true with an id.
+- Otherwise provide a clear, helpful summary using markdown lists where appropriate.`,
+          });
+
+          fullText = summary.text;
+          steps.completeRunning('Summary ready');
         } else {
           steps.completeRunning('Response ready');
+        }
+
+        for (const char of fullText) {
+          emit({ type: 'text-delta', delta: char });
+          await new Promise((r) => setTimeout(r, 2));
         }
 
         emit({ type: 'text-end' });
