@@ -129,11 +129,13 @@ export async function POST(req: Request) {
       endTime: createdEvent.end?.dateTime ? new Date(createdEvent.end.dateTime) : (createdEvent.end?.date ? new Date(createdEvent.end.date) : null),
       isAllDay: !!createdEvent.start?.date,
       status: createdEvent.status || 'confirmed',
-      attendees: createdEvent.attendees ? createdEvent.attendees.map((a) => ({
-        email: a.email,
-        displayName: a.displayName,
-        responseStatus: a.responseStatus
-      })) : null,
+      attendees: createdEvent.attendees ? createdEvent.attendees
+        .filter((a): a is typeof a & { email: string } => typeof a.email === 'string')
+        .map((a) => ({
+          email: a.email,
+          displayName: a.displayName ?? undefined,
+          responseStatus: a.responseStatus ?? undefined,
+        })) : null,
       htmlLink: createdEvent.htmlLink,
       colorId: createdEvent.colorId
     });

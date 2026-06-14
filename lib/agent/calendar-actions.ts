@@ -4,6 +4,7 @@ import { sseEmitter } from '@/lib/sse/emitter';
 import { resolveEventWindow, type EventTimeInput, resolveTimeZone, getTodayInTimezone, zonedLocalToUtc } from '@/lib/agent/datetime';
 import { and, eq } from 'drizzle-orm';
 import { createGoogleCalendarEvent } from '@/lib/calendar/create-event';
+import { getTenant } from '@/lib/corsair';
 
 export type CreateCalendarEventInput = EventTimeInput & {
   summary: string;
@@ -97,11 +98,13 @@ export async function createCalendarEventForUser(
       isAllDay: false,
       status: created.status || 'confirmed',
       attendees: created.attendees
-        ? created.attendees.map((a: { email?: string; displayName?: string; responseStatus?: string }) => ({
-            email: a.email,
-            displayName: a.displayName,
-            responseStatus: a.responseStatus,
-          }))
+        ? (created.attendees as Array<{ email?: string; displayName?: string; responseStatus?: string }>)
+            .filter((a): a is { email: string; displayName?: string; responseStatus?: string } => typeof a.email === 'string')
+            .map((a) => ({
+              email: a.email,
+              displayName: a.displayName,
+              responseStatus: a.responseStatus,
+            }))
         : null,
       htmlLink: created.htmlLink,
       colorId: created.colorId,
