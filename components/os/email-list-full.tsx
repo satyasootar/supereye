@@ -53,6 +53,46 @@ const CATEGORY_TABS: { id: FilterCategory; label: string }[] = [
   { id: 'CATEGORY_UPDATES', label: 'Updates' },
 ];
 
+function buildPeekIframeHtml(body: string, isDark: boolean): string {
+  const isPlain = !/<[a-z][\s\S]*>/i.test(body);
+  const bg = isDark ? '#0d0f0e' : '#ffffff';
+  const text = isDark ? '#d4d5d4' : '#2f3c34';
+  const muted = isDark ? '#a0a8a3' : '#526257';
+  const accent = isDark ? '#6e8e78' : '#5a775c';
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+    :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
+    html, body {
+      margin: 0;
+      padding: 14px 16px;
+      background: ${bg} !important;
+      color: ${text} !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.55;
+      word-wrap: break-word;
+      overflow-x: hidden;
+      ${isPlain ? 'white-space: pre-wrap;' : ''}
+    }
+    img { display: block; max-width: 100% !important; height: auto !important; background: transparent !important; }
+    table { max-width: 100% !important; width: 100% !important; table-layout: fixed !important; }
+    td, th { word-wrap: break-word; overflow-wrap: anywhere; }
+    a { color: ${accent} !important; text-decoration: none; }
+    h1, h2, h3, h4, h5, h6 {
+      font-size: 14px !important;
+      line-height: 1.35 !important;
+      font-weight: 600 !important;
+      margin: 0 0 8px !important;
+      color: ${isDark ? '#f5f5f5' : '#111613'} !important;
+    }
+    p, li {
+      font-size: 13px !important;
+      line-height: 1.55 !important;
+      margin: 0 0 10px !important;
+    }
+  </style></head><body>${body}</body></html>`;
+}
+
 export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }) {
   const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -736,48 +776,34 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       </div>
       
       {hoveredEmail && !isSplitView && (
-        <div 
-          className="fixed z-[100] w-[380px] p-4 bg-bg-elevated border border-border shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95 pointer-events-none"
-          style={{ 
-            left: mousePos.x + 20, 
-            top: typeof window !== 'undefined' ? Math.min(mousePos.y + 20, window.innerHeight - 300) : mousePos.y + 20
+        <div
+          className="pointer-events-none fixed z-[100] w-[380px] overflow-hidden rounded-xl border border-border-default bg-bg-elevated shadow-2xl animate-in fade-in zoom-in-95"
+          style={{
+            left: Math.min(mousePos.x + 20, typeof window !== 'undefined' ? window.innerWidth - 400 : mousePos.x + 20),
+            top:
+              typeof window !== 'undefined'
+                ? Math.min(Math.max(mousePos.y + 16, 16), window.innerHeight - 320)
+                : mousePos.y + 16,
           }}
         >
-          <div className="relative w-full h-[240px] bg-bg-elevated rounded-md overflow-hidden pointer-events-none">
+          <div className="relative h-[280px] overflow-hidden bg-bg-base">
             {hoveredEmail.body ? (
-              <div className="absolute top-0 left-0 w-[800px] h-[550px] origin-top-left" style={{ transform: 'scale(0.435)' }}>
-                <iframe 
-                  srcDoc={`<style>
-                    :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
-                    body, html { 
-                      background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; 
-                      color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; 
-                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-                      margin: 0; 
-                      padding: 36px !important; 
-                      box-sizing: border-box; 
-                      line-height: 1.6;
-                      word-wrap: break-word;
-                      ${!/<[a-z][\s\S]*>/i.test(hoveredEmail.body || '') ? 'white-space: pre-wrap;' : ''}
-                    } 
-                    * { 
-                      background-color: ${isDark ? '#14151A' : '#FFFFFF'} !important; 
-                      color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; 
-                      border-color: ${isDark ? '#2A2D35' : '#E2E8F0'} !important; 
-                      font-size: 32px !important;
-                    }
-                    img { background-color: transparent !important; max-width: 100%; height: auto; }
-                  </style>${hoveredEmail.body}`} 
-                  className="w-full h-full border-none bg-transparent"
-                  sandbox=""
-                  scrolling="no"
-                />
-              </div>
+              <iframe
+                title="Email preview"
+                srcDoc={buildPeekIframeHtml(hoveredEmail.body, isDark)}
+                className="h-full w-full border-0 bg-transparent"
+                sandbox=""
+                scrolling="no"
+              />
             ) : (
-              <div className="text-[15px] text-text-primary leading-relaxed line-clamp-10 whitespace-pre-wrap p-4 bg-bg-base/40 h-full rounded-md border border-border-subtle/50">
+              <p className="line-clamp-[12] whitespace-pre-wrap px-4 py-3 text-[13px] leading-relaxed text-text-secondary">
                 {hoveredEmail.snippet}
-              </div>
+              </p>
             )}
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-bg-elevated to-transparent"
+              aria-hidden
+            />
           </div>
         </div>
       )}
