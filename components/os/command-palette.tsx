@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store/app-store';
 import { useTheme } from 'next-themes';
 import { useKeyboardStore } from '@/lib/keyboard/keyboard-store';
+import { useWorkspaces } from '@/hooks/use-workspaces';
 import {
   Search,
   Mail,
@@ -20,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ShortcutKbd } from '@/components/keyboard/shortcuts-reference';
 import type { LucideIcon } from 'lucide-react';
+import type { PluginId } from '@/lib/plugins/types';
 
 type Command = {
   id: string;
@@ -35,15 +37,40 @@ const SPRING = { type: 'spring' as const, duration: 0.38, bounce: 0.14 };
 export function CommandPalette() {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
-  const { isCommandPaletteOpen, setCommandPaletteOpen, openTab, setWorkspaceMode } =
-    useAppStore();
+  const { focusPlugin, activePlugins } = useWorkspaces();
+  const {
+    isCommandPaletteOpen,
+    setCommandPaletteOpen,
+    setComposeOpen,
+    setEmailCategory,
+    setCalendarView,
+    setCurrentDateStr,
+  } = useAppStore();
   const { setTheme, theme } = useTheme();
   const { setCheatSheetOpen } = useKeyboardStore();
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const transition = reduceMotion ? { duration: 0 } : SPRING;
+
+  const runCommand = useCallback(
+    (action: () => void) => {
+      setCommandPaletteOpen(false);
+      requestAnimationFrame(() => action());
+    },
+    [setCommandPaletteOpen]
+  );
+
+  const focusPluginIfAvailable = useCallback(
+    (pluginId: PluginId) => {
+      if (activePlugins.includes(pluginId)) {
+        void focusPlugin(pluginId);
+      }
+    },
+    [activePlugins, focusPlugin]
+  );
 
   const commands = useMemo<Command[]>(
     () => [
@@ -53,7 +80,10 @@ export function CommandPalette() {
         label: 'Compose new email',
         icon: Mail,
         shortcut: 'C',
-        action: () => openTab('email'),
+        action: () => {
+          focusPluginIfAvailable('email');
+          setComposeOpen(true);
+        },
       },
       {
         id: 'create-event',
@@ -62,8 +92,8 @@ export function CommandPalette() {
         icon: Calendar,
         shortcut: 'N',
         action: () => {
-          openTab('email');
-          setWorkspaceMode('calendar');
+          focusPluginIfAvailable('calendar');
+          window.dispatchEvent(new CustomEvent('supereye:calendar-create'));
         },
       },
       {
@@ -72,7 +102,10 @@ export function CommandPalette() {
         label: 'Go to Inbox',
         icon: Mail,
         shortcut: 'G I',
-        action: () => openTab('email'),
+        action: () => {
+          focusPluginIfAvailable('email');
+          setEmailCategory('INBOX');
+        },
       },
       {
         id: 'go-sent',
@@ -80,7 +113,10 @@ export function CommandPalette() {
         label: 'Go to Sent',
         icon: Mail,
         shortcut: 'G S',
-        action: () => openTab('email'),
+        action: () => {
+          focusPluginIfAvailable('email');
+          setEmailCategory('SENT');
+        },
       },
       {
         id: 'go-today',
@@ -89,8 +125,8 @@ export function CommandPalette() {
         icon: Calendar,
         shortcut: 'T',
         action: () => {
-          openTab('email');
-          setWorkspaceMode('calendar');
+          focusPluginIfAvailable('calendar');
+          setCurrentDateStr(new Date().toISOString());
         },
       },
       {
@@ -100,8 +136,8 @@ export function CommandPalette() {
         icon: Calendar,
         shortcut: 'M',
         action: () => {
-          openTab('email');
-          setWorkspaceMode('calendar');
+          focusPluginIfAvailable('calendar');
+          setCalendarView('Month');
         },
       },
       {
@@ -110,10 +146,7 @@ export function CommandPalette() {
         label: 'Open profile & settings',
         icon: Settings,
         shortcut: '⌘,',
-        action: () => {
-          setCommandPaletteOpen(false);
-          router.push('/workspace/profile');
-        },
+        action: () => router.push('/workspace/profile'),
       },
       {
         id: 'theme',
@@ -128,19 +161,18 @@ export function CommandPalette() {
         label: 'Show keyboard shortcuts',
         icon: TerminalSquare,
         shortcut: '?',
-        action: () => {
-          setCommandPaletteOpen(false);
-          setCheatSheetOpen(true);
-        },
+        action: () => setCheatSheetOpen(true),
       },
     ],
     [
-      openTab,
+      focusPluginIfAvailable,
       router,
+      setCalendarView,
       setCheatSheetOpen,
-      setCommandPaletteOpen,
+      setComposeOpen,
+      setCurrentDateStr,
+      setEmailCategory,
       setTheme,
-      setWorkspaceMode,
       theme,
     ]
   );
@@ -168,6 +200,12 @@ export function CommandPalette() {
     [filteredCommands]
   );
 
+  const executeSelected = useCallback(() => {
+    const cmd = filteredCommands[selectedIndex];
+    if (!cmd) return;
+    runCommand(cmd.action);
+  }, [filteredCommands, runCommand, selectedIndex]);
+
   useEffect(() => {
     if (isCommandPaletteOpen) {
       setSearch('');
@@ -180,41 +218,46 @@ export function CommandPalette() {
     setSelectedIndex(0);
   }, [search]);
 
+  const selectedCommandId = filteredCommands[selectedIndex]?.id;
+
+  useEffect(() => {
+    if (!selectedCommandId || !listRef.current) return;
+    const el = listRef.current.querySelector(
+      `[data-command-id="${selectedCommandId}"]`
+    );
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [selectedCommandId]);
+
   useEffect(() => {
     if (!isCommandPaletteOpen) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const onEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        setCommandPaletteOpen(false);
-        return;
-      }
-
-      if (filteredCommands.length === 0) return;
-
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % filteredCommands.length);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex(
-          (prev) => (prev - 1 + filteredCommands.length) % filteredCommands.length
-        );
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        filteredCommands[selectedIndex]?.action();
         setCommandPaletteOpen(false);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    filteredCommands,
-    isCommandPaletteOpen,
-    selectedIndex,
-    setCommandPaletteOpen,
-  ]);
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [isCommandPaletteOpen, setCommandPaletteOpen]);
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (filteredCommands.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % filteredCommands.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(
+        (prev) => (prev - 1 + filteredCommands.length) % filteredCommands.length
+      );
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      executeSelected();
+    }
+  };
 
   let absoluteIndex = 0;
 
@@ -227,8 +270,8 @@ export function CommandPalette() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.2 }}
-            className="absolute inset-0 bg-bg-app/75 backdrop-blur-md"
-            onClick={() => setCommandPaletteOpen(false)}
+            className="absolute inset-0 z-0 bg-bg-app/75 backdrop-blur-md"
+            onMouseDown={() => setCommandPaletteOpen(false)}
           />
 
           <motion.div
@@ -239,7 +282,8 @@ export function CommandPalette() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -10 }}
             transition={transition}
-            className="relative flex w-full max-w-[640px] flex-col overflow-hidden rounded-xl border border-border-default bg-bg-elevated shadow-2xl shadow-black/40 max-h-[min(70vh,560px)]"
+            onMouseDown={(e) => e.stopPropagation()}
+            className="relative z-10 flex w-full max-w-[640px] flex-col overflow-hidden rounded-xl border border-border-default bg-bg-elevated shadow-2xl shadow-black/40 max-h-[min(70vh,560px)]"
           >
             <div
               className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-60"
@@ -257,101 +301,75 @@ export function CommandPalette() {
                 ref={inputRef}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={handleInputKeyDown}
                 placeholder="Type a command or search…"
                 className="h-[52px] flex-1 bg-transparent text-[16px] text-text-primary outline-none placeholder:text-text-muted"
               />
               <ShortcutKbd keys="esc" className="hidden sm:inline-flex" />
             </div>
 
-            <div className="custom-scrollbar flex-1 overflow-y-auto px-2 py-2">
-              <AnimatePresence mode="popLayout" initial={false}>
-                {Object.entries(groupedCommands).map(([category, cmds], groupIndex) => (
-                  <motion.div
-                    key={category}
-                    layout
-                    initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{
-                      ...transition,
-                      delay: reduceMotion ? 0 : groupIndex * 0.03,
-                    }}
-                    className="mb-1"
-                  >
-                    <div className="flex items-center gap-3 px-3 py-2">
-                      <span className="shrink-0 text-[11px] font-medium uppercase tracking-wider text-text-muted">
-                        {category}
-                      </span>
-                      <div className="h-px flex-1 bg-border-subtle" />
-                    </div>
+            <div ref={listRef} className="custom-scrollbar flex-1 overflow-y-auto px-2 py-2">
+              {Object.entries(groupedCommands).map(([category, cmds]) => (
+                <div key={category} className="mb-1">
+                  <div className="flex items-center gap-3 px-3 py-2">
+                    <span className="shrink-0 text-[11px] font-medium uppercase tracking-wider text-text-muted">
+                      {category}
+                    </span>
+                    <div className="h-px flex-1 bg-border-subtle" />
+                  </div>
 
-                    <ul className="space-y-0.5">
-                      {cmds.map((cmd) => {
-                        const currentIndex = absoluteIndex++;
-                        const isSelected = currentIndex === selectedIndex;
+                  <ul className="space-y-0.5">
+                    {cmds.map((cmd) => {
+                      const currentIndex = absoluteIndex++;
+                      const isSelected = currentIndex === selectedIndex;
 
-                        return (
-                          <motion.li
-                            key={cmd.id}
-                            layout
-                            initial={false}
-                            className="relative"
+                      return (
+                        <li key={cmd.id} className="relative">
+                          <button
+                            type="button"
+                            data-command-id={cmd.id}
+                            className={cn(
+                              'relative flex h-10 w-full items-center justify-between gap-3 rounded-md px-3 text-left transition-[background-color,border-color,color] duration-75',
+                              isSelected
+                                ? 'border border-accent-blue/25 bg-accent-blue/10 text-text-primary'
+                                : 'border border-transparent text-text-secondary hover:bg-bg-overlay hover:text-text-primary'
+                            )}
+                            onMouseEnter={() => setSelectedIndex(currentIndex)}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => runCommand(cmd.action)}
                           >
-                            <button
-                              type="button"
-                              className={cn(
-                                'relative flex h-10 w-full items-center justify-between gap-3 rounded-md px-3 text-left transition-colors',
-                                isSelected
-                                  ? 'text-text-primary'
-                                  : 'text-text-secondary hover:text-text-primary'
-                              )}
-                              onMouseEnter={() => setSelectedIndex(currentIndex)}
-                              onClick={() => {
-                                cmd.action();
-                                setCommandPaletteOpen(false);
-                              }}
-                            >
-                              {isSelected && (
-                                <motion.div
-                                  layoutId="command-palette-active"
-                                  className="absolute inset-0 rounded-md border border-accent-blue/25 bg-accent-blue/10"
-                                  transition={transition}
-                                />
-                              )}
-
-                              <span className="relative flex min-w-0 items-center gap-3">
-                                <span
-                                  className={cn(
-                                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors',
-                                    isSelected
-                                      ? 'border-accent-blue/30 bg-bg-elevated text-accent-blue'
-                                      : 'border-border-subtle bg-bg-surface text-text-muted'
-                                  )}
-                                >
-                                  <cmd.icon className="h-3.5 w-3.5" />
-                                </span>
-                                <span className="truncate text-[14px] font-medium">
-                                  {cmd.label}
-                                </span>
+                            <span className="relative flex min-w-0 items-center gap-3">
+                              <span
+                                className={cn(
+                                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors duration-75',
+                                  isSelected
+                                    ? 'border-accent-blue/30 bg-bg-elevated text-accent-blue'
+                                    : 'border-border-subtle bg-bg-surface text-text-muted'
+                                )}
+                              >
+                                <cmd.icon className="h-3.5 w-3.5" />
                               </span>
+                              <span className="truncate text-[14px] font-medium">
+                                {cmd.label}
+                              </span>
+                            </span>
 
-                              {cmd.shortcut && (
-                                <ShortcutKbd
-                                  keys={cmd.shortcut}
-                                  className={cn(
-                                    'relative',
-                                    isSelected && 'border-accent-blue/20 bg-bg-elevated/80'
-                                  )}
-                                />
-                              )}
-                            </button>
-                          </motion.li>
-                        );
-                      })}
-                    </ul>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                            {cmd.shortcut && (
+                              <ShortcutKbd
+                                keys={cmd.shortcut}
+                                className={cn(
+                                  'relative',
+                                  isSelected && 'border-accent-blue/20 bg-bg-elevated/80'
+                                )}
+                              />
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
 
               <AnimatePresence mode="wait">
                 {filteredCommands.length === 0 && (
