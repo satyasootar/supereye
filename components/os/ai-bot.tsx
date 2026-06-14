@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store/app-store';
+import { cn } from '@/lib/utils';
 
 type Emotion = 
   | 'neutral' 
@@ -22,7 +23,21 @@ interface EmotionState {
   triggeredAt: number;
 }
 
-export function AiBot() {
+interface AiBotProps {
+  /** Opens the agent overlay on click. Default true for workspace FAB. */
+  openAgentOnClick?: boolean;
+  /** Hides the bot while the agent is open. Default true for workspace FAB. */
+  hideWhenAgentOpen?: boolean;
+  className?: string;
+  size?: 'sm' | 'md';
+}
+
+export function AiBot({
+  openAgentOnClick = true,
+  hideWhenAgentOpen = true,
+  className,
+  size = 'md',
+}: AiBotProps = {}) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [emotion, setEmotion] = useState<EmotionState>({ 
     type: 'neutral', 
@@ -165,8 +180,10 @@ export function AiBot() {
       if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
     }
     
-    setAgentOpen(true);
-  }, [triggerEmotion, setAgentOpen]);
+    if (openAgentOnClick) {
+      setAgentOpen(true);
+    }
+  }, [triggerEmotion, setAgentOpen, openAgentOnClick]);
 
   const handleMouseEnter = useCallback(() => {
     stateRef.current.isHovered = true;
@@ -260,21 +277,27 @@ export function AiBot() {
   const isBlushing = emotion.type === 'blushing' || emotion.type === 'lovestruck';
   const isAngry = emotion.type === 'angry';
 
-  if (isAgentOpen) return null;
+  if (hideWhenAgentOpen && isAgentOpen) return null;
+
+  const sizeClass = size === 'sm' ? 'h-8 w-8' : 'h-14 w-14';
 
   return (
     <div 
-      className="fixed bottom-6 right-6 z-[100] cursor-pointer hover:scale-105 transition-transform duration-300 select-none"
+      className={cn(
+        'cursor-pointer select-none transition-transform duration-300 hover:scale-105',
+        openAgentOnClick ? 'fixed bottom-6 right-6 z-[100]' : 'relative z-0',
+        className
+      )}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      title="Open AI Assistant"
+      title={openAgentOnClick ? 'Open AI Assistant' : 'supereye'}
       ref={containerRef}
     >
       <svg 
         viewBox="0 0 100 100" 
         fill="none" 
-        className="w-14 h-14 text-white dark:text-black"
+        className={cn(sizeClass, 'text-white dark:text-black')}
         stroke="currentColor" 
         strokeWidth="3"
       >

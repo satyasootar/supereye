@@ -23,7 +23,7 @@ export default async function DashboardLayout({
   return (
     <QueryProvider>
       <KeyboardSystem>
-        <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-app">
+        <div className="mx-auto flex h-screen w-full max-w-[1600px] flex-col overflow-hidden border-x border-border-subtle bg-bg-app shadow-2xl">
           <CommandPalette />
           <main className="flex-1 overflow-hidden">{children}</main>
         </div>
