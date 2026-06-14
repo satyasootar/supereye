@@ -40,6 +40,10 @@ export const KEYBOARD_ACTIONS = {
   CAL_VIEW_MONTH: 'calendar.viewMonth',
   CAL_PREV: 'calendar.prev',
   CAL_NEXT: 'calendar.next',
+
+  // Agent
+  AGENT_TOGGLE: 'agent.toggle',
+  AGENT_NEW_CHAT: 'agent.newChat',
 } as const;
 
 export type KeyboardActionId =

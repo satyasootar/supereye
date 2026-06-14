@@ -150,4 +150,24 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
     description: 'Next period',
     group: 'Calendar',
   },
+
+  // ─── AI Assistant ───────────────────────────────────────
+  {
+    id: 'agent.toggle',
+    sequence: [modKey('j')],
+    contexts: ['global', 'workspace', 'email', 'calendar', 'modal'],
+    actionId: KEYBOARD_ACTIONS.AGENT_TOGGLE,
+    description: 'Toggle AI assistant',
+    group: 'AI Assistant',
+    allowInInsert: true,
+  },
+  {
+    id: 'agent.newChat',
+    sequence: [modKey('j', true)],
+    contexts: ['global', 'workspace', 'email', 'calendar', 'modal'],
+    actionId: KEYBOARD_ACTIONS.AGENT_NEW_CHAT,
+    description: 'New AI chat',
+    group: 'AI Assistant',
+    allowInInsert: true,
+  },
 ];

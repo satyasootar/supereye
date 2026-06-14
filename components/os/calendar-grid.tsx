@@ -8,6 +8,7 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { EventDetailsModal } from './event-details-modal';
 import { CreateEventModal, GOOGLE_COLORS } from './create-event-modal';
 import { useAppStore } from '@/lib/store/app-store';
+import { toast } from 'sonner';
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -170,7 +171,19 @@ export function CalendarGrid({ isModal = false }: { isModal?: boolean }) {
   useEffect(() => {
     const onPrev = () => navigatePeriod(-1);
     const onNext = () => navigatePeriod(1);
-    const onCreate = () => setIsCreateOpen(true);
+    const onCreate = () => {
+      const nowLocal = new Date();
+      const todayStr = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`;
+      const currentHour = nowLocal.getHours();
+      const nextHour = (currentHour + 1) % 24;
+      const startT = `${String(nextHour).padStart(2, '0')}:00`;
+      const endT = `${String((nextHour + 1) % 24).padStart(2, '0')}:00`;
+
+      setCreateDate(todayStr);
+      setCreateStartTime(startT);
+      setCreateEndTime(endT);
+      setIsCreateOpen(true);
+    };
 
     window.addEventListener('supereye:calendar-prev', onPrev);
     window.addEventListener('supereye:calendar-next', onNext);
@@ -424,6 +437,16 @@ export function CalendarGrid({ isModal = false }: { isModal?: boolean }) {
       ? formatDateKey(weekDays[dragColIndex]) 
       : formatDateKey(currentDate);
 
+    // Prevent popping up the modal if the date/time is in the past
+    const nowLocal = new Date();
+    const todayStr = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`;
+    const nowTimeStr = `${String(nowLocal.getHours()).padStart(2, '0')}:${String(nowLocal.getMinutes()).padStart(2, '0')}`;
+    if (dateStr < todayStr || (dateStr === todayStr && startTimeStr < nowTimeStr)) {
+      setDragColIndex(null);
+      toast.error('Cannot create events in the past.');
+      return;
+    }
+
     setCreateDate(dateStr);
     setCreateStartTime(startTimeStr);
     setCreateEndTime(endTimeStr);
@@ -543,9 +566,29 @@ export function CalendarGrid({ isModal = false }: { isModal?: boolean }) {
                 <div 
                   key={i} 
                   onClick={() => {
+                    const nowLocal = new Date();
+                    const todayStr = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`;
+
+                    if (dateKey < todayStr) {
+                      toast.error('Cannot create events in the past.');
+                      return;
+                    }
+
+                    let startT = '09:00';
+                    let endT = '10:00';
+
+                    if (dateKey === todayStr) {
+                      const currentHour = nowLocal.getHours();
+                      if (currentHour >= 9) {
+                        const nextHour = (currentHour + 1) % 24;
+                        startT = `${String(nextHour).padStart(2, '0')}:00`;
+                        endT = `${String((nextHour + 1) % 24).padStart(2, '0')}:00`;
+                      }
+                    }
+
                     setCreateDate(dateKey);
-                    setCreateStartTime('09:00');
-                    setCreateEndTime('10:00');
+                    setCreateStartTime(startT);
+                    setCreateEndTime(endT);
                     setIsCreateOpen(true);
                   }}
                   className={cn(

@@ -40,6 +40,12 @@ export function BottomInput() {
     el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
   }, [input, isListening]);
 
+  useEffect(() => {
+    const onFocusInput = () => textareaRef.current?.focus();
+    window.addEventListener('agent:focus-input', onFocusInput);
+    return () => window.removeEventListener('agent:focus-input', onFocusInput);
+  }, []);
+
   const handleVoiceStart = () => {
     if (!isListening && !isProcessing) start(input);
   };
