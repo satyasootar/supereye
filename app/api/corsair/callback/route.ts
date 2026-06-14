@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/corsair/callback`;
 
-  let successUrl = '/';
+  let successUrl = '/workspace';
 
   try {
     const result = await processOAuthCallback(corsair, {

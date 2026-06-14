@@ -68,8 +68,49 @@ export function EmailReader() {
 
   if (isLoading) {
     return (
-      <div className="flex h-full flex-1 flex-col items-center justify-center bg-bg-app overflow-hidden min-w-[400px]">
-        <div className="text-center text-text-muted">Loading thread...</div>
+      <div className="flex h-full flex-1 flex-col bg-bg-app overflow-hidden min-w-[400px] p-6 animate-pulse">
+        {/* Toolbar Header Skeleton */}
+        <div className="flex items-center justify-between border-b border-border-subtle pb-4 mb-6">
+          <div className="flex gap-2">
+            <div className="h-8 w-16 bg-border-default/40 rounded-md" />
+            <div className="h-8 w-16 bg-border-default/40 rounded-md" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-8 w-8 bg-border-default/40 rounded-md" />
+            <div className="h-8 w-8 bg-border-default/40 rounded-md" />
+          </div>
+        </div>
+
+        {/* Email Header Skeleton */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="space-y-2.5 w-2/3">
+            <div className="h-6 bg-border-default/50 rounded w-3/4" />
+            <div className="h-4 bg-border-default/40 rounded w-1/2" />
+          </div>
+          <div className="h-4 bg-border-default/30 rounded w-20" />
+        </div>
+
+        {/* Email Body Skeleton */}
+        <div className="space-y-4 flex-1">
+          <div className="h-4 bg-border-default/35 rounded w-full" />
+          <div className="h-4 bg-border-default/35 rounded w-[98%]" />
+          <div className="h-4 bg-border-default/35 rounded w-[95%]" />
+          <div className="h-4 bg-border-default/30 rounded w-[90%]" />
+          <div className="h-4 bg-border-default/35 rounded w-[97%]" />
+          <div className="h-4 bg-border-default/20 rounded w-[60%]" />
+          
+          <div className="h-6" /> {/* spacer */}
+          
+          <div className="h-4 bg-border-default/30 rounded w-[98%]" />
+          <div className="h-4 bg-border-default/30 rounded w-[94%]" />
+          <div className="h-4 bg-border-default/20 rounded w-[45%]" />
+        </div>
+
+        {/* Bottom Actions Skeleton */}
+        <div className="flex gap-3 border-t border-border-subtle pt-6 mt-6">
+          <div className="h-9 w-20 bg-border-default/40 rounded-md" />
+          <div className="h-9 w-20 bg-border-default/40 rounded-md" />
+        </div>
       </div>
     );
   }

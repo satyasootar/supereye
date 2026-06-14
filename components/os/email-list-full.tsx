@@ -530,8 +530,25 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       {/* Email List Content */}
       <div className="flex-1 overflow-y-auto no-scrollbar px-6 py-4">
         {(isLoading && !isSearching) || (isSearching && isSearchLoading) ? (
-          <div className="p-8 text-center text-text-muted">
-            {isSearching ? 'Searching emails...' : 'Loading emails...'}
+          <div className="flex flex-col w-full animate-pulse gap-1">
+            {Array.from({ length: 12 }).map((_, idx) => (
+              <div 
+                key={idx} 
+                className="flex items-center gap-3 px-3 py-3 border-l-2 border-transparent border-b border-border-subtle/25"
+              >
+                {/* Checkbox Skeleton */}
+                <div className="h-4 w-4 bg-border-default/40 rounded flex-shrink-0" />
+                {/* Sender Skeleton */}
+                <div className={cn("h-4 bg-border-default/40 rounded flex-shrink-0", isSplitView ? "w-[120px]" : "w-[200px]")} />
+                {/* Subject & Snippet Skeleton */}
+                <div className="flex-1 flex gap-2 overflow-hidden">
+                  <div className="h-4 bg-border-default/45 rounded w-1/3 flex-shrink-0" />
+                  <div className="h-4 bg-border-default/20 rounded w-1/2 flex-shrink-0 hidden md:block" />
+                </div>
+                {/* Date Skeleton */}
+                <div className="w-12 h-3.5 bg-border-default/30 rounded flex-shrink-0" />
+              </div>
+            ))}
           </div>
         ) : error && !isSearching ? (
           <div className="p-8 text-center text-red-500">Failed to load emails.</div>
