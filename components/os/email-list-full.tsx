@@ -597,14 +597,21 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                         )}
                       >
                         {/* Left section: Checkbox (optional) + Sender */}
-                        <div className={cn("flex items-center flex-shrink-0 gap-2", isSplitView ? "w-[120px]" : "w-[200px]")}>
+                        <div className={cn("flex items-center flex-shrink-0", isSplitView ? "w-[120px]" : "w-[200px]")}>
                           <div 
-                            className={cn("flex items-center justify-center cursor-pointer transition-opacity w-5 min-w-[20px] flex-shrink-0", (isChecked || isSelected) ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
+                            className={cn(
+                              "flex items-center justify-center cursor-pointer transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0", 
+                              (isChecked || isSelected) 
+                                ? "w-5 opacity-100 mr-2" 
+                                : "w-0 opacity-0 mr-0 group-hover:w-5 group-hover:opacity-100 group-hover:mr-2"
+                            )}
                             onClick={(e) => { e.stopPropagation(); toggleSelect(email.id); }}
                           >
-                            {isChecked ? <CheckSquare className="h-4 w-4 text-accent-blue" /> : <Square className="h-4 w-4 text-text-muted hover:text-text-primary" />}
+                            <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                              {isChecked ? <CheckSquare className="h-4 w-4 text-accent-blue" /> : <Square className="h-4 w-4 text-text-muted hover:text-text-primary" />}
+                            </div>
                           </div>
-                          <span className={cn("truncate min-w-0 text-[14px] flex-1", !email.isRead ? "font-semibold text-text-primary" : "text-text-muted font-normal")}>
+                          <span className={cn("truncate min-w-0 text-[14px] flex-1 transition-all duration-300 ease-in-out", !email.isRead ? "font-semibold text-text-primary" : "text-text-muted font-normal")}>
                             {displaySender} {email.threadCount && email.threadCount > 1 ? <span className="text-text-muted text-[12px] ml-1">{email.threadCount}</span> : null}
                           </span>
                         </div>

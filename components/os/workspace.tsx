@@ -9,6 +9,8 @@ import { EmailSidebar } from './email-sidebar';
 import { useGlobalShortcuts } from '@/hooks/use-global-shortcuts';
 import { useSSE } from '@/hooks/use-sse';
 import { GlobalComposer } from './global-composer';
+import { AiBot } from './ai-bot';
+import { AgentOverlay } from './agent-overlay';
 
 export function Workspace() {
   useGlobalShortcuts();
@@ -57,6 +59,8 @@ export function Workspace() {
           </div>
         </div>
         <GlobalComposer />
+        <AiBot />
+        <AgentOverlay />
       </>
     );
   }
@@ -99,6 +103,8 @@ export function Workspace() {
       </div>
       
       <GlobalComposer />
+      <AiBot />
+      <AgentOverlay />
     </div>
   );
 }

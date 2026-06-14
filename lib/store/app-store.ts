@@ -4,6 +4,18 @@ import { persist } from 'zustand/middleware';
 export type TabId = 'email';
 export type WorkspaceMode = 'email' | 'calendar';
 
+export type AgentMessage = {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+};
+
+export type AgentStep = {
+  id: string;
+  label: string;
+  status: 'pending' | 'running' | 'done' | 'error';
+};
+
 interface AppState {
   activeTabs: TabId[];
   splitRatio: number; // 50 for 50/50 split
@@ -16,6 +28,10 @@ interface AppState {
   leftSidebarCollapsed: boolean;
   calendarView: 'Month' | 'Week' | 'Day' | 'Year';
   currentDateStr: string;
+  isAgentOpen: boolean;
+  agentMessages: AgentMessage[];
+  agentSteps: AgentStep[];
+  isAgentExecuting: boolean;
   openTab: (tabId: TabId, multiSelect?: boolean) => void;
   closeTab: (tabId: TabId) => void;
   setSplitRatio: (ratio: number) => void;
@@ -28,6 +44,13 @@ interface AppState {
   setLeftSidebarCollapsed: (collapsed: boolean) => void;
   setCalendarView: (view: 'Month' | 'Week' | 'Day' | 'Year') => void;
   setCurrentDateStr: (dateStr: string) => void;
+  setAgentOpen: (open: boolean) => void;
+  addAgentMessage: (msg: AgentMessage) => void;
+  setAgentMessages: (messages: AgentMessage[]) => void;
+  setAgentSteps: (steps: AgentStep[]) => void;
+  updateAgentStep: (id: string, patch: Partial<AgentStep>) => void;
+  setAgentExecuting: (executing: boolean) => void;
+  resetAgentSession: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -44,6 +67,10 @@ export const useAppStore = create<AppState>()(
       leftSidebarCollapsed: false,
       calendarView: 'Month',
       currentDateStr: new Date().toISOString(),
+      isAgentOpen: false,
+      agentMessages: [],
+      agentSteps: [],
+      isAgentExecuting: false,
       openTab: (tabId, multiSelect = false) => set((state) => {
         if (multiSelect) {
           // Cannot have more than 2 tabs open
@@ -73,6 +100,23 @@ export const useAppStore = create<AppState>()(
       setLeftSidebarCollapsed: (collapsed) => set({ leftSidebarCollapsed: collapsed }),
       setCalendarView: (view) => set({ calendarView: view }),
       setCurrentDateStr: (dateStr) => set({ currentDateStr: dateStr }),
+      setAgentOpen: (open) => set({ isAgentOpen: open }),
+      addAgentMessage: (msg) => set((state) => ({
+        agentMessages: [...state.agentMessages, msg],
+      })),
+      setAgentMessages: (messages) => set({ agentMessages: messages }),
+      setAgentSteps: (steps) => set({ agentSteps: steps }),
+      updateAgentStep: (id, patch) => set((state) => ({
+        agentSteps: state.agentSteps.map((s) =>
+          s.id === id ? { ...s, ...patch } : s
+        ),
+      })),
+      setAgentExecuting: (executing) => set({ isAgentExecuting: executing }),
+      resetAgentSession: () => set({
+        agentMessages: [],
+        agentSteps: [],
+        isAgentExecuting: false,
+      }),
     }),
     {
       name: 'app-storage',
