@@ -9,7 +9,7 @@ import { EmailCompactPanel } from './email-compact-panel';
 import { useAppStore } from '@/lib/store/app-store';
 import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronRight, ChevronLeft, Calendar, Mail, Inbox, Plus, Clock } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Calendar, Mail, Inbox, Plus, Clock, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { CreateEventModal } from './create-event-modal';
 
@@ -105,7 +105,7 @@ export function EmailPane() {
                             className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-overlay transition-colors"
                             title="Collapse Email Panel"
                           >
-                            <ChevronRight className="h-4 w-4" />
+                            <PanelRightClose className="h-4 w-4" />
                           </button>
                           <Mail className="h-4 w-4 text-accent-blue" />
                           <span className="text-[14px] font-semibold text-text-primary">Email</span>
@@ -131,7 +131,7 @@ export function EmailPane() {
                         title="Expand Email Panel"
                         className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:text-accent-blue hover:bg-accent-blue/10 transition-colors"
                       >
-                        <ChevronLeft className="h-4 w-4" />
+                        <PanelRightOpen className="h-4 w-4" />
                       </button>
 
                       <div className="w-6 border-t border-border-subtle my-1" />
@@ -224,7 +224,7 @@ export function EmailPane() {
                             className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-overlay transition-colors"
                             title="Collapse Calendar Panel"
                           >
-                            <ChevronRight className="h-4 w-4" />
+                            <PanelRightClose className="h-4 w-4" />
                           </button>
                           <Calendar className="h-4 w-4 text-accent-blue" />
                           <span className="text-[14px] font-semibold text-text-primary">Calendar</span>
@@ -250,7 +250,7 @@ export function EmailPane() {
                         title="Expand Calendar"
                         className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:text-accent-blue hover:bg-accent-blue/10 transition-colors"
                       >
-                        <ChevronLeft className="h-4 w-4" />
+                        <PanelRightOpen className="h-4 w-4" />
                       </button>
 
                       <div className="w-6 border-t border-border-subtle my-1" />

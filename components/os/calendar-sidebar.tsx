@@ -2,7 +2,7 @@
 
 import { 
   ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, 
-  ChevronDown, MoreVertical, List, Mail
+  ChevronDown, MoreVertical, List, Mail, PanelLeftOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
@@ -160,7 +160,7 @@ export function CalendarSidebar({
             className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-bg-overlay transition-colors"
             title="Expand Sidebar"
           >
-            <ChevronRight className="h-4 w-4" />
+            <PanelLeftOpen className="h-4 w-4" />
           </button>
         )}
 

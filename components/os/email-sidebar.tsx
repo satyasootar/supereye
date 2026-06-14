@@ -5,7 +5,7 @@ import {
   Inbox, Star, Clock, Send, FileText, Mail, AlertOctagon, Trash2, 
   ChevronDown, Plus, Settings, HelpCircle, HardDrive, Edit, 
   BarChart, Flame, Paperclip, Users, Tag, ChevronLeft, ChevronRight, Calendar,
-  Sun, Moon, User, Archive
+  Sun, Moon, User, Archive, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -105,7 +105,7 @@ export function EmailSidebar() {
               className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-overlay transition-colors"
               title="Collapse Sidebar"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <PanelLeftClose className="h-4 w-4" />
             </button>
           </div>
           <div className="flex-1 overflow-hidden">
@@ -124,7 +124,7 @@ export function EmailSidebar() {
               className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-bg-overlay transition-colors"
               title="Expand Sidebar"
             >
-              <ChevronRight className="h-4 w-4" />
+              <PanelLeftOpen className="h-4 w-4" />
             </button>
           )}
 
@@ -165,7 +165,7 @@ export function EmailSidebar() {
               className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-overlay transition-colors"
               title="Collapse Sidebar"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <PanelLeftClose className="h-4 w-4" />
             </button>
           </div>
 

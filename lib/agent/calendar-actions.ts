@@ -205,8 +205,8 @@ export async function listCalendarEventsForUser(
     date,
     timeZone,
     events: items
-      .map((event) => normalizeGoogleEvent(event, timeZone))
-      .filter((event): event is CalendarEventSummary => !!event),
+      .map((event: any) => normalizeGoogleEvent(event, timeZone))
+      .filter((event: any): event is CalendarEventSummary => !!event),
   };
 }
 

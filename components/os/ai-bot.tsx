@@ -255,7 +255,7 @@ export function AiBot() {
     }
   };
 
-  const eyeConfig = getEyeConfig();
+  const eyeConfig = getEyeConfig() as any;
   const isWinking = emotion.type === 'winking';
   const isBlushing = emotion.type === 'blushing' || emotion.type === 'lovestruck';
   const isAngry = emotion.type === 'angry';
