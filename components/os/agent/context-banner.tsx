@@ -17,8 +17,8 @@ export function ContextBanner() {
       transition={{ duration: 0.25 }}
       className="flex items-center gap-2 text-xs font-medium text-text-muted"
     >
-      <span className="flex items-center gap-1.5 rounded-full border border-[rgba(115,255,140,0.12)] bg-[rgba(15,15,15,0.35)] px-3 py-1.5 backdrop-blur-md">
-        <Icon className="h-3.5 w-3.5 text-[#73FF8C]" />
+      <span className="flex items-center gap-2 rounded-lg border border-border-default bg-bg-elevated/60 px-3 py-1.5 backdrop-blur-md">
+        <Icon className="h-3.5 w-3.5 text-accent-blue" />
         <span>Viewing · {ctx.contextLabel}</span>
       </span>
     </motion.div>

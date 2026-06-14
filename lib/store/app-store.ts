@@ -8,6 +8,7 @@ export type AgentMessage = {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  isStreaming?: boolean;
 };
 
 export type AgentStep = {
@@ -47,6 +48,8 @@ interface AppState {
   setAgentOpen: (open: boolean) => void;
   addAgentMessage: (msg: AgentMessage) => void;
   setAgentMessages: (messages: AgentMessage[]) => void;
+  updateAgentMessage: (id: string, patch: Partial<AgentMessage>) => void;
+  appendAgentMessageContent: (id: string, delta: string) => void;
   setAgentSteps: (steps: AgentStep[]) => void;
   updateAgentStep: (id: string, patch: Partial<AgentStep>) => void;
   setAgentExecuting: (executing: boolean) => void;
@@ -105,6 +108,16 @@ export const useAppStore = create<AppState>()(
         agentMessages: [...state.agentMessages, msg],
       })),
       setAgentMessages: (messages) => set({ agentMessages: messages }),
+      updateAgentMessage: (id, patch) => set((state) => ({
+        agentMessages: state.agentMessages.map((m) =>
+          m.id === id ? { ...m, ...patch } : m
+        ),
+      })),
+      appendAgentMessageContent: (id, delta) => set((state) => ({
+        agentMessages: state.agentMessages.map((m) =>
+          m.id === id ? { ...m, content: m.content + delta } : m
+        ),
+      })),
       setAgentSteps: (steps) => set({ agentSteps: steps }),
       updateAgentStep: (id, patch) => set((state) => ({
         agentSteps: state.agentSteps.map((s) =>

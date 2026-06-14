@@ -3,6 +3,7 @@
 import { useCallback } from 'react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useAgentContext } from '@/hooks/use-agent-context';
+import type { AgentStreamEvent } from '@/lib/agent/stream-events';
 
 function makeId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -11,10 +12,12 @@ function makeId() {
 export function useAgentChat() {
   const context = useAgentContext();
   const {
-    agentMessages,
     addAgentMessage,
     setAgentSteps,
+    updateAgentStep,
     setAgentExecuting,
+    updateAgentMessage,
+    appendAgentMessageContent,
     isAgentExecuting,
   } = useAppStore();
 
@@ -27,9 +30,9 @@ export function useAgentChat() {
       const priorMessages = useAppStore.getState().agentMessages;
       addAgentMessage(userMsg);
       setAgentExecuting(true);
-      setAgentSteps([
-        { id: 'start', label: 'Understanding request...', status: 'running' },
-      ]);
+      setAgentSteps([]);
+
+      let assistantId: string | null = null;
 
       try {
         const res = await fetch('/api/agent/chat', {
@@ -49,19 +52,31 @@ export function useAgentChat() {
           throw new Error(err.error ?? 'Request failed');
         }
 
-        const data = await res.json();
+        const reader = res.body?.getReader();
+        if (!reader) throw new Error('No response stream');
 
-        if (data.steps?.length) {
-          setAgentSteps(data.steps);
-        } else {
-          setAgentSteps([]);
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const event = JSON.parse(line) as AgentStreamEvent;
+            handleStreamEvent(event);
+          }
         }
 
-        addAgentMessage({
-          id: makeId(),
-          role: 'assistant',
-          content: data.text || 'I could not generate a response.',
-        });
+        if (buffer.trim()) {
+          const event = JSON.parse(buffer) as AgentStreamEvent;
+          handleStreamEvent(event);
+        }
       } catch (e) {
         setAgentSteps([]);
         addAgentMessage({
@@ -73,14 +88,63 @@ export function useAgentChat() {
               : 'Something went wrong. Please try again.',
         });
       } finally {
+        if (assistantId) {
+          updateAgentMessage(assistantId, { isStreaming: false });
+        }
         setAgentExecuting(false);
+      }
+
+      function handleStreamEvent(event: AgentStreamEvent) {
+        switch (event.type) {
+          case 'step': {
+            const steps = useAppStore.getState().agentSteps;
+            setAgentSteps([...steps, event.step]);
+            break;
+          }
+          case 'step-update':
+            updateAgentStep(event.id, event.patch);
+            break;
+          case 'text-start':
+            assistantId = event.messageId;
+            addAgentMessage({
+              id: event.messageId,
+              role: 'assistant',
+              content: '',
+              isStreaming: true,
+            });
+            break;
+          case 'text-delta':
+            if (assistantId) {
+              appendAgentMessageContent(assistantId, event.delta);
+            }
+            break;
+          case 'text-end':
+            if (assistantId) {
+              updateAgentMessage(assistantId, { isStreaming: false });
+            }
+            break;
+          case 'error':
+            if (!assistantId) {
+              addAgentMessage({
+                id: makeId(),
+                role: 'assistant',
+                content: event.error,
+              });
+            }
+            break;
+          case 'done':
+            break;
+        }
       }
     },
     [
       addAgentMessage,
+      appendAgentMessageContent,
       context,
       setAgentExecuting,
       setAgentSteps,
+      updateAgentMessage,
+      updateAgentStep,
     ]
   );
 

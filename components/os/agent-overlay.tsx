@@ -7,7 +7,6 @@ import { useAppStore } from '@/lib/store/app-store';
 import { ContextBanner } from './agent/context-banner';
 import { ConversationStream } from './agent/conversation-stream';
 import { FloatingSuggestions } from './agent/floating-suggestions';
-import { AgentExecutionTimeline } from './agent/agent-execution-timeline';
 import { BottomInput } from './agent/bottom-input';
 
 export function AgentOverlay() {
@@ -50,7 +49,7 @@ export function AgentOverlay() {
           <button
             type="button"
             onClick={() => setAgentOpen(false)}
-            className="absolute right-6 top-6 z-[210] flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[rgba(10,10,10,0.45)] text-text-muted backdrop-blur-md transition-colors hover:text-text-primary"
+            className="absolute right-6 top-6 z-[210] flex h-9 w-9 items-center justify-center rounded-lg border border-border-default bg-bg-elevated/80 text-text-muted backdrop-blur-md transition-colors hover:text-text-primary"
             aria-label="Close assistant"
           >
             <X className="h-4 w-4" />
@@ -59,10 +58,9 @@ export function AgentOverlay() {
           {/* Content — no giant chat card */}
           <div className="relative z-10 flex h-full flex-col pointer-events-none">
             <div className="flex-1 overflow-y-auto px-6 pt-8 pb-36 pointer-events-auto custom-scrollbar">
-              <div className="mx-auto flex max-w-[700px] flex-col gap-5">
+              <div className="mx-auto flex max-w-[700px] flex-col gap-4">
                 <ContextBanner />
                 <FloatingSuggestions />
-                <AgentExecutionTimeline />
                 <ConversationStream />
               </div>
             </div>

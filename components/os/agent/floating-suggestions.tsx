@@ -35,7 +35,7 @@ export function FloatingSuggestions() {
           transition={{ duration: 0.2, delay: 0.05 * i }}
           disabled={isAgentExecuting}
           onClick={() => sendMessage(label)}
-          className="rounded-full border border-[rgba(115,255,140,0.15)] bg-[rgba(10,10,10,0.45)] px-4 py-2 text-sm text-text-secondary backdrop-blur-md transition-colors hover:border-[rgba(115,255,140,0.3)] hover:text-text-primary disabled:opacity-50"
+          className="rounded-lg border border-border-default bg-bg-elevated/70 px-3.5 py-2 text-[13px] text-text-secondary backdrop-blur-md transition-colors hover:border-accent-blue/30 hover:bg-bg-highlight/50 hover:text-text-primary disabled:opacity-50"
         >
           {label}
         </motion.button>
