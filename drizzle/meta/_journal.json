@@ -64,6 +64,13 @@
       "when": 1781550000000,
       "tag": "0008_user_keybindings",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1781600000000,
+      "tag": "0009_email_priority",
+      "breakpoints": true
     }
   ]
 }

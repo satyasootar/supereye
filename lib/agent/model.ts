@@ -4,7 +4,7 @@ import type { LanguageModel } from 'ai';
 
 export type AgentProvider = 'mistral' | 'openai';
 
-function resolveProvider(): AgentProvider {
+export function resolveProvider(): AgentProvider {
   const configured = process.env.AI_PROVIDER?.toLowerCase();
   if (configured === 'openai' || configured === 'mistral') {
     return configured;

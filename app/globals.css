@@ -86,6 +86,12 @@
 
     --success: #22C55E;
     --success-dim: #16A34A;
+
+    --priority-urgent: #EF4444;
+    --priority-high: #F97316;
+    --priority-medium: #EAB308;
+    --priority-low: #64748B;
+    --priority-ai: #8B5CF6;
 }
 
 .dark {
@@ -109,6 +115,12 @@
 
     --success: #86EFAC;
     --success-dim: #4ADE80;
+
+    --priority-urgent: #F87171;
+    --priority-high: #FB923C;
+    --priority-medium: #FACC15;
+    --priority-low: #94A3B8;
+    --priority-ai: #A78BFA;
 
     /* Agent overlay tokens */
     --agent-accent: #73FF8C;

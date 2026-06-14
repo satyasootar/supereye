@@ -223,7 +223,7 @@ export function EmailReader() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-app min-w-[400px]">
+    <div className="flex h-full flex-1 flex-col bg-bg-app overflow-hidden min-w-[400px]">
       {/* Thread Header */}
       <div className="relative flex-shrink-0 border-b border-border-subtle bg-bg-base z-10">
         <AnimatePresence initial={false}>
@@ -264,10 +264,6 @@ export function EmailReader() {
                   </div>
 
                   <div className="flex items-center gap-1 text-text-secondary">
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-white/5 bg-bg-surface hover:bg-bg-overlay hover:text-text-primary text-[13px] font-medium transition-colors mr-2">
-                      <Sparkles className="h-4 w-4" />
-                      <span className="hidden sm:inline">Auto label similar</span>
-                    </button>
                     <button onClick={handlePrint} className="p-2 rounded hover:bg-bg-overlay hover:text-text-primary transition-colors" title="Print">
                       <Printer className="h-4 w-4" />
                     </button>
@@ -341,7 +337,7 @@ export function EmailReader() {
       </div>
 
       {/* Scrollable Thread Content */}
-      <div className="custom-scrollbar relative min-h-0 flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 relative">
         <div className="max-w-[700px] mx-auto flex flex-col gap-6">
           
           {messages.map((email: any, index: number) => {

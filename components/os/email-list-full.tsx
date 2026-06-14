@@ -2,8 +2,9 @@
 
 import { 
   Menu, Filter, Tag, CheckCircle2, SlidersHorizontal, Square, 
-  CheckSquare, Archive, Trash2, Clock, Calendar, MessageSquare, 
-  MoreHorizontal, ChevronDown, Plus, Search, Send, X, FileText, Inbox
+  CheckSquare, Archive, Trash2, Calendar, MessageSquare, 
+  MoreHorizontal, ChevronDown, Plus, Search, Send, X, FileText, Inbox,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -28,6 +29,8 @@ import {
 import { Check } from "lucide-react";
 import { AdvancedSearchFilter } from '@/components/os/advanced-search-filter';
 import { SendersFilter } from '@/components/os/senders-filter';
+import { EmailPriorityBadge } from '@/components/os/email-priority-badge';
+import type { EmailPriorityTier } from '@/lib/mail/priority';
 
 type EmailMessage = {
   id: string;
@@ -41,6 +44,10 @@ type EmailMessage = {
   date: string; // ISO Date String
   threadCount?: number;
   toAddresses?: any[];
+  priorityTier?: EmailPriorityTier | null;
+  priorityScore?: number | null;
+  priorityReason?: string | null;
+  priorityClassifiedAt?: string | null;
 };
 
 export type FilterCategory = 'INBOX' | 'SENT' | 'CATEGORY_PROMOTIONS' | 'CATEGORY_SOCIAL' | 'CATEGORY_UPDATES' | 'ALL';
@@ -96,7 +103,15 @@ function buildPeekIframeHtml(body: string, isDark: boolean): string {
 export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }) {
   const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const { activeTabs, emailCategory, setEmailCategory, selectedEmailId, setSelectedEmailId } = useAppStore();
+  const {
+    activeTabs,
+    emailCategory,
+    setEmailCategory,
+    emailPriorityFilter,
+    setEmailPriorityFilter,
+    selectedEmailId,
+    setSelectedEmailId,
+  } = useAppStore();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   
@@ -109,6 +124,9 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
   const [openLabels, setOpenLabels] = useState(false);
   const [openQuickFilters, setOpenQuickFilters] = useState(false);
+  const [urgentBannerDismissed, setUrgentBannerDismissed] = useState(false);
+  const lastDismissedUrgentCount = useRef(0);
+  const triageRequestedRef = useRef(false);
 
   const { data: labelsData } = useQuery({
     queryKey: ['labels'],
@@ -128,6 +146,52 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     },
     refetchInterval: 30000,
   });
+
+  const { data: triageData } = useQuery({
+    queryKey: ['emails', 'triage'],
+    queryFn: async () => {
+      const res = await fetch('/api/mail/triage');
+      if (!res.ok) throw new Error('Failed to fetch triage summary');
+      return res.json() as Promise<{
+        urgent: number;
+        canWait: number;
+        pending: number;
+      }>;
+    },
+    refetchInterval: 30000,
+  });
+
+  const triageMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/mail/triage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 10 }),
+      });
+      if (!res.ok) throw new Error('Failed to classify emails');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });
+      queryClient.invalidateQueries({ queryKey: ['emails', 'triage'] });
+    },
+  });
+
+  useEffect(() => {
+    if (
+      triageData?.pending &&
+      triageData.pending > 0 &&
+      !triageMutation.isPending &&
+      !triageRequestedRef.current
+    ) {
+      triageRequestedRef.current = true;
+      triageMutation.mutate(undefined, {
+        onSettled: () => {
+          triageRequestedRef.current = false;
+        },
+      });
+    }
+  }, [triageData?.pending, triageMutation.isPending]);
 
   const formatLabelName = (name: string) => {
     if (!name) return '';
@@ -168,11 +232,15 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   };
   
   const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['emails', 'threads', emailCategory],
+    queryKey: ['emails', 'threads', emailCategory, emailPriorityFilter],
     queryFn: async ({ pageParam = 0 }) => {
       const endpoint = emailCategory === 'DRAFT' 
         ? `/api/mail/drafts` 
-        : `/api/mail/threads?offset=${pageParam}&category=${encodeURIComponent(emailCategory)}`;
+        : `/api/mail/threads?offset=${pageParam}&category=${encodeURIComponent(emailCategory)}${
+            emailPriorityFilter !== 'all'
+              ? `&priority=${encodeURIComponent(emailPriorityFilter)}`
+              : ''
+          }`;
       
       const res = await fetch(endpoint);
       if (!res.ok) throw new Error('Failed to fetch emails');
@@ -198,7 +266,19 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
 
   const isSearching = debouncedSearch.trim().length > 0;
   const rawEmails = isSearching ? (searchData || []) : (data?.pages.flat() || []);
-  const emails = Array.from(new Map(rawEmails.map(e => [e.id, e])).values());
+  const emails = Array.from(new Map(rawEmails.map(e => [e.id, e])).values()).filter((email) => {
+    if (isSearching || emailPriorityFilter === 'all') return true;
+    return email.priorityTier === emailPriorityFilter;
+  });
+
+  const showPriorityUi = ['ALL', 'INBOX', 'CATEGORY_PROMOTIONS', 'CATEGORY_SOCIAL', 'CATEGORY_UPDATES'].includes(emailCategory);
+  const urgentCount = triageData?.urgent ?? emails.filter((e) => e.priorityTier === 'urgent' && !e.isRead).length;
+
+  useEffect(() => {
+    if (urgentCount > lastDismissedUrgentCount.current) {
+      setUrgentBannerDismissed(false);
+    }
+  }, [urgentCount]);
 
   useEffect(() => {
     const navigate = (delta: number) => {
@@ -603,7 +683,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       </div>
 
       {/* Categories Toolbar - Only show in INBOX and its sub-categories */}
-      {['ALL', 'INBOX', 'CATEGORY_PROMOTIONS', 'CATEGORY_SOCIAL', 'CATEGORY_UPDATES'].includes(emailCategory) && (
+      {showPriorityUi && (
         <div className="flex-none px-4 py-2 border-b border-border-subtle bg-bg-surface/50 overflow-x-auto no-scrollbar">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -646,6 +726,33 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {showPriorityUi && urgentCount > 0 && emailPriorityFilter !== 'urgent' && !urgentBannerDismissed && (
+        <div className="mx-6 mt-4 flex items-center gap-3 rounded-lg border border-[color:var(--priority-urgent)]/25 bg-[color:var(--priority-urgent)]/8 px-4 py-3">
+          <AlertCircle className="h-4 w-4 flex-shrink-0 text-[color:var(--priority-urgent)]" />
+          <p className="flex-1 text-[13px] text-text-secondary">
+            <span className="font-semibold text-text-primary">{urgentCount} urgent</span>
+            {' '}email{urgentCount === 1 ? '' : 's'} need attention.
+          </p>
+          <button
+            onClick={() => setEmailPriorityFilter('urgent')}
+            className="rounded-md px-3 py-1.5 text-[12px] font-semibold text-[color:var(--priority-urgent)] hover:bg-[color:var(--priority-urgent)]/10 transition-colors"
+          >
+            View urgent
+          </button>
+          <button
+            onClick={() => {
+              lastDismissedUrgentCount.current = urgentCount;
+              setUrgentBannerDismissed(true);
+            }}
+            className="rounded-md p-1.5 text-text-muted hover:bg-[color:var(--priority-urgent)]/10 hover:text-[color:var(--priority-urgent)] transition-colors"
+            title="Dismiss"
+            aria-label="Dismiss urgent alert"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
 
@@ -739,11 +846,19 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                         </div>
 
                         {/* Subject and Snippet */}
-                        <div className="flex-1 flex items-center overflow-hidden gap-2">
-                          <span className={cn("truncate text-[14px] flex-shrink-0", !email.isRead ? "font-semibold text-text-primary" : "text-text-muted font-normal")}>
+                        <div className="flex-1 flex items-center overflow-hidden gap-2 min-w-0">
+                          {email.priorityTier && (
+                            <EmailPriorityBadge
+                              tier={email.priorityTier}
+                              reason={email.priorityReason}
+                              compact
+                              className="flex-shrink-0"
+                            />
+                          )}
+                          <span className={cn("truncate text-[14px] flex-shrink-0 max-w-[40%]", !email.isRead ? "font-semibold text-text-primary" : "text-text-muted font-normal")}>
                             {email.subject || '(No Subject)'}
                           </span>
-                          <span className="truncate text-[14px] text-text-muted opacity-80">
+                          <span className="truncate text-[14px] text-text-muted opacity-80 min-w-0">
                             {email.snippet}
                           </span>
                         </div>

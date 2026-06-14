@@ -60,6 +60,7 @@ interface AppState {
   isCommandPaletteOpen: boolean;
   isComposeOpen: boolean;
   emailCategory: string;
+  emailPriorityFilter: 'all' | 'urgent' | 'can_wait';
   workspaceMode: WorkspaceMode;
   primaryPluginId: PluginId;
   sidebarPluginId: PluginId | null;
@@ -81,6 +82,7 @@ interface AppState {
   setCommandPaletteOpen: (isOpen: boolean) => void;
   setComposeOpen: (isOpen: boolean) => void;
   setEmailCategory: (category: string) => void;
+  setEmailPriorityFilter: (filter: 'all' | 'urgent' | 'can_wait') => void;
   setWorkspaceMode: (mode: WorkspaceMode) => void;
   setLayoutMode: (primary: PluginId, sidebar?: PluginId | null) => void;
   syncLayoutWithPlugins: (activePlugins: PluginId[]) => void;
@@ -122,6 +124,7 @@ export const useAppStore = create<AppState>()(
       isCommandPaletteOpen: false,
       isComposeOpen: false,
       emailCategory: 'ALL',
+      emailPriorityFilter: 'all',
       workspaceMode: 'email',
       primaryPluginId: 'email',
       sidebarPluginId: 'calendar',
@@ -160,6 +163,7 @@ export const useAppStore = create<AppState>()(
       setCommandPaletteOpen: (isOpen) => set({ isCommandPaletteOpen: isOpen }),
       setComposeOpen: (isOpen) => set({ isComposeOpen: isOpen }),
       setEmailCategory: (category) => set({ emailCategory: category }),
+      setEmailPriorityFilter: (filter) => set({ emailPriorityFilter: filter }),
       setWorkspaceMode: (mode) =>
         set((state) => {
           const layout = workspaceModeToLayout(mode, [

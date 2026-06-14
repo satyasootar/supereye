@@ -111,7 +111,7 @@ export async function syncGmailForUser(userId: string) {
 
       // Create notifications for completely new emails
       const newEmails = toInsert.filter(m => !existingIds.has(m.googleMessageId));
-      if (newEmails.length > 0) {
+        if (newEmails.length > 0) {
         const { notifications } = await import('@/lib/db/schema');
         const notifsToInsert = newEmails.map(m => ({
           userId,
@@ -129,6 +129,18 @@ export async function syncGmailForUser(userId: string) {
             type: 'notification:new', 
             data: notif as Record<string, unknown>
           });
+        }
+
+        const inboxNewIds = newEmails
+          .filter((m) => !m.isRead && (m.labelIds?.includes('INBOX') ?? true))
+          .map((m) => m.googleMessageId);
+
+        if (inboxNewIds.length > 0) {
+          void import('@/lib/mail/triage').then(({ triageNewEmailsForUser }) =>
+            triageNewEmailsForUser(userId, inboxNewIds).catch((err) =>
+              console.error('Background email triage failed:', err)
+            )
+          );
         }
       }
     }

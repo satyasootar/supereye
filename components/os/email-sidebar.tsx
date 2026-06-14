@@ -31,7 +31,15 @@ import { WorkspaceSwitcher } from './workspace-switcher';
 export function EmailSidebar() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { activeTabs, emailCategory, setEmailCategory, leftSidebarCollapsed, setLeftSidebarCollapsed } = useAppStore();
+  const {
+    activeTabs,
+    emailCategory,
+    setEmailCategory,
+    emailPriorityFilter,
+    setEmailPriorityFilter,
+    leftSidebarCollapsed,
+    setLeftSidebarCollapsed,
+  } = useAppStore();
   const { primary, activePlugins } = useWorkspaceLayout();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -64,8 +72,22 @@ export function EmailSidebar() {
     staleTime: 60000 * 5,
   });
 
+  const { data: triageData } = useQuery({
+    queryKey: ['emails', 'triage'],
+    queryFn: async () => {
+      const res = await fetch('/api/mail/triage');
+      if (!res.ok) throw new Error('Failed to fetch triage summary');
+      return res.json() as Promise<{
+        urgent: number;
+        canWait: number;
+        pending: number;
+      }>;
+    },
+    enabled: activePlugins.includes('email'),
+    refetchInterval: 30000,
+  });
+
   const [viewsExpanded, setViewsExpanded] = useState(true);
-  const [triageExpanded, setTriageExpanded] = useState(false);
 
   const goToProfile = () => router.push('/workspace/profile');
 
@@ -220,6 +242,82 @@ export function EmailSidebar() {
                 </button>
               ))}
             </nav>
+
+            <div className="mt-4 px-2">
+              <div className="flex items-center justify-between px-3 py-1">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                  AI Triage
+                </span>
+                {(triageData?.pending ?? 0) > 0 && (
+                  <span className="text-[10px] font-medium text-text-muted animate-pulse">
+                    Classifying…
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex flex-col gap-0.5">
+                <button
+                  onClick={() => {
+                    setEmailCategory('ALL');
+                    setEmailPriorityFilter('all');
+                  }}
+                  className={cn(
+                    'flex items-center justify-between rounded-md px-3 py-1.5 text-[13.5px] font-medium transition-colors',
+                    emailPriorityFilter === 'all'
+                      ? 'bg-bg-highlight text-text-primary border-l-2 border-accent-blue rounded-l-none'
+                      : 'text-text-secondary hover:bg-bg-overlay hover:text-text-primary border-l-2 border-transparent'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Inbox className="h-4 w-4" />
+                    All mail
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setEmailCategory('ALL');
+                    setEmailPriorityFilter('urgent');
+                  }}
+                  className={cn(
+                    'flex items-center justify-between rounded-md px-3 py-1.5 text-[13.5px] font-medium transition-colors',
+                    emailPriorityFilter === 'urgent'
+                      ? 'bg-[color:var(--priority-urgent)]/10 text-[color:var(--priority-urgent)]'
+                      : 'text-text-secondary hover:bg-bg-overlay hover:text-text-primary'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Flame className="h-4 w-4" />
+                    Urgent
+                  </div>
+                  {(triageData?.urgent ?? 0) > 0 && (
+                    <span className="rounded-full bg-[color:var(--priority-urgent)]/15 px-2 py-0.5 text-[11px] font-bold">
+                      {triageData?.urgent}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setEmailCategory('ALL');
+                    setEmailPriorityFilter('can_wait');
+                  }}
+                  className={cn(
+                    'flex items-center justify-between rounded-md px-3 py-1.5 text-[13.5px] font-medium transition-colors',
+                    emailPriorityFilter === 'can_wait'
+                      ? 'bg-[color:var(--priority-low)]/10 text-[color:var(--priority-low)]'
+                      : 'text-text-secondary hover:bg-bg-overlay hover:text-text-primary'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-4 w-4" />
+                    Can wait
+                  </div>
+                  {(triageData?.canWait ?? 0) > 0 && (
+                    <span className="rounded-full bg-[color:var(--priority-low)]/15 px-2 py-0.5 text-[11px] font-bold">
+                      {triageData?.canWait}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
 
             <div className="flex-1" />
           </div>

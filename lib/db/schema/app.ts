@@ -44,6 +44,12 @@ export const emails = pgTable(
     isArchived: boolean('is_archived').notNull().default(false),
     internalDate: timestamp('internal_date', { withTimezone: true }),
     historyId: text('history_id'),
+    priorityTier: text('priority_tier').$type<'urgent' | 'can_wait'>(),
+    priorityScore: integer('priority_score'),
+    priorityReason: text('priority_reason'),
+    priorityClassifiedAt: timestamp('priority_classified_at', {
+      withTimezone: true,
+    }),
     syncedAt: timestamp('synced_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

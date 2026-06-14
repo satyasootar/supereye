@@ -56,6 +56,11 @@ export function AttendeePicker({ value, onChange }: AttendeePickerProps) {
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, []);
 
+  const normalizedQuery = query.trim().toLowerCase();
+  const canAddQuery = EMAIL_RE.test(normalizedQuery);
+  const queryAlreadySelected =
+    canAddQuery && value.some((a) => a.email.toLowerCase() === normalizedQuery);
+
   const addAttendee = (email: string, name?: string) => {
     const normalized = email.trim().toLowerCase();
     if (!EMAIL_RE.test(normalized)) return;
@@ -65,22 +70,59 @@ export function AttendeePicker({ value, onChange }: AttendeePickerProps) {
     setOpen(false);
   };
 
+  const addFromQuery = () => {
+    if (canAddQuery && !queryAlreadySelected) {
+      addAttendee(normalizedQuery);
+      return true;
+    }
+    return false;
+  };
+
   const removeAttendee = (email: string) => {
     onChange(value.filter((a) => a.email !== email));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
+      if (addFromQuery()) return;
       if (suggestions[0]) {
         addAttendee(suggestions[0].email, suggestions[0].name);
-      } else if (EMAIL_RE.test(query.trim())) {
-        addAttendee(query.trim());
+      }
+    } else if (e.key === 'Tab' && query.trim()) {
+      if (addFromQuery()) {
+        e.preventDefault();
       }
     } else if (e.key === 'Backspace' && !query && value.length > 0) {
       removeAttendee(value[value.length - 1].email);
     }
   };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData('text');
+    const emails = pasted
+      .split(/[,;\s]+/)
+      .map((part) => part.trim().toLowerCase())
+      .filter((part) => EMAIL_RE.test(part));
+
+    if (emails.length === 0) return;
+
+    e.preventDefault();
+    const next = [...value];
+    const seen = new Set(next.map((a) => a.email.toLowerCase()));
+    for (const email of emails) {
+      if (!seen.has(email)) {
+        seen.add(email);
+        next.push({ email, name: email });
+      }
+    }
+    onChange(next);
+    setQuery('');
+    setOpen(false);
+  };
+
+  const showDropdown =
+    open && (isLoading || suggestions.length > 0 || (canAddQuery && !queryAlreadySelected));
 
   return (
     <div ref={containerRef} className="space-y-2">
@@ -119,19 +161,34 @@ export function AttendeePicker({ value, onChange }: AttendeePickerProps) {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Add guests by email…"
           className="h-10 rounded-md border-border-default bg-bg-overlay pl-9 text-text-primary placeholder:text-text-muted"
         />
 
-        {open && (suggestions.length > 0 || isLoading) && (
+        {showDropdown && (
           <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border-default bg-bg-elevated py-1 shadow-xl custom-scrollbar">
             {isLoading && (
               <p className="px-3 py-2 text-[12px] text-text-muted">Loading suggestions…</p>
+            )}
+            {canAddQuery && !queryAlreadySelected && (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => addAttendee(normalizedQuery)}
+                className="flex w-full items-center gap-2 border-b border-border-subtle px-3 py-2 text-left text-[13px] transition-colors hover:bg-bg-overlay"
+              >
+                <UserPlus className="h-3.5 w-3.5 shrink-0 text-accent-blue" />
+                <span className="text-text-primary">
+                  Add <span className="font-medium">{normalizedQuery}</span>
+                </span>
+              </button>
             )}
             {suggestions.map((contact) => (
               <button
                 key={contact.email}
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => addAttendee(contact.email, contact.name)}
                 className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[13px] transition-colors hover:bg-bg-overlay"
               >

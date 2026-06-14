@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { emails, emailEventLinks } from '@/lib/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
+import { mapEmailRowToMessage } from '@/lib/mail/priority';
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -14,6 +15,11 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
   const category = searchParams.get('category') || 'INBOX';
+  const priority = searchParams.get('priority');
+  const priorityFilter =
+    priority === 'urgent' || priority === 'can_wait'
+      ? sql` AND ${emails.priorityTier} = ${priority}`
+      : sql``;
 
   try {
     let baseQuery = db.select({
@@ -24,21 +30,23 @@ export async function GET(req: Request) {
       .leftJoin(emailEventLinks, eq(emails.id, emailEventLinks.emailId));
 
     if (category === 'ALL') {
-      baseQuery = baseQuery.where(eq(emails.userId, session.user.id)) as any;
+      baseQuery = baseQuery.where(
+        sql`${emails.userId} = ${session.user.id}${priorityFilter}`
+      ) as typeof baseQuery;
     } else if (category === 'ARCHIVE') {
       baseQuery = baseQuery.where(
-        sql`${emails.userId} = ${session.user.id} AND ${emails.isArchived} = true`
-      ) as any;
+        sql`${emails.userId} = ${session.user.id} AND ${emails.isArchived} = true${priorityFilter}`
+      ) as typeof baseQuery;
     } else if (category === 'INBOX') {
       const categoryFilter = JSON.stringify([category]);
       baseQuery = baseQuery.where(
-        sql`${emails.userId} = ${session.user.id} AND ${emails.isArchived} = false AND (${emails.labelIds} @> ${categoryFilter}::jsonb OR ${emails.labelIds} IS NULL)`
-      ) as any;
+        sql`${emails.userId} = ${session.user.id} AND ${emails.isArchived} = false AND (${emails.labelIds} @> ${categoryFilter}::jsonb OR ${emails.labelIds} IS NULL)${priorityFilter}`
+      ) as typeof baseQuery;
     } else {
       const categoryFilter = JSON.stringify([category]);
       baseQuery = baseQuery.where(
-        sql`${emails.userId} = ${session.user.id} AND ${emails.labelIds} @> ${categoryFilter}::jsonb`
-      ) as any;
+        sql`${emails.userId} = ${session.user.id} AND ${emails.labelIds} @> ${categoryFilter}::jsonb${priorityFilter}`
+      ) as typeof baseQuery;
     }
 
     const cachedEmails = await baseQuery
@@ -49,29 +57,22 @@ export async function GET(req: Request) {
     const uniqueMessagesMap = new Map();
     for (const m of cachedEmails) {
       if (!uniqueMessagesMap.has(m.email.googleMessageId)) {
-        uniqueMessagesMap.set(m.email.googleMessageId, {
-          id: m.email.googleMessageId,
-          snippet: m.email.snippet,
-          body: m.email.body,
-          subject: m.email.subject,
-          sender: m.email.fromAddress,
-          isRead: m.email.isRead,
-          isStarred: m.email.isStarred,
-          isLinkedToEvent: !!m.linkId,
-          date: m.email.internalDate,
-          toAddresses: m.email.toAddresses
-        });
+        uniqueMessagesMap.set(
+          m.email.googleMessageId,
+          mapEmailRowToMessage(m.email, m.linkId)
+        );
       }
     }
 
     const fullMessages = Array.from(uniqueMessagesMap.values());
 
     return NextResponse.json({ messages: fullMessages });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to fetch emails from DB:', error);
+    const details = error instanceof Error ? error.message : undefined;
     return NextResponse.json({ 
       error: 'Failed to fetch emails',
-      details: error?.message 
+      details,
     }, { status: 500 });
   }
 }

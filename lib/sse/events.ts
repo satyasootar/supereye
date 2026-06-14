@@ -13,6 +13,7 @@
 export type SSEEventType =
   // Email
   | 'email:updated'
+  | 'email:triage'
   // Calendar
   | 'calendar:updated'
   // Notifications
@@ -33,6 +34,7 @@ export type SSEEvent = {
 // SSE hook doesn't need a growing if/else chain.
 export const SSE_INVALIDATION_MAP: Record<SSEEventType, string[][]> = {
   'email:updated': [['mail-threads'], ['emails', 'threads'], ['emails', 'unread-count']],
+  'email:triage': [['emails', 'threads'], ['emails', 'triage']],
   'calendar:updated': [['calendar-events'], ['calendar', 'events']],
   'notification:new': [['notifications']],
   'sync:requested': [['mail-threads'], ['emails', 'threads'], ['emails', 'unread-count'], ['calendar-events'], ['calendar', 'events']],

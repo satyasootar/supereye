@@ -5,6 +5,7 @@ import { emails, emailEventLinks } from '@/lib/db/schema';
 import { eq, desc, ilike, or, sql, and } from 'drizzle-orm';
 import { getTenant } from '@/lib/corsair';
 import { getBody } from '@/lib/mail/sync';
+import { mapEmailRowToMessage } from '@/lib/mail/priority';
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -66,18 +67,10 @@ export async function GET(req: Request) {
     const uniqueMessagesMap = new Map();
     for (const m of localResults) {
       if (!uniqueMessagesMap.has(m.email.googleMessageId)) {
-        uniqueMessagesMap.set(m.email.googleMessageId, {
-          id: m.email.googleMessageId,
-          snippet: m.email.snippet,
-          body: m.email.body,
-          subject: m.email.subject,
-          sender: m.email.fromAddress,
-          isRead: m.email.isRead,
-          isStarred: m.email.isStarred,
-          isLinkedToEvent: !!m.linkId,
-          date: m.email.internalDate,
-          toAddresses: m.email.toAddresses
-        });
+        uniqueMessagesMap.set(
+          m.email.googleMessageId,
+          mapEmailRowToMessage(m.email, m.linkId)
+        );
       }
     }
 
