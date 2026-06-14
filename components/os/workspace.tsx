@@ -6,14 +6,12 @@ import { useState, useRef } from 'react';
 import { EmailPane } from './email-pane';
 import { EmailSidebar } from './email-sidebar';
 
-import { useGlobalShortcuts } from '@/hooks/use-global-shortcuts';
 import { useSSE } from '@/hooks/use-sse';
 import { GlobalComposer } from './global-composer';
 import { AiBot } from './ai-bot';
 import { AgentOverlay } from './agent-overlay';
 
 export function Workspace() {
-  useGlobalShortcuts();
   useSSE();
   const { activeTabs, splitRatio, setSplitRatio } = useAppStore();
   const containerRef = useRef<HTMLDivElement>(null);

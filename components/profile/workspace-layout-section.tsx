@@ -252,7 +252,9 @@ export function WorkspaceLayoutSection() {
                   setSavingId(null);
                 }
               }}
-              onDelete={() => deleteWorkspace(ws.id)}
+              onDelete={async () => {
+                await deleteWorkspace(ws.id);
+              }}
             />
           ))}
         </ul>
@@ -378,16 +380,28 @@ export function WorkspaceLayoutSection() {
         </ProfileSection>
       )}
 
-      <ProfileSection title="Keyboard shortcuts" description="Switch workspaces and plugins without leaving the keyboard.">
+      <ProfileSection
+        title="Keyboard shortcuts"
+        description="Press ? for the full cheat sheet, or customize bindings in Profile → Shortcuts."
+      >
         <ul className="space-y-2 text-[13px] text-text-secondary">
           <li>
-            <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">Ctrl+1</kbd> –{' '}
-            <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">Ctrl+9</kbd> Switch workspace
+            <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">1</kbd> –{' '}
+            <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">5</kbd> Switch
+            workspace
           </li>
           <li>
-            <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">Ctrl+Shift+1</kbd> /{' '}
-            <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">Ctrl+Shift+2</kbd> Focus plugin
-            in current workspace
+            <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">Tab</kbd> Switch
+            plugin in workspace
+          </li>
+          <li>
+            <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">[</kbd>{' '}
+            <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">]</kbd>{' '}
+            Previous / next workspace
+          </li>
+          <li>
+            <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">?</kbd> Open
+            shortcut reference
           </li>
         </ul>
       </ProfileSection>

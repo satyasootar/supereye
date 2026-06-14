@@ -1,4 +1,4 @@
-import type { LayoutMode, PluginId, WorkspaceLayout, UserWorkspacePreferences } from '@/lib/plugins/types';
+import type { LayoutMode, PluginId, WorkspaceLayout } from '@/lib/plugins/types';
 import {
   getDefaultPrimaryPlugin,
   getDefaultSidebarPlugin,
@@ -25,9 +25,14 @@ export function getLayoutModes(activePlugins: PluginId[]): LayoutMode[] {
   });
 }
 
+type LayoutPrefs = {
+  primaryPluginId: PluginId | null;
+  sidebarPluginId: PluginId | null;
+};
+
 export function resolveWorkspaceLayout(
   activePlugins: PluginId[],
-  prefs: Pick<UserWorkspacePreferences, 'primaryPluginId' | 'sidebarPluginId'>
+  prefs: LayoutPrefs
 ): WorkspaceLayout {
   if (activePlugins.length === 0) {
     return { primary: 'email', sidebar: null };

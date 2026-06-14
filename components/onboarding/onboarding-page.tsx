@@ -12,38 +12,24 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
+import { OnboardingShortcutsStep } from '@/components/onboarding/onboarding-shortcuts-step';
 import { getOnboardingPlugins, getPlugin } from '@/lib/plugins/registry';
 import { useActivePlugins, ACTIVE_PLUGINS_KEY } from '@/hooks/use-active-plugins';
 import { USER_PREFERENCES_KEY } from '@/hooks/use-workspaces';
 
-const PLUGIN_META: Record<
-  string,
-  {
-    accent: string;
-    accentBg: string;
-    accentBorder: string;
-    iconBg: string;
-  }
-> = {
+const PLUGIN_META: Record<string, { iconBg: string }> = {
   email: {
-    accent: 'text-[#EA4335]',
-    accentBg: 'bg-[#EA4335]/10',
-    accentBorder: 'border-[#EA4335]/35',
     iconBg: 'bg-white dark:bg-bg-elevated',
   },
   calendar: {
-    accent: 'text-[#4285F4]',
-    accentBg: 'bg-[#4285F4]/10',
-    accentBorder: 'border-[#4285F4]/35',
     iconBg: 'bg-white dark:bg-bg-elevated',
   },
   github: {
-    accent: 'text-text-muted',
-    accentBg: 'bg-bg-highlight',
-    accentBorder: 'border-border-default',
     iconBg: 'bg-white dark:bg-bg-elevated',
   },
 };
+
+type OnboardingStep = 'connect' | 'shortcuts';
 
 export function OnboardingPageClient() {
   const router = useRouter();
@@ -54,6 +40,7 @@ export function OnboardingPageClient() {
   const [connectError, setConnectError] = useState<string | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [justConnected, setJustConnected] = useState(false);
+  const [step, setStep] = useState<OnboardingStep>('connect');
 
   const onboardingPlugins = getOnboardingPlugins();
   const connectedCount = activePlugins.length;
@@ -95,6 +82,11 @@ export function OnboardingPageClient() {
     }
   };
 
+  const goToShortcutsStep = () => {
+    if (!canContinue) return;
+    setStep('shortcuts');
+  };
+
   const finishOnboarding = async () => {
     setFinishing(true);
     try {
@@ -113,24 +105,38 @@ export function OnboardingPageClient() {
     }
   };
 
-  return (
-    <div className="relative flex min-h-full flex-col overflow-y-auto bg-bg-app custom-scrollbar">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.35]"
-        style={{
-          backgroundImage:
-            'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(66,133,244,0.18), transparent), radial-gradient(ellipse 60% 40% at 100% 50%, rgba(234,67,53,0.08), transparent)',
-        }}
+  if (step === 'shortcuts') {
+    return (
+      <OnboardingShortcutsStep
+        onContinue={finishOnboarding}
+        onBack={() => setStep('connect')}
+        finishing={finishing}
       />
+    );
+  }
 
-      <div className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-10 pb-32">
+  return (
+    <div className="flex h-full min-h-0 w-full flex-col bg-bg-app">
+      <div className="relative flex-1 overflow-y-auto custom-scrollbar">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage:
+              'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(66,133,244,0.18), transparent), radial-gradient(ellipse 60% 40% at 100% 50%, rgba(234,67,53,0.08), transparent)',
+          }}
+        />
+
+        <div className="relative mx-auto w-full max-w-3xl px-6 py-10 pb-8">
         <motion.header
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className="text-center"
         >
-          <h1 className="text-[32px] font-semibold tracking-tight text-text-primary sm:text-[36px]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-blue">
+            Step 1 of 2
+          </p>
+          <h1 className="mt-3 text-[32px] font-semibold tracking-tight text-text-primary sm:text-[36px]">
             Connect your tools
           </h1>
           <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-text-muted">
@@ -145,10 +151,10 @@ export function OnboardingPageClient() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="mx-auto mt-6 flex w-full max-w-lg items-center gap-2 rounded-lg border border-accent-blue/30 bg-accent-blue/10 px-4 py-3 text-[13px] text-accent-blue"
+              className="mx-auto mt-6 flex w-full max-w-lg items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-[13px] text-success"
             >
               <CheckCircle2 className="h-4 w-4 shrink-0" />
-              Plugin connected and added to your workspace.
+              Plugin connected — next you&apos;ll learn the keyboard shortcuts.
             </motion.div>
           )}
         </AnimatePresence>
@@ -176,7 +182,7 @@ export function OnboardingPageClient() {
                 className={cn(
                   'group relative flex flex-col rounded-md border p-5 transition-all duration-300',
                   connected
-                    ? cn(meta.accentBg, meta.accentBorder, 'shadow-sm')
+                    ? 'border-success/30 bg-success/10 shadow-sm'
                     : 'border-border-default bg-bg-elevated/80 hover:border-border-strong hover:bg-bg-elevated',
                   isComingSoon && 'opacity-75'
                 )}
@@ -206,14 +212,7 @@ export function OnboardingPageClient() {
 
                 <div className="mt-5">
                   {connected ? (
-                    <span
-                      className={cn(
-                        'inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-3 py-2.5 text-[12px] font-semibold',
-                        meta.accentBorder,
-                        meta.accentBg,
-                        meta.accent
-                      )}
-                    >
+                    <span className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-success/35 bg-success/10 px-3 py-2.5 text-[12px] font-semibold text-success">
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       Connected
                     </span>
@@ -258,32 +257,27 @@ export function OnboardingPageClient() {
             to your workspace automatically.
           </motion.p>
         )}
+        </div>
       </div>
 
-      <div className="sticky bottom-0 border-t border-border-subtle bg-bg-app/90 px-6 py-5 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-3xl flex-col items-center justify-between gap-4 sm:flex-row">
+      <footer className="z-[200] shrink-0 border-t border-border-subtle bg-bg-app px-6 py-4 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-center text-[13px] text-text-muted sm:text-left">
             {canContinue
-              ? 'Ready when you are — add more plugins or continue.'
+              ? 'Next up: a quick tour of keyboard shortcuts.'
               : 'Connect at least one plugin to continue.'}
           </p>
           <button
             type="button"
-            disabled={!canContinue || finishing}
-            onClick={finishOnboarding}
-            className="flex min-w-[160px] items-center justify-center gap-2 rounded-md bg-accent-blue px-6 py-3 text-[14px] font-semibold text-text-inverse shadow-lg shadow-accent-blue/20 transition-all hover:bg-accent-blue-dim active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            disabled={!canContinue}
+            onClick={goToShortcutsStep}
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-accent-blue px-6 py-3 text-[14px] font-semibold text-text-inverse shadow-lg shadow-accent-blue/20 transition-all hover:bg-accent-blue-dim active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none sm:w-auto sm:min-w-[160px]"
           >
-            {finishing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                Next
-                <ArrowRight className="h-4 w-4" />
-              </>
-            )}
+            Next
+            <ArrowRight className="h-4 w-4" />
           </button>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

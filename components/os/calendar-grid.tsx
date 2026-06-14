@@ -150,6 +150,38 @@ export function CalendarGrid({ isModal = false }: { isModal?: boolean }) {
 
   const now = new Date();
 
+  const navigatePeriod = (direction: 1 | -1) => {
+    const amount = calendarView === 'Week' ? 7 : 1;
+    if (calendarView === 'Month' || calendarView === 'Year') {
+      setCurrentDate((prev) =>
+        new Date(prev.getFullYear(), prev.getMonth() + direction, 1)
+      );
+      return;
+    }
+    setCurrentDate((prev) =>
+      new Date(
+        prev.getFullYear(),
+        prev.getMonth(),
+        prev.getDate() + direction * amount
+      )
+    );
+  };
+
+  useEffect(() => {
+    const onPrev = () => navigatePeriod(-1);
+    const onNext = () => navigatePeriod(1);
+    const onCreate = () => setIsCreateOpen(true);
+
+    window.addEventListener('supereye:calendar-prev', onPrev);
+    window.addEventListener('supereye:calendar-next', onNext);
+    window.addEventListener('supereye:calendar-create', onCreate);
+    return () => {
+      window.removeEventListener('supereye:calendar-prev', onPrev);
+      window.removeEventListener('supereye:calendar-next', onNext);
+      window.removeEventListener('supereye:calendar-create', onCreate);
+    };
+  }, [calendarView, currentDateStr]);
+
   // Generate 42 cells (6 rows) covering the currently viewed month
   const cells = useMemo(() => {
     const year = currentDate.getFullYear();

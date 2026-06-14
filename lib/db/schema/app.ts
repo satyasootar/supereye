@@ -15,6 +15,7 @@ import {
   unique,
 } from 'drizzle-orm/pg-core';
 import { users } from './auth';
+import type { UserKeyOverrides } from '@/lib/keyboard/types';
 
 // ─── Cached Gmail Messages ──────────────────────────────────────────────
 export const emails = pgTable(
@@ -245,6 +246,17 @@ export const agentMessages = pgTable(
     index('idx_agent_messages_created_at').on(table.createdAt),
   ]
 );
+
+// ─── User Keybindings ───────────────────────────────────────────────────
+export const userKeybindings = pgTable('user_keybindings', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  overrides: jsonb('overrides').$type<UserKeyOverrides>().notNull().default({}),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 // ─── User Preferences ───────────────────────────────────────────────────
 export const userPreferences = pgTable('user_preferences', {

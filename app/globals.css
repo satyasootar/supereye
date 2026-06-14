@@ -33,6 +33,9 @@
     --color-accent-blue-dim: var(--accent-blue-dim);
     --color-accent-blue-glow: var(--accent-blue-glow);
 
+    --color-success: var(--success);
+    --color-success-dim: var(--success-dim);
+
     /* Semantic mappings to shadcn defaults */
     --color-background: var(--bg-app);
     --color-foreground: var(--text-primary);
@@ -80,6 +83,9 @@
     --accent-blue: #5A775C;
     --accent-blue-dim: #486049;
     --accent-blue-glow: rgba(90, 119, 92, 0.15);
+
+    --success: #22C55E;
+    --success-dim: #16A34A;
 }
 
 .dark {
@@ -100,6 +106,9 @@
     --accent-blue: #4A6D55;
     --accent-blue-dim: #3A5442;
     --accent-blue-glow: rgba(74, 109, 85, 0.20);
+
+    --success: #86EFAC;
+    --success-dim: #4ADE80;
 
     /* Agent overlay tokens */
     --agent-accent: #73FF8C;

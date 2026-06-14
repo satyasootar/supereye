@@ -21,6 +21,7 @@ import {
   Moon,
   Monitor,
   LayoutPanelLeft,
+  TerminalSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,16 +29,18 @@ import { Badge } from '@/components/ui/badge';
 import { ProfileSection, ProfileRow } from '@/components/profile/profile-section';
 import { WorkspaceLayoutSection } from '@/components/profile/workspace-layout-section';
 import { DeleteAccountSection } from '@/components/profile/delete-account-section';
+import { KeyboardShortcutsSection } from '@/components/profile/keyboard-shortcuts-section';
 import { getPlugin } from '@/lib/plugins/registry';
 import { useAppStore } from '@/lib/store/app-store';
 import type { UserProfile } from '@/lib/user/profile';
 
-type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security';
+type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security' | 'shortcuts';
 
 const TABS: { id: ProfileTab; label: string; icon: typeof User }[] = [
   { id: 'account', label: 'Account', icon: User },
   { id: 'connections', label: 'Connections', icon: Link2 },
   { id: 'workspace', label: 'Workspace', icon: LayoutPanelLeft },
+  { id: 'shortcuts', label: 'Shortcuts', icon: TerminalSquare },
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'security', label: 'Security', icon: Shield },
 ];
@@ -284,6 +287,8 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                   <WorkspaceLayoutSection />
                 </div>
               )}
+
+              {activeTab === 'shortcuts' && <KeyboardShortcutsSection />}
 
               {activeTab === 'appearance' && (
                 <ProfileSection

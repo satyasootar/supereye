@@ -54,12 +54,14 @@ const CATEGORY_TABS: { id: FilterCategory; label: string }[] = [
 ];
 
 export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }) {
+  const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { activeTabs, emailCategory, setEmailCategory, selectedEmailId, setSelectedEmailId } = useAppStore();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   
   const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const debouncedSearch = useDebounce(searchQuery, 600);
   
   const [hoveredEmail, setHoveredEmail] = useState<EmailMessage | null>(null);
@@ -157,6 +159,85 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   const isSearching = debouncedSearch.trim().length > 0;
   const rawEmails = isSearching ? (searchData || []) : (data?.pages.flat() || []);
   const emails = Array.from(new Map(rawEmails.map(e => [e.id, e])).values());
+
+  useEffect(() => {
+    const navigate = (delta: number) => {
+      if (emails.length === 0) return;
+      const idx = emails.findIndex((e) => e.id === selectedEmailId);
+      const nextIdx =
+        idx < 0
+          ? delta > 0
+            ? 0
+            : emails.length - 1
+          : Math.min(emails.length - 1, Math.max(0, idx + delta));
+      setSelectedEmailId(emails[nextIdx].id);
+    };
+
+    const onCategory = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail;
+      if (detail) setEmailCategory(detail as FilterCategory);
+    };
+
+    const handlers: Record<string, EventListener> = {
+      'supereye:email-next': () => navigate(1),
+      'supereye:email-prev': () => navigate(-1),
+      'supereye:email-open': () => {
+        if (selectedEmailId) return;
+        if (emails[0]) setSelectedEmailId(emails[0].id);
+      },
+      'supereye:email-focus-search': () => searchInputRef.current?.focus(),
+      'supereye:email-category': onCategory,
+      'supereye:email-archive': () => {
+        if (selectedEmailId) {
+          fetch(`/api/mail/${encodeURIComponent(selectedEmailId)}/archive`, {
+            method: 'POST',
+          }).then(() => queryClient.invalidateQueries({ queryKey: ['emails'] }));
+        }
+      },
+      'supereye:email-delete': () => {
+        if (selectedEmailId) {
+          fetch(`/api/mail/${encodeURIComponent(selectedEmailId)}/trash`, {
+            method: 'POST',
+          }).then(() => {
+            queryClient.invalidateQueries({ queryKey: ['emails'] });
+            setSelectedEmailId(null);
+          });
+        }
+      },
+      'supereye:email-reply': () => {
+        if (selectedEmailId) {
+          window.dispatchEvent(
+            new CustomEvent('supereye:email-reply-open', {
+              detail: selectedEmailId,
+            })
+          );
+        }
+      },
+      'supereye:email-mark': (e) => {
+        const { read } = (e as CustomEvent<{ read: boolean }>).detail ?? {};
+        if (!selectedEmailId || read !== true) return;
+        fetch(`/api/mail/${encodeURIComponent(selectedEmailId)}/read`, {
+          method: 'POST',
+        }).then(() => queryClient.invalidateQueries({ queryKey: ['emails'] }));
+      },
+    };
+
+    for (const [event, handler] of Object.entries(handlers)) {
+      window.addEventListener(event, handler);
+    }
+    return () => {
+      for (const [event, handler] of Object.entries(handlers)) {
+        window.removeEventListener(event, handler);
+      }
+    };
+  }, [
+    emails,
+    selectedEmailId,
+    setSelectedEmailId,
+    setEmailCategory,
+    queryClient,
+  ]);
+
   const observer = useRef<IntersectionObserver | null>(null);
   const observerTarget = useCallback((node: HTMLDivElement | null) => {
     if (isLoading || isFetchingNextPage) return;
@@ -171,7 +252,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     if (node) observer.current.observe(node);
   }, [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]);
 
-  const queryClient = useQueryClient();
+
 
   const readMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -358,7 +439,8 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border-default bg-bg-surface focus-within:border-accent-blue focus-within:ring-1 focus-within:ring-accent-blue transition-all w-[300px]">
             <Search className="h-3.5 w-3.5 text-text-muted" />
-            <input 
+            <input
+              ref={searchInputRef}
               type="text" 
               placeholder="Search emails..." 
               value={searchQuery}

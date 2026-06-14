@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { CommandPalette } from '@/components/os/command-palette';
+import { KeyboardSystem } from '@/components/keyboard/keyboard-system';
 
 /**
  * Dashboard layout — requires authentication.
@@ -21,10 +22,12 @@ export default async function DashboardLayout({
 
   return (
     <QueryProvider>
-      <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-app">
-        <CommandPalette />
-        <main className="flex-1 overflow-hidden">{children}</main>
-      </div>
+      <KeyboardSystem>
+        <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-app">
+          <CommandPalette />
+          <main className="flex-1 overflow-hidden">{children}</main>
+        </div>
+      </KeyboardSystem>
     </QueryProvider>
   );
 }

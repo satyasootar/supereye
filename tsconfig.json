@@ -34,6 +34,7 @@
   "exclude": [
     "node_modules",
     "tests",
+    "lib/**/__tests__/**",
     "register-webhook.ts",
     "register-webhooks.ts",
     "resync-emails.ts",
