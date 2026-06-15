@@ -15,9 +15,13 @@ if (!process.env.AUTH_URL && process.env.NEXT_PUBLIC_APP_URL) {
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
+import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 
 import { users, accounts, sessions, verificationTokens } from '@/lib/db/schema';
+import { bootstrapUserBilling } from '@/lib/billing/seed';
+import { ensureUserHasSubscription } from '@/lib/billing/admin';
+import { touchUserActivity } from '@/lib/billing/rbac';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -33,11 +37,42 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
     }),
   ],
+  events: {
+    async signIn({ user }) {
+      if (user.id) {
+        await bootstrapUserBilling(user.id, user.email);
+        await ensureUserHasSubscription(user.id);
+      }
+    },
+  },
   callbacks: {
-    session({ session, user }) {
-      // Attach user.id to session — used as Corsair tenantId
+    async session({ session, user }) {
       session.user.id = user.id;
+      const [dbUser] = await db
+        .select({ role: users.role, status: users.status })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+      session.user.role = dbUser?.role ?? 'user';
+      session.user.status = dbUser?.status ?? 'active';
+      await touchUserActivity(user.id);
       return session;
+    },
+    authorized({ auth, request }) {
+      const path = request.nextUrl.pathname;
+      const isLoggedIn = !!auth?.user;
+
+      if (path.startsWith('/admin')) {
+        if (!isLoggedIn) return false;
+        if (auth.user.role !== 'super_admin') {
+          return Response.redirect(new URL('/workspace', request.nextUrl));
+        }
+        return true;
+      }
+
+      if (path === '/' || path.startsWith('/login')) return true;
+
+      return isLoggedIn;
     },
   },
   pages: {

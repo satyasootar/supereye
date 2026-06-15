@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { auth } from '@/lib/auth';
-import { logAiUsage } from '@/lib/usage/log-usage';
+import { logAndConsumeAiUsage, checkAiAccess } from '@/lib/billing/usage';
+import { requireActiveUser } from '@/lib/billing/rbac';
+import { tokenErrorResponse } from '@/lib/billing/errors';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -15,6 +17,15 @@ export async function POST(req: Request) {
       { error: 'Voice transcription requires OPENAI_API_KEY' },
       { status: 503 }
     );
+  }
+
+  try {
+    await requireActiveUser(session.user.id);
+    await checkAiAccess(session.user.id);
+  } catch (e) {
+    const response = tokenErrorResponse(e);
+    if (response) return response;
+    throw e;
   }
 
   try {
@@ -33,7 +44,7 @@ export async function POST(req: Request) {
       language: 'en',
     });
 
-    void logAiUsage(session.user.id, {
+    await logAndConsumeAiUsage(session.user.id, {
       feature: 'transcribe',
       model: 'whisper-1',
       metadata: { audioBytes: audio.size },

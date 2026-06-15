@@ -78,10 +78,10 @@ async function classifyAndPersistEmail(
       })
       .where(and(eq(emails.userId, userId), eq(emails.googleMessageId, row.googleMessageId)));
 
-    void import('@/lib/usage/log-usage').then(({ logAiUsage }) =>
-      logAiUsage(userId, {
+    void import('@/lib/billing/usage').then(({ logAndConsumeAiUsage }) =>
+      logAndConsumeAiUsage(userId, {
         feature: 'email_triage',
-        usage: usage as any,
+        usage: usage as { inputTokens?: number; outputTokens?: number; totalTokens?: number },
         metadata: { googleMessageId: row.googleMessageId, tier: result.tier },
       })
     );

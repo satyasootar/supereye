@@ -24,6 +24,8 @@ import {
   TerminalSquare,
   BarChart3,
   Bot,
+  CreditCard,
+  ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -34,14 +36,16 @@ import { DeleteAccountSection } from '@/components/profile/delete-account-sectio
 import { KeyboardShortcutsSection } from '@/components/profile/keyboard-shortcuts-section';
 import { UsageDashboardSection } from '@/components/profile/usage-dashboard-section';
 import { BotSettingsSection } from '@/components/profile/bot-settings-section';
+import { BillingSection } from '@/components/profile/billing-section';
 import { getPlugin } from '@/lib/plugins/registry';
 import { useAppStore } from '@/lib/store/app-store';
 import type { UserProfile } from '@/lib/user/profile';
 
-type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security' | 'shortcuts' | 'dashboard' | 'bot';
+type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security' | 'shortcuts' | 'dashboard' | 'bot' | 'billing';
 
 const TABS: { id: ProfileTab; label: string; icon: typeof User }[] = [
   { id: 'account', label: 'Account', icon: User },
+  { id: 'billing', label: 'Billing', icon: CreditCard },
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
   { id: 'connections', label: 'Connections', icon: Link2 },
   { id: 'workspace', label: 'Workspace', icon: LayoutPanelLeft },
@@ -167,6 +171,21 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
               );
             })}
           </ul>
+
+          <div className="mt-auto border-t border-border-subtle pt-4">
+            <Link
+              href="/admin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-between gap-2.5 rounded-md px-3 py-2 text-left text-[13.5px] text-text-muted hover:bg-bg-overlay hover:text-text-primary transition-colors border-l-2 border-transparent"
+            >
+              <div className="flex items-center gap-2.5">
+                <Shield className="h-4 w-4 shrink-0" />
+                Admin
+              </div>
+              <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
+            </Link>
+          </div>
         </nav>
 
         {/* Mobile tab bar */}
@@ -192,6 +211,16 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                 </button>
               );
             })}
+            <Link
+              href="/admin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium text-text-muted hover:bg-bg-overlay transition-colors"
+            >
+              <Shield className="h-3.5 w-3.5" />
+              Admin
+              <ExternalLink className="ml-0.5 h-3 w-3 opacity-70" />
+            </Link>
           </div>
 
           {/* Content */}
@@ -322,6 +351,8 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
               {activeTab === 'bot' && <BotSettingsSection />}
 
               {activeTab === 'dashboard' && <UsageDashboardSection />}
+
+              {activeTab === 'billing' && <BillingSection />}
 
               {activeTab === 'appearance' && (
                 <div className="flex flex-col gap-6">

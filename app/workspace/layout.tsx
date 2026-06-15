@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { CommandPalette } from '@/components/os/command-palette';
 import { KeyboardSystem } from '@/components/keyboard/keyboard-system';
+import { TokenExhaustedBanner } from '@/components/billing/token-exhausted-banner';
 
 /**
  * Dashboard layout — requires authentication.
@@ -25,6 +26,7 @@ export default async function DashboardLayout({
       <KeyboardSystem>
         <div className="mx-auto flex h-screen w-full max-w-[1600px] flex-col overflow-hidden border-x border-border-subtle bg-bg-app shadow-2xl">
           <CommandPalette />
+          <TokenExhaustedBanner />
           <main className="flex-1 overflow-hidden">{children}</main>
         </div>
       </KeyboardSystem>

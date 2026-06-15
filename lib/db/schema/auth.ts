@@ -20,6 +20,9 @@ export const users = pgTable('users', {
   email: text('email').unique(),
   emailVerified: timestamp('email_verified', { mode: 'date' }),
   image: text('image'),
+  role: text('role').$type<'super_admin' | 'user' | 'enterprise_user'>().notNull().default('user'),
+  status: text('status').$type<'active' | 'suspended'>().notNull().default('active'),
+  lastActiveAt: timestamp('last_active_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),

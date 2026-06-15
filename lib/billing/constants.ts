@@ -1,0 +1,37 @@
+/** Super Admin — only this email gets full admin access */
+export const SUPER_ADMIN_EMAIL = 'satya.sootar06@gmail.com';
+
+export const USER_ROLES = ['super_admin', 'user', 'enterprise_user'] as const;
+export type UserRole = (typeof USER_ROLES)[number];
+
+export const DEFAULT_STARTER_TOKENS = 100_000;
+export const DEFAULT_PRO_TOKENS = 1_000_000;
+
+export const DEFAULT_TOKEN_ACTION_COSTS = [
+  { actionKey: 'ai_chat', displayName: 'AI Chat Message', tokenCost: 100 },
+  { actionKey: 'ai_chat_summary', displayName: 'AI Chat Summary', tokenCost: 50 },
+  { actionKey: 'ai_email_reply', displayName: 'AI Email Reply', tokenCost: 150 },
+  { actionKey: 'ai_email_draft', displayName: 'AI Email Draft', tokenCost: 120 },
+  { actionKey: 'ai_email_summary', displayName: 'AI Email Summary', tokenCost: 40 },
+  { actionKey: 'ai_email_triage', displayName: 'AI Email Triage', tokenCost: 25 },
+  { actionKey: 'ai_agent_action', displayName: 'AI Agent Action', tokenCost: 80 },
+  { actionKey: 'ai_automation', displayName: 'AI Automation Task', tokenCost: 200 },
+  { actionKey: 'ai_suggestion', displayName: 'AI Suggestion', tokenCost: 20 },
+  { actionKey: 'ai_transcribe', displayName: 'Voice Transcription', tokenCost: 30 },
+  { actionKey: 'ai_content_generation', displayName: 'AI Content Generation', tokenCost: 100 },
+] as const;
+
+export const DEFAULT_TOP_UP_PACKS = [
+  { name: '+50,000 Tokens', tokenAmount: 50_000, priceCents: 999, sortOrder: 1 },
+  { name: '+100,000 Tokens', tokenAmount: 100_000, priceCents: 1799, sortOrder: 2 },
+  { name: '+500,000 Tokens', tokenAmount: 500_000, priceCents: 7999, sortOrder: 3 },
+] as const;
+
+/** Maps usage feature keys to token action cost keys */
+export const USAGE_FEATURE_TO_ACTION: Record<string, string> = {
+  chat: 'ai_chat',
+  chat_summary: 'ai_chat_summary',
+  email_triage: 'ai_email_triage',
+  transcribe: 'ai_transcribe',
+  agent_email_send: 'ai_email_draft',
+};

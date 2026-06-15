@@ -5,6 +5,9 @@ import {
   triagePendingEmailsForUser,
 } from '@/lib/mail/triage';
 import { getTriageModel } from '@/lib/agent/triage-model';
+import { checkAiAccess } from '@/lib/billing/usage';
+import { requireActiveUser } from '@/lib/billing/rbac';
+import { tokenErrorResponse } from '@/lib/billing/errors';
 
 export async function GET() {
   const session = await auth();
@@ -36,6 +39,15 @@ export async function POST(req: Request) {
     const message =
       error instanceof Error ? error.message : 'AI provider not configured';
     return NextResponse.json({ error: message }, { status: 503 });
+  }
+
+  try {
+    await requireActiveUser(session.user.id);
+    await checkAiAccess(session.user.id);
+  } catch (e) {
+    const response = tokenErrorResponse(e);
+    if (response) return response;
+    throw e;
   }
 
   const body = await req.json().catch(() => ({}));

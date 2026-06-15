@@ -16,6 +16,12 @@ import {
 import { ProfileSection } from '@/components/profile/profile-section';
 import { cn } from '@/lib/utils';
 import type { UsageDashboard } from '@/lib/usage/dashboard';
+import { Bar, BarChart, XAxis, YAxis } from 'recharts';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
 
 const FEATURE_LABELS: Record<string, string> = {
   chat: 'Assistant chat',
@@ -73,30 +79,7 @@ function StatCard({
   );
 }
 
-function TokenBar({
-  label,
-  value,
-  max,
-  colorClass,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  colorClass: string;
-}) {
-  const pct = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
-  return (
-    <div>
-      <div className="mb-1.5 flex items-center justify-between gap-2 text-[12px]">
-        <span className="text-text-secondary">{label}</span>
-        <span className="font-medium text-text-primary">{formatTokens(value)}</span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-bg-overlay">
-        <div className={cn('h-full rounded-full transition-all', colorClass)} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
+
 
 export function UsageDashboardSection() {
   const { data, isLoading, error, refetch, isFetching } = useQuery({
@@ -135,8 +118,7 @@ export function UsageDashboardSection() {
     );
   }
 
-  const maxFeatureTokens = Math.max(...data.tokens.byFeature.map((f) => f.totalTokens), 1);
-  const maxDayTokens = Math.max(...data.tokens.last7Days.map((d) => d.totalTokens), 1);
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -226,17 +208,44 @@ export function UsageDashboardSection() {
           {data.tokens.byFeature.length === 0 ? (
             <p className="text-[13px] text-text-muted">No token usage recorded yet.</p>
           ) : (
-            <div className="space-y-4">
-              {data.tokens.byFeature.map((row) => (
-                <TokenBar
-                  key={row.feature}
-                  label={`${FEATURE_LABELS[row.feature] ?? row.feature} (${row.count})`}
-                  value={row.totalTokens}
-                  max={maxFeatureTokens}
-                  colorClass="bg-accent-blue"
+            <ChartContainer
+              config={{
+                totalTokens: {
+                  label: 'Tokens',
+                  color: 'hsl(var(--chart-1))',
+                },
+              }}
+              className="h-[250px] w-full"
+            >
+              <BarChart
+                data={data.tokens.byFeature.map((row) => ({
+                  feature: FEATURE_LABELS[row.feature] ?? row.feature,
+                  totalTokens: row.totalTokens,
+                }))}
+                layout="vertical"
+                margin={{ left: -20, right: 0, top: 0, bottom: 0 }}
+              >
+                <YAxis
+                  dataKey="feature"
+                  type="category"
+                  tickLine={false}
+                  axisLine={false}
+                  width={140}
+                  tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                 />
-              ))}
-            </div>
+                <XAxis type="number" hide />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent hideLabel />}
+                />
+                <Bar
+                  dataKey="totalTokens"
+                  fill="var(--color-totalTokens)"
+                  radius={[0, 4, 4, 0]}
+                  barSize={20}
+                />
+              </BarChart>
+            </ChartContainer>
           )}
         </ProfileSection>
       </div>
@@ -284,17 +293,42 @@ export function UsageDashboardSection() {
           {data.tokens.last7Days.length === 0 ? (
             <p className="text-[13px] text-text-muted">No activity in the last 7 days.</p>
           ) : (
-            <div className="space-y-3">
-              {data.tokens.last7Days.map((day) => (
-                <TokenBar
-                  key={day.date}
-                  label={format(new Date(`${day.date}T12:00:00`), 'EEE, MMM d')}
-                  value={day.totalTokens}
-                  max={maxDayTokens}
-                  colorClass="bg-[color:var(--priority-ai)]"
+            <ChartContainer
+              config={{
+                totalTokens: {
+                  label: 'Tokens',
+                  color: 'hsl(var(--chart-2))',
+                },
+              }}
+              className="h-[250px] w-full"
+            >
+              <BarChart
+                data={data.tokens.last7Days.map((day) => ({
+                  date: format(new Date(`${day.date}T12:00:00`), 'EEE'),
+                  fullDate: format(new Date(`${day.date}T12:00:00`), 'MMM d, yyyy'),
+                  totalTokens: day.totalTokens,
+                }))}
+                margin={{ left: 0, right: 0, top: 0, bottom: 0 }}
+              >
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                 />
-              ))}
-            </div>
+                <YAxis hide />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent labelKey="fullDate" />}
+                />
+                <Bar
+                  dataKey="totalTokens"
+                  fill="var(--color-totalTokens)"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
           )}
         </ProfileSection>
       </div>

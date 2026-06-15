@@ -16,7 +16,9 @@ import {
   getOrCreateThread,
   getThreadMessages,
 } from '@/lib/agent/threads';
-import { logAiUsage } from '@/lib/usage/log-usage';
+import { logAndConsumeAiUsage, checkAiAccess } from '@/lib/billing/usage';
+import { requireActiveUser } from '@/lib/billing/rbac';
+import { tokenErrorResponse } from '@/lib/billing/errors';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -35,6 +37,16 @@ export async function POST(req: Request) {
   }
 
   const userId = session.user.id;
+
+  try {
+    await requireActiveUser(userId);
+    await checkAiAccess(userId);
+  } catch (e) {
+    const response = tokenErrorResponse(e);
+    if (response) return response;
+    throw e;
+  }
+
   const body = await req.json();
   const { message, threadId: incomingThreadId, context } = body;
 
@@ -158,7 +170,7 @@ export async function POST(req: Request) {
           steps.completeRunning('Summary ready');
 
           try {
-            await logAiUsage(userId, {
+            await logAndConsumeAiUsage(userId, {
               feature: 'chat_summary',
               usage: summary.usage,
               metadata: { threadId: thread.id },
@@ -174,7 +186,7 @@ export async function POST(req: Request) {
 
         try {
           const usage = await result.usage;
-          await logAiUsage(userId, {
+          await logAndConsumeAiUsage(userId, {
             feature: 'chat',
             usage,
             metadata: { threadId: thread.id },
