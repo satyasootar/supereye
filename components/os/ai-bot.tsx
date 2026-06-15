@@ -3,8 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store/app-store';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
+import type { BotSettings } from '@/lib/plugins/types';
+import { DEFAULT_BOT_SETTINGS } from '@/lib/plugins/types';
 
 type Emotion = 
   | 'neutral' 
@@ -31,14 +34,29 @@ interface AiBotProps {
   hideWhenAgentOpen?: boolean;
   /** Disables all click handling (no agent open, no click emotions). */
   disableClick?: boolean;
+  /** Allows parent to trigger emotions via callback ref */
+  onEmotionRef?: (trigger: (emotion: Emotion, duration: number) => void) => void;
   className?: string;
   size?: 'sm' | 'md';
 }
+
+export type { Emotion };
+
+export const SHORTCUT_TIPS = [
+  "Tip: Press Tab to switch plugins (Email/Calendar) in your workspace!",
+  "Tip: Press D at any time to toggle between Light and Dark mode.",
+  "Tip: Press Ctrl+K (or Cmd+K) to open the Command Palette.",
+  "Tip: Press ? to view all active keyboard shortcuts.",
+  "Tip: Press j and k to move down and up in your email list.",
+  "Tip: Press Ctrl+J to toggle this AI Assistant panel open/closed.",
+  "Tip: Press t in the Calendar view to jump back to Today.",
+];
 
 export function AiBot({
   openAgentOnClick = true,
   hideWhenAgentOpen = true,
   disableClick = false,
+  onEmotionRef,
   className,
   size = 'md',
 }: AiBotProps = {}) {
@@ -62,6 +80,7 @@ export function AiBot({
   const emotionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const setAgentOpen = useAppStore(state => state.setAgentOpen);
   const isAgentOpen = useAppStore(state => state.isAgentOpen);
+  const queryClient = useQueryClient();
 
   const triggerEmotion = useCallback((newEmotion: Emotion, duration: number) => {
     if (emotionTimeoutRef.current) clearTimeout(emotionTimeoutRef.current);
@@ -75,11 +94,17 @@ export function AiBot({
     }, duration);
   }, []);
 
+  // Expose triggerEmotion to parent via callback ref
+  useEffect(() => {
+    if (onEmotionRef) onEmotionRef(triggerEmotion);
+  }, [onEmotionRef, triggerEmotion]);
+
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleText, setBubbleText] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
   const [bubbleMode, setBubbleMode] = useState<'welcome' | 'tip'>('welcome');
   const [tipIndex, setTipIndex] = useState(0);
+  const [showTipConfirm, setShowTipConfirm] = useState(false);
 
   const WELCOME_STEPS = [
     "Hey! I am Eye.",
@@ -87,15 +112,34 @@ export function AiBot({
     "creating calendar events, and more!"
   ];
 
-  const SHORTCUT_TIPS = [
-    "Tip: Press Tab to switch plugins (Email/Calendar) in your workspace!",
-    "Tip: Press D at any time to toggle between Light and Dark mode.",
-    "Tip: Press Ctrl+K (or Cmd+K) to open the Command Palette.",
-    "Tip: Press ? to view all active keyboard shortcuts.",
-    "Tip: Press j and k to move down and up in your email list.",
-    "Tip: Press Ctrl+J to toggle this AI Assistant panel open/closed.",
-    "Tip: Press t in the Calendar view to jump back to Today."
-  ];
+  // ── Fetch bot settings from user preferences ──────────────────────
+  const { data: prefData } = useQuery({
+    queryKey: ['user', 'preferences'],
+    queryFn: async () => {
+      const res = await fetch('/api/user/preferences');
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 60_000,
+    enabled: openAgentOnClick,
+  });
+
+  const botSettings: BotSettings = (prefData?.botSettings as BotSettings) ?? DEFAULT_BOT_SETTINGS;
+
+  const updateBotSettings = useMutation({
+    mutationFn: async (patch: Partial<BotSettings>) => {
+      const res = await fetch('/api/user/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ botSettings: patch }),
+      });
+      if (!res.ok) throw new Error('Failed to update');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', 'preferences'] });
+    },
+  });
 
   // Welcome flow trigger
   useEffect(() => {
@@ -142,13 +186,11 @@ export function AiBot({
       } else {
         clearInterval(interval);
         
-        // Lingering time
-        const lingerTime = bubbleMode === 'tip' ? 3500 : 2000;
-        
-        transitionTimer = setTimeout(() => {
-          setShowBubble(false);
+        if (bubbleMode === 'welcome') {
+          // Welcome flow: auto-advance after 2s
+          transitionTimer = setTimeout(() => {
+            setShowBubble(false);
 
-          if (bubbleMode === 'welcome') {
             nextStepTimer = setTimeout(() => {
               const nextStep = currentStep + 1;
               const dismissed = localStorage.getItem('eye-welcome-dismissed') === 'true';
@@ -165,8 +207,14 @@ export function AiBot({
                 localStorage.setItem('eye-welcome-dismissed', 'true');
               }
             }, 800);
-          }
-        }, lingerTime);
+          }, 2000);
+        } else if (bubbleMode === 'tip' && botSettings.autoCloseTips) {
+          // Auto-close tips only if setting is enabled
+          transitionTimer = setTimeout(() => {
+            setShowBubble(false);
+          }, botSettings.autoCloseDelay);
+        }
+        // If autoCloseTips is false, tips stay until user clicks ✕
       }
     }, 25);
 
@@ -175,11 +223,11 @@ export function AiBot({
       if (transitionTimer) clearTimeout(transitionTimer);
       if (nextStepTimer) clearTimeout(nextStepTimer);
     };
-  }, [showBubble, currentStep, tipIndex, bubbleMode, isAgentOpen, triggerEmotion]);
+  }, [showBubble, currentStep, tipIndex, bubbleMode, isAgentOpen, triggerEmotion, botSettings.autoCloseTips, botSettings.autoCloseDelay]);
 
-  // Periodic tips trigger
+  // Periodic tips trigger — only if showTips is enabled
   useEffect(() => {
-    if (!openAgentOnClick) return;
+    if (!openAgentOnClick || !botSettings.showTips) return;
 
     const checkAndStartTips = () => {
       const intervalId = setInterval(() => {
@@ -211,19 +259,38 @@ export function AiBot({
       clearInterval(pollTimer);
       if (activeInterval) clearInterval(activeInterval);
     };
-  }, [openAgentOnClick, showBubble, isAgentOpen, triggerEmotion]);
+  }, [openAgentOnClick, showBubble, isAgentOpen, triggerEmotion, botSettings.showTips]);
 
   const handleDismissBubble = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setShowBubble(false);
     if (bubbleMode === 'welcome') {
+      setShowBubble(false);
       localStorage.setItem('eye-welcome-dismissed', 'true');
+    } else {
+      // For tips: show confirmation popover
+      setShowTipConfirm(true);
     }
+  };
+
+  const handleTipConfirmYes = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowTipConfirm(false);
+    setShowBubble(false);
+    // Keep showTips true — tips will continue
+  };
+
+  const handleTipConfirmNo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowTipConfirm(false);
+    setShowBubble(false);
+    // Disable tips permanently
+    updateBotSettings.mutate({ showTips: false });
   };
 
   const handleBubbleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowBubble(false);
+    setShowTipConfirm(false);
     if (bubbleMode === 'welcome') {
       localStorage.setItem('eye-welcome-dismissed', 'true');
     }
@@ -487,6 +554,39 @@ export function AiBot({
                 )}
               </p>
             </div>
+
+            {/* Tip confirmation popover */}
+            <AnimatePresence>
+              {showTipConfirm && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.15 }}
+                  className="mt-3 pt-3 border-t border-border-subtle"
+                >
+                  <p className="text-[11px] text-text-secondary mb-2">
+                    Want to keep seeing tips?
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleTipConfirmYes}
+                      className="flex-1 rounded-md border border-border-default bg-bg-surface px-3 py-1.5 text-[11px] font-semibold text-text-primary transition-colors hover:bg-bg-highlight"
+                    >
+                      Yes, keep tips
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleTipConfirmNo}
+                      className="flex-1 rounded-md bg-accent-blue px-3 py-1.5 text-[11px] font-semibold text-text-inverse transition-colors hover:bg-accent-blue-dim"
+                    >
+                      No, stop tips
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Speech bubble arrow */}
             <div className="absolute right-[-5px] bottom-5 w-2.5 h-2.5 bg-card border-r border-t border-border-default rotate-[45deg]" />

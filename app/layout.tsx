@@ -35,8 +35,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("antialiased", firaCode.variable, merriweather.variable, poppins.variable)}
     >
-      <head />
-      <body suppressHydrationWarning className="relative min-h-screen">
+      <head>
         <Script
           id="theme-initializer"
           strategy="beforeInteractive"
@@ -49,6 +48,8 @@ export default function RootLayout({
             `,
           }}
         />
+      </head>
+      <body suppressHydrationWarning className="relative min-h-screen">
         <Providers>{children}</Providers>
         <Toaster position="bottom-right" richColors />
       </body>

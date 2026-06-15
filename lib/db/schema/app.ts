@@ -264,6 +264,8 @@ export const userKeybindings = pgTable('user_keybindings', {
     .defaultNow(),
 });
 
+import type { BotSettings } from '@/lib/plugins/types';
+
 // ─── User Preferences ───────────────────────────────────────────────────
 export const userPreferences = pgTable('user_preferences', {
   userId: text('user_id')
@@ -271,6 +273,11 @@ export const userPreferences = pgTable('user_preferences', {
     .references(() => users.id, { onDelete: 'cascade' }),
   onboardingCompleted: boolean('onboarding_completed').notNull().default(false),
   activeWorkspaceId: uuid('active_workspace_id'),
+  botSettings: jsonb('bot_settings').$type<BotSettings>().notNull().default({
+    showTips: true,
+    autoCloseTips: false,
+    autoCloseDelay: 5000,
+  }),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .defaultNow(),

@@ -12,34 +12,8 @@ export const KEYBOARD_ACTIONS = {
   WORKSPACE_SWITCH: 'workspace.switch',
   WORKSPACE_CYCLE_NEXT: 'workspace.cycleNext',
   WORKSPACE_CYCLE_PREV: 'workspace.cyclePrev',
-  WORKSPACE_FOCUS_PLUGIN: 'workspace.focusPlugin',
   WORKSPACE_CYCLE_PLUGIN: 'workspace.cyclePlugin',
   WORKSPACE_TOGGLE_FULLSCREEN: 'workspace.toggleFullscreen',
-
-  // Email
-  EMAIL_NEXT: 'email.next',
-  EMAIL_PREV: 'email.prev',
-  EMAIL_OPEN: 'email.open',
-  EMAIL_ARCHIVE: 'email.archive',
-  EMAIL_DELETE: 'email.delete',
-  EMAIL_REPLY: 'email.reply',
-  EMAIL_COMPOSE: 'email.compose',
-  EMAIL_SEARCH: 'email.search',
-  EMAIL_CLOSE: 'email.close',
-  EMAIL_GO_INBOX: 'email.goInbox',
-  EMAIL_GO_SENT: 'email.goSent',
-  EMAIL_GO_DRAFTS: 'email.goDrafts',
-  EMAIL_MARK_READ: 'email.markRead',
-  EMAIL_MARK_UNREAD: 'email.markUnread',
-
-  // Calendar
-  CAL_CREATE: 'calendar.create',
-  CAL_TODAY: 'calendar.today',
-  CAL_VIEW_DAY: 'calendar.viewDay',
-  CAL_VIEW_WEEK: 'calendar.viewWeek',
-  CAL_VIEW_MONTH: 'calendar.viewMonth',
-  CAL_PREV: 'calendar.prev',
-  CAL_NEXT: 'calendar.next',
 
   // Agent
   AGENT_TOGGLE: 'agent.toggle',

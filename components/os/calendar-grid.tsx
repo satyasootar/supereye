@@ -9,6 +9,7 @@ import { EventDetailsModal } from './event-details-modal';
 import { CreateEventModal, GOOGLE_COLORS } from './create-event-modal';
 import { useAppStore } from '@/lib/store/app-store';
 import { toast } from 'sonner';
+import { INDIAN_PUBLIC_HOLIDAYS } from '@/lib/data/indian-holidays';
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -295,6 +296,22 @@ export function CalendarGrid({ isModal = false }: { isModal?: boolean }) {
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, any[]> = {};
+
+    // ── Merge Indian public holidays first (always visible) ──
+    for (const holiday of INDIAN_PUBLIC_HOLIDAYS) {
+      if (!map[holiday.date]) map[holiday.date] = [];
+      map[holiday.date].push({
+        id: `holiday-${holiday.date}`,
+        title: `🇮🇳 ${holiday.name}`,
+        time: '',
+        isAllDay: true,
+        isHoliday: true,
+        color: googleColorMap[holiday.colorId] || googleColorMap['10'],
+        timeRaw: '00:00',
+        durationRaw: 24,
+      });
+    }
+
     if (!data) return map;
 
     // Filter events by search query if present

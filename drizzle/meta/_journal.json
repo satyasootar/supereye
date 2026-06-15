@@ -78,6 +78,13 @@
       "when": 1781650000000,
       "tag": "0010_ai_usage_events",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1781541243408,
+      "tag": "0011_dusty_scarlet_spider",
+      "breakpoints": true
     }
   ]
 }

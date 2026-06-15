@@ -6,7 +6,8 @@ import {
   setActiveWorkspace,
   syncWorkspacesFromPlugins,
 } from '@/lib/workspaces/workspaces';
-import type { UserWorkspacePreferences } from '@/lib/plugins/types';
+import type { UserWorkspacePreferences, BotSettings } from '@/lib/plugins/types';
+import { DEFAULT_BOT_SETTINGS } from '@/lib/plugins/types';
 
 export async function getUserPreferences(
   userId: string
@@ -21,12 +22,14 @@ export async function getUserPreferences(
     return {
       onboardingCompleted: false,
       activeWorkspaceId: null,
+      botSettings: DEFAULT_BOT_SETTINGS,
     };
   }
 
   return {
     onboardingCompleted: row.onboardingCompleted,
     activeWorkspaceId: row.activeWorkspaceId,
+    botSettings: (row.botSettings as BotSettings) ?? DEFAULT_BOT_SETTINGS,
   };
 }
 
@@ -47,6 +50,14 @@ export async function upsertUserPreferences(
   const existing = await getUserPreferences(userId);
   const merged = { ...existing, ...patch };
 
+  // Deep-merge botSettings so partial updates don't wipe other fields
+  if (patch.botSettings) {
+    merged.botSettings = {
+      ...(existing.botSettings ?? DEFAULT_BOT_SETTINGS),
+      ...patch.botSettings,
+    };
+  }
+
   if (merged.activeWorkspaceId) {
     await setActiveWorkspace(userId, merged.activeWorkspaceId);
   }
@@ -61,6 +72,7 @@ export async function upsertUserPreferences(
       userId,
       onboardingCompleted: merged.onboardingCompleted,
       activeWorkspaceId: merged.activeWorkspaceId,
+      botSettings: merged.botSettings ?? DEFAULT_BOT_SETTINGS,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
@@ -68,6 +80,7 @@ export async function upsertUserPreferences(
       set: {
         onboardingCompleted: merged.onboardingCompleted,
         activeWorkspaceId: merged.activeWorkspaceId,
+        botSettings: merged.botSettings ?? DEFAULT_BOT_SETTINGS,
         updatedAt: new Date(),
       },
     });

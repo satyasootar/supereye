@@ -34,9 +34,22 @@ export type WorkspaceLayout = {
   sidebar: PluginId | null;
 };
 
+export type BotSettings = {
+  showTips: boolean;
+  autoCloseTips: boolean;
+  autoCloseDelay: number; // milliseconds, default 5000
+};
+
+export const DEFAULT_BOT_SETTINGS: BotSettings = {
+  showTips: true,
+  autoCloseTips: false,
+  autoCloseDelay: 5000,
+};
+
 export type UserWorkspacePreferences = {
   onboardingCompleted: boolean;
   activeWorkspaceId: string | null;
+  botSettings?: BotSettings;
 };
 
 export type WorkspaceRecord = {

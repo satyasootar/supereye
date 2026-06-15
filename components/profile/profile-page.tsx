@@ -23,6 +23,7 @@ import {
   LayoutPanelLeft,
   TerminalSquare,
   BarChart3,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -32,11 +33,12 @@ import { WorkspaceLayoutSection } from '@/components/profile/workspace-layout-se
 import { DeleteAccountSection } from '@/components/profile/delete-account-section';
 import { KeyboardShortcutsSection } from '@/components/profile/keyboard-shortcuts-section';
 import { UsageDashboardSection } from '@/components/profile/usage-dashboard-section';
+import { BotSettingsSection } from '@/components/profile/bot-settings-section';
 import { getPlugin } from '@/lib/plugins/registry';
 import { useAppStore } from '@/lib/store/app-store';
 import type { UserProfile } from '@/lib/user/profile';
 
-type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security' | 'shortcuts' | 'dashboard';
+type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security' | 'shortcuts' | 'dashboard' | 'bot';
 
 const TABS: { id: ProfileTab; label: string; icon: typeof User }[] = [
   { id: 'account', label: 'Account', icon: User },
@@ -44,6 +46,7 @@ const TABS: { id: ProfileTab; label: string; icon: typeof User }[] = [
   { id: 'connections', label: 'Connections', icon: Link2 },
   { id: 'workspace', label: 'Workspace', icon: LayoutPanelLeft },
   { id: 'shortcuts', label: 'Shortcuts', icon: TerminalSquare },
+  { id: 'bot', label: 'AI Bot', icon: Bot },
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'security', label: 'Security', icon: Shield },
 ];
@@ -315,6 +318,8 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
               )}
 
               {activeTab === 'shortcuts' && <KeyboardShortcutsSection />}
+
+              {activeTab === 'bot' && <BotSettingsSection />}
 
               {activeTab === 'dashboard' && <UsageDashboardSection />}
 

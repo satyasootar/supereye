@@ -22,6 +22,11 @@ export async function PATCH(req: Request) {
   const patch: {
     onboardingCompleted?: boolean;
     activeWorkspaceId?: string | null;
+    botSettings?: {
+      showTips?: boolean;
+      autoCloseTips?: boolean;
+      autoCloseDelay?: number;
+    };
   } = {};
 
   if (typeof body.onboardingCompleted === 'boolean') {
@@ -32,6 +37,19 @@ export async function PATCH(req: Request) {
     patch.activeWorkspaceId = body.activeWorkspaceId;
   }
 
-  const data = await upsertUserPreferences(session.user.id, patch);
+  if (body.botSettings && typeof body.botSettings === 'object') {
+    patch.botSettings = {};
+    if (typeof body.botSettings.showTips === 'boolean') {
+      patch.botSettings.showTips = body.botSettings.showTips;
+    }
+    if (typeof body.botSettings.autoCloseTips === 'boolean') {
+      patch.botSettings.autoCloseTips = body.botSettings.autoCloseTips;
+    }
+    if (typeof body.botSettings.autoCloseDelay === 'number' && body.botSettings.autoCloseDelay > 0) {
+      patch.botSettings.autoCloseDelay = body.botSettings.autoCloseDelay;
+    }
+  }
+
+  const data = await upsertUserPreferences(session.user.id, patch as Parameters<typeof upsertUserPreferences>[1]);
   return NextResponse.json(data);
 }
