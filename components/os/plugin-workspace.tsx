@@ -118,98 +118,108 @@ function SecondaryPanel({
 
   return (
     <motion.div
-      key={expanded ? `${pluginId}-expanded` : `${pluginId}-collapsed`}
+      key={pluginId}
       className="relative h-full flex-shrink-0 overflow-hidden border-l border-border-subtle bg-bg-surface"
       initial={{ width: 0, opacity: 0 }}
       animate={{ width: expanded ? width : 48, opacity: 1 }}
       exit={{ width: 0, opacity: 0 }}
       transition={springTransition}
     >
-      {expanded ? (
-        <div className="flex h-full min-h-0 flex-col bg-bg-surface" style={{ width }}>
-          <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-border-subtle bg-bg-surface px-3">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onToggle}
-                className="rounded-md p-1.5 text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary"
-                title="Collapse panel"
-              >
-                <PanelRightClose className="h-4 w-4" />
-              </button>
-              <Icon className="h-4 w-4 text-accent-blue" />
-              <span className="text-[14px] font-semibold text-text-primary">
-                {meta?.shortLabel ?? pluginId}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={onFocus}
-              className="flex items-center gap-1.5 rounded-md bg-accent-blue/10 px-2.5 py-1 text-[12px] font-semibold text-accent-blue transition-colors hover:bg-accent-blue/20"
-            >
-              <Icon className="h-3.5 w-3.5" />
-              Focus
-            </button>
-          </div>
-          <div className="min-h-0 flex-1 overflow-hidden bg-bg-surface">
-            {isEmail && <EmailCompactPanel hideHeader />}
-            {isCalendar && <CalendarSidebar variant="right-panel" />}
-          </div>
-        </div>
-      ) : (
-        <div className="flex h-full w-[48px] flex-col items-center gap-2 bg-bg-surface py-3">
-          <button
-            type="button"
-            onClick={onToggle}
-            title="Expand panel"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-accent-blue/10 hover:text-accent-blue"
-          >
-            <PanelRightOpen className="h-4 w-4" />
-          </button>
-          <div className="my-1 w-6 border-t border-border-subtle" />
-          <button
-            type="button"
-            onClick={onFocus}
-            title={`Switch to ${meta?.shortLabel ?? pluginId} focus`}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-blue/15 text-accent-blue transition-colors hover:bg-accent-blue/25"
-          >
-            <Icon className="h-4 w-4" />
-          </button>
-          {isEmail && (
+      {/* Expanded Content */}
+      <motion.div
+        className="absolute left-0 top-0 bottom-0 flex flex-col bg-bg-surface"
+        style={{ width, pointerEvents: expanded ? 'auto' : 'none' }}
+        animate={{ opacity: expanded ? 1 : 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-border-subtle bg-bg-surface px-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onToggle}
-              title="Inbox"
+              className="rounded-md p-1.5 text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary"
+              title="Collapse panel"
+            >
+              <PanelRightClose className="h-4 w-4" />
+            </button>
+            <Icon className="h-4 w-4 text-accent-blue" />
+            <span className="text-[14px] font-semibold text-text-primary">
+              {meta?.shortLabel ?? pluginId}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onFocus}
+            className="flex items-center gap-1.5 rounded-md bg-accent-blue/10 px-2.5 py-1 text-[12px] font-semibold text-accent-blue transition-colors hover:bg-accent-blue/20"
+          >
+            <Icon className="h-3.5 w-3.5" />
+            Focus
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden bg-bg-surface">
+          {isEmail && <EmailCompactPanel hideHeader />}
+          {isCalendar && <CalendarSidebar variant="right-panel" />}
+        </div>
+      </motion.div>
+
+      {/* Collapsed Content */}
+      <motion.div
+        className="absolute left-0 top-0 bottom-0 flex w-[48px] flex-col items-center gap-2 bg-bg-surface py-3"
+        style={{ pointerEvents: expanded ? 'none' : 'auto' }}
+        animate={{ opacity: expanded ? 0 : 1 }}
+        transition={{ duration: 0.2 }}
+      >
+        <button
+          type="button"
+          onClick={onToggle}
+          title="Expand panel"
+          className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-accent-blue/10 hover:text-accent-blue"
+        >
+          <PanelRightOpen className="h-4 w-4" />
+        </button>
+        <div className="my-1 w-6 border-t border-border-subtle" />
+        <button
+          type="button"
+          onClick={onFocus}
+          title={`Switch to ${meta?.shortLabel ?? pluginId} focus`}
+          className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-blue/15 text-accent-blue transition-colors hover:bg-accent-blue/25"
+        >
+          <Icon className="h-4 w-4" />
+        </button>
+        {isEmail && (
+          <button
+            type="button"
+            onClick={onToggle}
+            title="Inbox"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary"
+          >
+            <Inbox className="h-4 w-4" />
+          </button>
+        )}
+        {isCalendar && (
+          <>
+            <CreateEventModal
+              trigger={
+                <button
+                  type="button"
+                  title="New Event"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              }
+            />
+            <button
+              type="button"
+              onClick={onToggle}
+              title="Upcoming Events"
               className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary"
             >
-              <Inbox className="h-4 w-4" />
+              <Clock className="h-4 w-4" />
             </button>
-          )}
-          {isCalendar && (
-            <>
-              <CreateEventModal
-                trigger={
-                  <button
-                    type="button"
-                    title="New Event"
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                }
-              />
-              <button
-                type="button"
-                onClick={onToggle}
-                title="Upcoming Events"
-                className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary"
-              >
-                <Clock className="h-4 w-4" />
-              </button>
-            </>
-          )}
-        </div>
-      )}
+          </>
+        )}
+      </motion.div>
     </motion.div>
   );
 }

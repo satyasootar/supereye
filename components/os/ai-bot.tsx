@@ -78,6 +78,8 @@ export function AiBot({
   const [showBubble, setShowBubble] = useState(false);
   const [bubbleText, setBubbleText] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
+  const [bubbleMode, setBubbleMode] = useState<'welcome' | 'tip'>('welcome');
+  const [tipIndex, setTipIndex] = useState(0);
 
   const WELCOME_STEPS = [
     "Hey! I am Eye.",
@@ -85,12 +87,24 @@ export function AiBot({
     "creating calendar events, and more!"
   ];
 
+  const SHORTCUT_TIPS = [
+    "Tip: Press Tab to switch plugins (Email/Calendar) in your workspace!",
+    "Tip: Press D at any time to toggle between Light and Dark mode.",
+    "Tip: Press Ctrl+K (or Cmd+K) to open the Command Palette.",
+    "Tip: Press ? to view all active keyboard shortcuts.",
+    "Tip: Press j and k to move down and up in your email list.",
+    "Tip: Press Ctrl+J to toggle this AI Assistant panel open/closed.",
+    "Tip: Press t in the Calendar view to jump back to Today."
+  ];
+
+  // Welcome flow trigger
   useEffect(() => {
     if (!openAgentOnClick) return;
     const dismissed = localStorage.getItem('eye-welcome-dismissed') === 'true';
     if (dismissed) return;
 
     const timer = setTimeout(() => {
+      setBubbleMode('welcome');
       setCurrentStep(0);
       setShowBubble(true);
       triggerEmotion('happy', 1500);
@@ -99,6 +113,7 @@ export function AiBot({
     return () => clearTimeout(timer);
   }, [openAgentOnClick, triggerEmotion]);
 
+  // If agent opens, hide and dismiss welcome
   useEffect(() => {
     if (isAgentOpen) {
       setShowBubble(false);
@@ -106,13 +121,14 @@ export function AiBot({
     }
   }, [isAgentOpen]);
 
+  // Typing and transition orchestration
   useEffect(() => {
-    if (!showBubble) {
-      setBubbleText('');
-      return;
-    }
+    if (!showBubble) return;
 
-    const fullMessage = WELCOME_STEPS[currentStep] || '';
+    const fullMessage = bubbleMode === 'welcome'
+      ? (WELCOME_STEPS[currentStep] || '')
+      : (SHORTCUT_TIPS[tipIndex] || '');
+
     let currentText = '';
     let i = 0;
     let transitionTimer: NodeJS.Timeout | null = null;
@@ -126,28 +142,31 @@ export function AiBot({
       } else {
         clearInterval(interval);
         
-        // Wait 2 seconds, then close the bubble
+        // Lingering time
+        const lingerTime = bubbleMode === 'tip' ? 3500 : 2000;
+        
         transitionTimer = setTimeout(() => {
           setShowBubble(false);
 
-          // Wait 800ms before starting next bubble
-          nextStepTimer = setTimeout(() => {
-            const nextStep = currentStep + 1;
-            const dismissed = localStorage.getItem('eye-welcome-dismissed') === 'true';
-            
-            if (nextStep < WELCOME_STEPS.length && !dismissed && !isAgentOpen) {
-              setCurrentStep(nextStep);
-              setShowBubble(true);
-              if (nextStep === 1) {
-                triggerEmotion('happy', 1500);
-              } else if (nextStep === 2) {
-                triggerEmotion('winking', 1500);
+          if (bubbleMode === 'welcome') {
+            nextStepTimer = setTimeout(() => {
+              const nextStep = currentStep + 1;
+              const dismissed = localStorage.getItem('eye-welcome-dismissed') === 'true';
+              
+              if (nextStep < WELCOME_STEPS.length && !dismissed && !isAgentOpen) {
+                setCurrentStep(nextStep);
+                setShowBubble(true);
+                if (nextStep === 1) {
+                  triggerEmotion('happy', 1500);
+                } else if (nextStep === 2) {
+                  triggerEmotion('winking', 1500);
+                }
+              } else if (nextStep >= WELCOME_STEPS.length) {
+                localStorage.setItem('eye-welcome-dismissed', 'true');
               }
-            } else if (nextStep >= WELCOME_STEPS.length) {
-              localStorage.setItem('eye-welcome-dismissed', 'true');
-            }
-          }, 800);
-        }, 2000);
+            }, 800);
+          }
+        }, lingerTime);
       }
     }, 25);
 
@@ -156,18 +175,58 @@ export function AiBot({
       if (transitionTimer) clearTimeout(transitionTimer);
       if (nextStepTimer) clearTimeout(nextStepTimer);
     };
-  }, [showBubble, currentStep, isAgentOpen, triggerEmotion]);
+  }, [showBubble, currentStep, tipIndex, bubbleMode, isAgentOpen, triggerEmotion]);
+
+  // Periodic tips trigger
+  useEffect(() => {
+    if (!openAgentOnClick) return;
+
+    const checkAndStartTips = () => {
+      const intervalId = setInterval(() => {
+        const dismissed = localStorage.getItem('eye-welcome-dismissed') === 'true';
+        if (!dismissed) return;
+
+        if (!showBubble && !isAgentOpen) {
+          setTipIndex((prev) => (prev + 1) % SHORTCUT_TIPS.length);
+          setBubbleMode('tip');
+          setShowBubble(true);
+          triggerEmotion(Math.random() > 0.5 ? 'winking' : 'happy', 1500);
+        }
+      }, 60000); // 60s
+
+      return intervalId;
+    };
+
+    let activeInterval: NodeJS.Timeout | null = null;
+    const pollTimer = setInterval(() => {
+      const welcomeDismissed = localStorage.getItem('eye-welcome-dismissed') === 'true';
+      if (welcomeDismissed) {
+        clearInterval(pollTimer);
+        const id = checkAndStartTips();
+        if (id) activeInterval = id;
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(pollTimer);
+      if (activeInterval) clearInterval(activeInterval);
+    };
+  }, [openAgentOnClick, showBubble, isAgentOpen, triggerEmotion]);
 
   const handleDismissBubble = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowBubble(false);
-    localStorage.setItem('eye-welcome-dismissed', 'true');
+    if (bubbleMode === 'welcome') {
+      localStorage.setItem('eye-welcome-dismissed', 'true');
+    }
   };
 
   const handleBubbleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowBubble(false);
-    localStorage.setItem('eye-welcome-dismissed', 'true');
+    if (bubbleMode === 'welcome') {
+      localStorage.setItem('eye-welcome-dismissed', 'true');
+    }
     setAgentOpen(true);
   };
 
@@ -419,11 +478,11 @@ export function AiBot({
             {/* Bubble contents */}
             <div className="pr-4">
               <span className="text-[10px] font-bold uppercase tracking-wider text-accent-blue block mb-1">
-                Eye Assistant
+                {bubbleMode === 'welcome' ? 'Eye Assistant' : "Eye's Tip"}
               </span>
               <p className="text-[12.5px] leading-relaxed text-text-primary font-medium min-h-[3.5em]">
                 {bubbleText}
-                {bubbleText.length < (WELCOME_STEPS[currentStep]?.length || 0) && (
+                {bubbleText.length < (bubbleMode === 'welcome' ? (WELCOME_STEPS[currentStep]?.length || 0) : (SHORTCUT_TIPS[tipIndex]?.length || 0)) && (
                   <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-accent-blue animate-pulse align-middle" />
                 )}
               </p>

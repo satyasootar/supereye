@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { DEFAULT_KEYBINDINGS } from '@/lib/keyboard/default-bindings';
 import { keybindingRegistry } from '@/lib/keyboard/registry';
 import { FocusContextProvider } from '@/components/keyboard/focus-context-provider';
-import { ModeIndicator } from '@/components/keyboard/mode-indicator';
 import { CheatSheet } from '@/components/keyboard/cheat-sheet';
 import { useKeyboardEngine } from '@/hooks/use-keyboard-engine';
 import { useWorkspaceKeybindings } from '@/hooks/use-workspace-keybindings';
@@ -43,7 +42,6 @@ function KeyboardEngineInner() {
 
   return (
     <>
-      <ModeIndicator />
       <CheatSheet />
     </>
   );
