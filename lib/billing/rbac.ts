@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
-import { SUPER_ADMIN_EMAIL, type UserRole } from './constants';
+import { SUPER_ADMIN_EMAILS, type UserRole } from './constants';
 
 export class AuthorizationError extends Error {
   status = 403;
@@ -12,8 +12,8 @@ export class AuthorizationError extends Error {
 }
 
 export function isSuperAdminEmail(email: string | null | undefined): boolean {
-  if (!SUPER_ADMIN_EMAIL) return false;
-  return email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  if (!email || SUPER_ADMIN_EMAILS.length === 0) return false;
+  return SUPER_ADMIN_EMAILS.includes(email.toLowerCase());
 }
 
 export async function getUserRole(userId: string): Promise<UserRole> {

@@ -1,5 +1,19 @@
-/** Super Admin — set via SUPER_ADMIN_EMAIL env var */
-export const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL ?? '';
+function parseSuperAdminEmails(): string[] {
+  const emails = new Set<string>();
+
+  for (const source of [process.env.SUPER_ADMIN_EMAILS, process.env.SUPER_ADMIN_EMAIL]) {
+    if (!source) continue;
+    for (const part of source.split(',')) {
+      const email = part.trim().toLowerCase();
+      if (email) emails.add(email);
+    }
+  }
+
+  return [...emails];
+}
+
+/** Super admin emails — comma-separated in SUPER_ADMIN_EMAILS (or legacy SUPER_ADMIN_EMAIL) */
+export const SUPER_ADMIN_EMAILS = parseSuperAdminEmails();
 
 export const USER_ROLES = ['super_admin', 'user', 'enterprise_user'] as const;
 export type UserRole = (typeof USER_ROLES)[number];

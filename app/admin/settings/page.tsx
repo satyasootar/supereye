@@ -1,4 +1,4 @@
-import { SUPER_ADMIN_EMAIL } from '@/lib/billing/constants';
+import { SUPER_ADMIN_EMAILS } from '@/lib/billing/constants';
 import { AdminPageHeader, AdminPanel } from '@/components/admin/admin-shell';
 
 export default function AdminSettingsPage() {
@@ -13,13 +13,21 @@ export default function AdminSettingsPage() {
         <AdminPanel title="Super Admin Access">
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="text-text-muted">Authorized email</dt>
+              <dt className="text-text-muted">Authorized emails</dt>
               <dd className="mt-1 font-medium text-text-primary">
-                {SUPER_ADMIN_EMAIL || 'Not configured (set SUPER_ADMIN_EMAIL)'}
+                {SUPER_ADMIN_EMAILS.length > 0 ? (
+                  <ul className="list-inside list-disc space-y-1">
+                    {SUPER_ADMIN_EMAILS.map((email) => (
+                      <li key={email}>{email}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  'Not configured (set SUPER_ADMIN_EMAILS)'
+                )}
               </dd>
             </div>
             <p className="text-text-muted">
-              Only this email receives super admin role on sign-in. Role changes for other
+              These emails receive super admin role on sign-in. Role changes for other
               accounts must be made manually from the Users panel.
             </p>
           </dl>
