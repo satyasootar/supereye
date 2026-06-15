@@ -1,10 +1,25 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useTheme } from 'next-themes';
 import LaserFlow from './LaserFlow';
+
+function useCssVar(name: string) {
+  const { resolvedTheme } = useTheme();
+  const [value, setValue] = useState('');
+
+  useEffect(() => {
+    setValue(
+      getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+    );
+  }, [resolvedTheme, name]);
+
+  return value;
+}
 
 export function LaserFlowBoxExample() {
   const revealImgRef = useRef<HTMLImageElement>(null);
+  const accentColor = useCssVar('--accent-blue');
 
   return (
     <div 
@@ -12,7 +27,7 @@ export function LaserFlowBoxExample() {
         height: '800px', 
         position: 'relative', 
         overflow: 'hidden',
-        backgroundColor: '#120F17',
+        backgroundColor: 'var(--bg-app)',
         width: '100%'
       }}
       onMouseMove={(e) => {
@@ -36,7 +51,7 @@ export function LaserFlowBoxExample() {
       <LaserFlow
         horizontalBeamOffset={0.1}
         verticalBeamOffset={0.0}
-        color="#CF9EFF"
+        color={accentColor || '#5A775C'}
         horizontalSizing={0.5}
         verticalSizing={2}
         wispDensity={1}
@@ -58,13 +73,13 @@ export function LaserFlowBoxExample() {
         transform: 'translateX(-50%)',
         width: '86%',
         height: '60%',
-        backgroundColor: '#120F17',
+        backgroundColor: 'var(--bg-elevated)',
         borderRadius: '20px',
-        border: '2px solid #FF79C6',
+        border: '2px solid var(--accent-blue)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'white',
+        color: 'var(--text-primary)',
         fontSize: '2rem',
         zIndex: 6
       }}>

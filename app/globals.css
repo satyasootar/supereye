@@ -139,18 +139,37 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-default, #2A2438) var(--bg-app, #120F17);
+  }
   body {
     @apply bg-background text-foreground;
-    }
+  }
   html {
     @apply font-sans;
-    }
+  }
   button, [role="button"], a {
     @apply cursor-pointer;
   }
   button:disabled, [role="button"]:disabled, [aria-disabled="true"] {
     @apply cursor-not-allowed;
+  }
+
+  /* Custom Webkit scrollbars matching active theme */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg-app, #120F17);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-default, #2A2438);
+    border-radius: 9999px;
+    border: 3px solid var(--bg-app, #120F17);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--border-strong, #FF79C6);
   }
 }
 
