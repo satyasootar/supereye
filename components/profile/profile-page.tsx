@@ -59,17 +59,17 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
   const { leftSidebarCollapsed, setLeftSidebarCollapsed } = useAppStore();
 
   const [mounted, setMounted] = useState(false);
-  const [colorTheme, setColorTheme] = useState<'default' | 'twitter' | 'claude' | 'caffeine'>('default');
+  const [colorTheme, setColorTheme] = useState<'default' | 'twitter' | 'claude' | 'caffeine' | 'sage'>('default');
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem('color-theme') as 'default' | 'twitter' | 'claude' | 'caffeine';
+    const saved = localStorage.getItem('color-theme') as 'default' | 'twitter' | 'claude' | 'caffeine' | 'sage';
     if (saved) {
       setColorTheme(saved);
     }
   }, []);
 
-  const handleColorThemeChange = (newTheme: 'default' | 'twitter' | 'claude' | 'caffeine') => {
+  const handleColorThemeChange = (newTheme: 'default' | 'twitter' | 'claude' | 'caffeine' | 'sage') => {
     setColorTheme(newTheme);
     localStorage.setItem('color-theme', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
@@ -396,6 +396,16 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                               lightAccent: '#644a40',
                               darkAccent: '#ffe0c2',
                               darkBg: '#111111',
+                            },
+                          },
+                          {
+                            value: 'sage',
+                            label: 'Sage Garden',
+                            colors: {
+                              lightBg: '#f8f7f4',
+                              lightAccent: '#7c9082',
+                              darkAccent: '#7c9082',
+                              darkBg: '#0a0a0a',
                             },
                           },
                         ] as const
