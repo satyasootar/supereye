@@ -88,7 +88,7 @@ export function LaserFlowBoxExample() {
 
       <img
         ref={revealImgRef}
-        src="/reveal-dashboard.png"
+        src="/bg-dashboard.png"
         alt="Reveal effect"
         style={{
           position: 'absolute',
