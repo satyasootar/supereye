@@ -1,10 +1,10 @@
 import { signIn } from '@/lib/auth';
 import { Eye } from 'lucide-react';
+import { EmailPasswordLoginForm } from '@/components/auth/email-password-login-form';
 
 export default function LoginPage() {
   return (
     <div className="flex flex-col items-center gap-8">
-      {/* Branding */}
       <div className="flex flex-col items-center gap-3">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-500 shadow-lg shadow-violet-500/25">
           <Eye className="h-7 w-7 text-white" />
@@ -17,14 +17,12 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Login card */}
       <div className="w-full rounded-2xl border border-border/50 bg-card/80 p-8 shadow-xl shadow-black/5 backdrop-blur-xl">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2 text-center">
             <h2 className="text-lg font-semibold">Welcome back</h2>
             <p className="text-sm text-muted-foreground">
-              Sign in with your Google account to access your inbox and calendar
-              in one place.
+              Sign in with Google or your email and password.
             </p>
           </div>
 
@@ -65,14 +63,23 @@ export default function LoginPage() {
             </button>
           </form>
 
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border/60" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card/80 px-2 text-muted-foreground">or</span>
+            </div>
+          </div>
+
+          <EmailPasswordLoginForm />
+
           <p className="text-center text-xs text-muted-foreground">
-            By signing in, you agree to connect your Gmail and Calendar for a
-            unified experience.
+            Google users can add a password in Profile → Security after signing in.
           </p>
         </div>
       </div>
 
-      {/* Footer */}
       <p className="text-xs text-muted-foreground/60">
         Built with Corsair · Self-hosted · Your data, your control
       </p>

@@ -20,6 +20,8 @@ export type UserProfile = {
   image: string | null;
   createdAt: string;
   authProvider: string;
+  authProviders: string[];
+  hasPassword: boolean;
   integrations: IntegrationStatus[];
 };
 
@@ -27,11 +29,21 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!user) return null;
 
-  const [authAccount] = await db
-    .select({ provider: accounts.provider })
-    .from(accounts)
-    .where(eq(accounts.userId, userId))
-    .limit(1);
+  const [authAccounts] = await Promise.all([
+    db
+      .select({ provider: accounts.provider })
+      .from(accounts)
+      .where(eq(accounts.userId, userId)),
+  ]);
+
+  const authProviders = authAccounts.map((a) => a.provider);
+  const hasPassword = !!user.passwordHash;
+  const authProvider =
+    authProviders.includes('google') && hasPassword
+      ? 'google+password'
+      : hasPassword
+        ? 'password'
+        : authProviders[0] ?? 'google';
 
   const linked = await db
     .select({
@@ -67,7 +79,9 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     email: user.email,
     image: user.image,
     createdAt: user.createdAt.toISOString(),
-    authProvider: authAccount?.provider ?? 'google',
+    authProvider,
+    authProviders,
+    hasPassword,
     integrations,
   };
 }

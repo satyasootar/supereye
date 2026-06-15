@@ -1,19 +1,17 @@
 /**
  * NextAuth v5 configuration.
- * Uses Google OAuth for sign-in with Drizzle adapter for Postgres persistence.
+ * Supports Google OAuth and email/password credentials.
  *
- * This handles USER AUTHENTICATION only (login/session).
- * Gmail/Calendar API access is handled separately by Corsair.
+ * User authentication (login/session) is separate from Corsair integrations
+ * (Gmail/Calendar API access).
  */
-// Pin OAuth callbacks to the public app URL (ngrok in dev, production domain in prod).
-// Without this, signing in via http://localhost:3000 sends a localhost redirect_uri
-// that won't match Google Console when only the ngrok URI is registered.
 if (!process.env.AUTH_URL && process.env.NEXT_PUBLIC_APP_URL) {
   process.env.AUTH_URL = process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
 }
 
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
+import Credentials from 'next-auth/providers/credentials';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
@@ -22,6 +20,7 @@ import { users, accounts, sessions, verificationTokens } from '@/lib/db/schema';
 import { bootstrapUserBilling } from '@/lib/billing/seed';
 import { ensureUserHasSubscription } from '@/lib/billing/admin';
 import { touchUserActivity } from '@/lib/billing/rbac';
+import { authenticateWithPassword } from '@/lib/auth/credentials';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -31,10 +30,39 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
   }),
+  session: {
+    strategy: 'jwt',
+  },
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+    }),
+    Credentials({
+      id: 'credentials',
+      name: 'Email and Password',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        const email =
+          typeof credentials?.email === 'string' ? credentials.email : '';
+        const password =
+          typeof credentials?.password === 'string' ? credentials.password : '';
+
+        if (!email || !password) return null;
+
+        const user = await authenticateWithPassword(email, password);
+        if (!user) return null;
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+        };
+      },
     }),
   ],
   events: {
@@ -46,16 +74,33 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   callbacks: {
-    async session({ session, user }) {
-      session.user.id = user.id;
-      const [dbUser] = await db
-        .select({ role: users.role, status: users.status })
-        .from(users)
-        .where(eq(users.id, user.id))
-        .limit(1);
-      session.user.role = dbUser?.role ?? 'user';
-      session.user.status = dbUser?.status ?? 'active';
-      await touchUserActivity(user.id);
+    async jwt({ token, user }) {
+      if (user?.id) {
+        token.id = user.id;
+      }
+
+      const userId = (token.id as string | undefined) ?? token.sub;
+      if (userId) {
+        const [dbUser] = await db
+          .select({ role: users.role, status: users.status })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        token.role = dbUser?.role ?? 'user';
+        token.status = dbUser?.status ?? 'active';
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
+      const userId = (token.id as string | undefined) ?? token.sub;
+      if (!userId) return session;
+
+      session.user.id = userId;
+      session.user.role =
+        (token.role as 'super_admin' | 'user' | 'enterprise_user') ?? 'user';
+      session.user.status = (token.status as 'active' | 'suspended') ?? 'active';
+      await touchUserActivity(userId);
       return session;
     },
     authorized({ auth, request }) {

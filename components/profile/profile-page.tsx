@@ -37,6 +37,7 @@ import { KeyboardShortcutsSection } from '@/components/profile/keyboard-shortcut
 import { UsageDashboardSection } from '@/components/profile/usage-dashboard-section';
 import { BotSettingsSection } from '@/components/profile/bot-settings-section';
 import { BillingSection } from '@/components/profile/billing-section';
+import { PasswordSection } from '@/components/profile/password-section';
 import { getPlugin } from '@/lib/plugins/registry';
 import { useAppStore } from '@/lib/store/app-store';
 import type { UserProfile } from '@/lib/user/profile';
@@ -258,7 +259,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
 
                   <ProfileSection
                     title="Account details"
-                    description="Your identity is managed through Google sign-in. Profile photo and name sync from your Google account."
+                    description="Your name and photo sync from Google when you use Google sign-in. You can also sign in with email and password once configured."
                   >
                     <ProfileRow label="Full name" description="From your Google account">
                       <span className="text-[13px] text-text-secondary">
@@ -550,17 +551,31 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
 
               {activeTab === 'security' && (
                 <div className="flex flex-col gap-6">
+                  <PasswordSection
+                    hasPassword={profile.hasPassword}
+                    email={profile.email}
+                  />
+
                   <ProfileSection
                     title="Session"
-                    description="Manage your active session and sign-in method."
+                    description="Manage your active session and sign-in methods."
                   >
                     <ProfileRow
-                      label="Sign-in method"
-                      description="You authenticate with your Google account"
+                      label="Sign-in methods"
+                      description="Ways you can access your account"
                     >
-                      <Badge variant="outline" className="border-border-default capitalize">
-                        {profile.authProvider}
-                      </Badge>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.authProviders.includes('google') && (
+                          <Badge variant="outline" className="border-border-default capitalize">
+                            Google
+                          </Badge>
+                        )}
+                        {profile.hasPassword && (
+                          <Badge variant="outline" className="border-border-default">
+                            Email & password
+                          </Badge>
+                        )}
+                      </div>
                     </ProfileRow>
                     <ProfileRow
                       label="Account created"
