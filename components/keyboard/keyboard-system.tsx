@@ -7,8 +7,6 @@ import { FocusContextProvider } from '@/components/keyboard/focus-context-provid
 import { CheatSheet } from '@/components/keyboard/cheat-sheet';
 import { useKeyboardEngine } from '@/hooks/use-keyboard-engine';
 import { useWorkspaceKeybindings } from '@/hooks/use-workspace-keybindings';
-import { useEmailKeybindings } from '@/hooks/use-email-keybindings';
-import { useCalendarKeybindings } from '@/hooks/use-calendar-keybindings';
 import { useAgentKeybindings } from '@/hooks/use-agent-keybindings';
 import { useKeyboardStore } from '@/lib/keyboard/keyboard-store';
 import { useAppStore } from '@/lib/store/app-store';
@@ -16,8 +14,6 @@ import { useAppStore } from '@/lib/store/app-store';
 function KeyboardEngineInner() {
   useKeyboardEngine();
   useWorkspaceKeybindings();
-  useEmailKeybindings();
-  useCalendarKeybindings();
   useAgentKeybindings();
 
   const { isCommandPaletteOpen, isAgentOpen } = useAppStore();

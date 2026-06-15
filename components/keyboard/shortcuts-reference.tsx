@@ -18,8 +18,6 @@ export function getFeaturedShortcuts(): ShortcutEntry[] {
     { description: 'Switch workspace', keys: '1 – 5' },
     { description: 'Previous / next workspace', keys: '[  ]' },
     { description: 'Switch plugin in workspace', keys: 'Tab' },
-    { description: 'Next / previous in email list', keys: 'J / K' },
-    { description: 'Open email', keys: 'Enter' },
     { description: 'Command palette', keys: `${mod}+K` },
   ];
 }

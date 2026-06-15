@@ -61,7 +61,7 @@ export function KeyboardShortcutsSection() {
     <div className="flex flex-col gap-6">
       <ProfileSection
         title="Keyboard shortcuts"
-        description="A small set of essentials — workspace switching, plugin focus, and email navigation. Uses Ctrl on Windows and ⌘ on Mac."
+        description="A small set of essentials — workspace switching and plugin focus. Uses Ctrl on Windows and ⌘ on Mac."
       >
         <p className="mb-4 text-[12px] leading-relaxed text-text-muted">
           Press <kbd className="rounded bg-bg-highlight px-1 font-mono text-[11px]">?</kbd> in

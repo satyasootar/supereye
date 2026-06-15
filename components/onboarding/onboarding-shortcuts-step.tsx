@@ -45,7 +45,7 @@ export function OnboardingShortcutsStep({
             </h1>
             <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-text-muted">
               Supereye is keyboard-first. Learn a handful of shortcuts now — you&apos;ll move
-              through email, calendar, and workspaces without reaching for the mouse.
+              through workspaces and cycle active plugins without reaching for the mouse.
             </p>
           </motion.div>
 

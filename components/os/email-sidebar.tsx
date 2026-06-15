@@ -5,7 +5,7 @@ import {
   Inbox, Star, Clock, Send, FileText, Mail, AlertOctagon, Trash2, 
   ChevronDown, Plus, Settings, HelpCircle, HardDrive, Edit, 
   BarChart, Flame, Paperclip, Users, Tag, ChevronLeft, ChevronRight, Calendar,
-  Sun, Moon, User, Archive, PanelLeftClose, PanelLeftOpen
+  Sun, Moon, User, Archive, PanelLeftClose, PanelLeftOpen, ArrowLeftRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef } from 'react';
@@ -40,11 +40,19 @@ export function EmailSidebar() {
     leftSidebarCollapsed,
     setLeftSidebarCollapsed,
   } = useAppStore();
-  const { primary, activePlugins } = useWorkspaceLayout();
+  const { primary, activePlugins, activeWorkspace, focusPlugin } = useWorkspaceLayout();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleSwitchPlugin = () => {
+    if (!activeWorkspace || activeWorkspace.pluginIds.length < 2) return;
+    const currentPrimaryIndex = activeWorkspace.pluginIds.indexOf(primary);
+    const nextIndex = (currentPrimaryIndex + 1) % activeWorkspace.pluginIds.length;
+    const nextPluginId = activeWorkspace.pluginIds[nextIndex];
+    focusPlugin(nextPluginId);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -364,8 +372,20 @@ export function EmailSidebar() {
       className="h-full flex-shrink-0 border-r border-border-subtle bg-bg-surface overflow-hidden relative flex flex-col"
     >
       {!isSidebarCollapsed && (
-        <div className="shrink-0 border-b border-border-subtle px-2 py-2">
-          <WorkspaceSwitcher />
+        <div className="shrink-0 border-b border-border-subtle px-2 py-2 flex items-center gap-1.5">
+          <div className="flex-1 min-w-0">
+            <WorkspaceSwitcher />
+          </div>
+          {activeWorkspace && activeWorkspace.pluginIds.length >= 2 && (
+            <button
+              type="button"
+              onClick={handleSwitchPlugin}
+              className="flex w-9 items-center justify-center rounded-md border border-border-subtle bg-bg-highlight/60 text-text-muted transition-colors hover:bg-bg-highlight hover:text-text-primary self-stretch shrink-0 cursor-pointer"
+              title="Switch Active Plugin"
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+            </button>
+          )}
         </div>
       )}
       {isSidebarCollapsed && (

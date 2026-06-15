@@ -91,65 +91,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
     group: 'Workspaces',
   },
 
-  // ─── Email ────────────────────────────────────────────────
-  {
-    id: 'email.next',
-    sequence: [{ key: 'j' }],
-    contexts: ['email'],
-    actionId: KEYBOARD_ACTIONS.EMAIL_NEXT,
-    description: 'Next email',
-    group: 'Email',
-  },
-  {
-    id: 'email.prev',
-    sequence: [{ key: 'k' }],
-    contexts: ['email'],
-    actionId: KEYBOARD_ACTIONS.EMAIL_PREV,
-    description: 'Previous email',
-    group: 'Email',
-  },
-  {
-    id: 'email.open',
-    sequence: [{ key: 'enter' }],
-    contexts: ['email'],
-    actionId: KEYBOARD_ACTIONS.EMAIL_OPEN,
-    description: 'Open email',
-    group: 'Email',
-  },
-  {
-    id: 'email.close',
-    sequence: [{ key: 'escape' }],
-    contexts: ['email'],
-    actionId: KEYBOARD_ACTIONS.EMAIL_CLOSE,
-    description: 'Close email',
-    group: 'Email',
-  },
 
-  // ─── Calendar ─────────────────────────────────────────────
-  {
-    id: 'calendar.today',
-    sequence: [{ key: 't' }],
-    contexts: ['calendar'],
-    actionId: KEYBOARD_ACTIONS.CAL_TODAY,
-    description: 'Go to today',
-    group: 'Calendar',
-  },
-  {
-    id: 'calendar.prev',
-    sequence: [{ key: 'h' }],
-    contexts: ['calendar'],
-    actionId: KEYBOARD_ACTIONS.CAL_PREV,
-    description: 'Previous period',
-    group: 'Calendar',
-  },
-  {
-    id: 'calendar.next',
-    sequence: [{ key: 'l' }],
-    contexts: ['calendar'],
-    actionId: KEYBOARD_ACTIONS.CAL_NEXT,
-    description: 'Next period',
-    group: 'Calendar',
-  },
 
   // ─── AI Assistant ───────────────────────────────────────
   {

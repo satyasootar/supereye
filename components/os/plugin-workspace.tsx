@@ -103,12 +103,10 @@ function SecondaryPanel({
   pluginId,
   expanded,
   onToggle,
-  onFocus,
 }: {
   pluginId: PluginId;
   expanded: boolean;
   onToggle: () => void;
-  onFocus: () => void;
 }) {
   const meta = getPlugin(pluginId);
   const isEmail = pluginId === 'email';
@@ -147,14 +145,6 @@ function SecondaryPanel({
               {meta?.shortLabel ?? pluginId}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={onFocus}
-            className="flex items-center gap-1.5 rounded-md bg-accent-blue/10 px-2.5 py-1 text-[12px] font-semibold text-accent-blue transition-colors hover:bg-accent-blue/20"
-          >
-            <Icon className="h-3.5 w-3.5" />
-            Focus
-          </button>
         </div>
         <div className="min-h-0 flex-1 overflow-hidden bg-bg-surface">
           {isEmail && <EmailCompactPanel hideHeader />}
@@ -176,15 +166,6 @@ function SecondaryPanel({
           className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-accent-blue/10 hover:text-accent-blue"
         >
           <PanelRightOpen className="h-4 w-4" />
-        </button>
-        <div className="my-1 w-6 border-t border-border-subtle" />
-        <button
-          type="button"
-          onClick={onFocus}
-          title={`Switch to ${meta?.shortLabel ?? pluginId} focus`}
-          className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-blue/15 text-accent-blue transition-colors hover:bg-accent-blue/25"
-        >
-          <Icon className="h-4 w-4" />
         </button>
         {isEmail && (
           <button
@@ -294,7 +275,6 @@ export function PluginWorkspace() {
                 pluginId={sidebar}
                 expanded={isRightPanelExpanded}
                 onToggle={() => setIsRightPanelExpanded((v) => !v)}
-                onFocus={() => focusPlugin(sidebar)}
               />
             </AnimatePresence>
           )}
