@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 const PLUGIN_ICON_SRC: Record<string, string | { light: string; dark: string }> = {
   email: '/Icons/gmail.svg',
@@ -23,14 +24,19 @@ export function PluginBrandIcon({
   size?: number;
 }) {
   const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const entry = PLUGIN_ICON_SRC[pluginId];
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (!entry) return null;
 
   const src =
     typeof entry === 'string'
       ? entry
-      : resolvedTheme === 'dark'
+      : (mounted && resolvedTheme === 'dark')
         ? entry.dark
         : entry.light;
 

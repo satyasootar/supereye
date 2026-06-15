@@ -89,7 +89,7 @@
   --color-success-dim: var(--success-dim);
 }
 
-:root {
+:root, html[data-theme="default"] {
   --background: #fdfbf7;
   --foreground: #4a3b33;
   --card: #f8f4ee;
@@ -171,9 +171,15 @@
   --priority-medium: #EAB308;
   --priority-low: #64748B;
   --priority-ai: #8B5CF6;
+
+  /* Agent overlay tokens */
+  --agent-accent: #73FF8C;
+  --agent-surface: rgba(12, 12, 12, 0.35);
+  --agent-input-bg: rgba(10, 10, 10, 0.45);
+  --agent-border: rgba(115, 255, 140, 0.15);
 }
 
-.dark {
+.dark, html[data-theme="default"].dark {
   --background: #1c1917;
   --foreground: #f5f5f4;
   --card: #292524;
@@ -255,6 +261,362 @@
   --priority-ai: #A78BFA;
 
   /* Agent overlay tokens */
+  --agent-accent: #73FF8C;
+  --agent-surface: rgba(12, 12, 12, 0.35);
+  --agent-input-bg: rgba(10, 10, 10, 0.45);
+  --agent-border: rgba(115, 255, 140, 0.15);
+}
+
+/* Twitter Theme - Scoped */
+html[data-theme="twitter"] {
+  --background: #ffffff;
+  --foreground: #0f1419;
+  --card: #f7f8f8;
+  --card-foreground: #0f1419;
+  --popover: #ffffff;
+  --popover-foreground: #0f1419;
+  --primary: #1e9df1;
+  --primary-foreground: #ffffff;
+  --secondary: #0f1419;
+  --secondary-foreground: #ffffff;
+  --muted: #e5e5e6;
+  --muted-foreground: #0f1419;
+  --accent: #e3ecf6;
+  --accent-foreground: #1e9df1;
+  --destructive: #f4212e;
+  --destructive-foreground: #ffffff;
+  --border: #e1eaef;
+  --input: #f7f9fa;
+  --ring: #1da1f2;
+  --chart-1: #1e9df1;
+  --chart-2: #00b87a;
+  --chart-3: #f7b928;
+  --chart-4: #17bf63;
+  --chart-5: #e0245e;
+  --sidebar: #f7f8f8;
+  --sidebar-foreground: #0f1419;
+  --sidebar-primary: #1e9df1;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e3ecf6;
+  --sidebar-accent-foreground: #1e9df1;
+  --sidebar-border: #e1e8ed;
+  --sidebar-ring: #1da1f2;
+  --font-heading: var(--font-sans);
+  --font-sans: Open Sans, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 1.3rem;
+  --shadow-x: 0px;
+  --shadow-y: 2px;
+  --shadow-blur: 0px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0;
+  --shadow-color: rgba(29,161,242,0.15);
+  --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+  /* App legacy variables mapping for light mode */
+  --bg-app: var(--background);
+  --bg-base: var(--background);
+  --bg-surface: var(--muted);
+  --bg-elevated: var(--card);
+  --bg-overlay: var(--secondary);
+  --bg-highlight: var(--accent);
+  --border-subtle: var(--border);
+  --border-default: var(--border);
+  --border-strong: var(--primary);
+  --text-primary: var(--foreground);
+  --text-secondary: #536471;
+  --text-muted: #536471;
+  --text-inverse: var(--primary-foreground);
+  
+  --accent-blue: #1e9df1;
+  --accent-blue-dim: #1a8cd8;
+  --accent-blue-glow: rgba(30, 157, 241, 0.12);
+
+  --success: #00b87a;
+  --success-dim: #009e69;
+
+  --priority-urgent: var(--destructive);
+  --priority-high: #f7b928;
+  --priority-medium: #17bf63;
+  --priority-low: #8899a6;
+  --priority-ai: #7856ff;
+
+  --agent-accent: #73FF8C;
+  --agent-surface: rgba(12, 12, 12, 0.35);
+  --agent-input-bg: rgba(10, 10, 10, 0.45);
+  --agent-border: rgba(115, 255, 140, 0.15);
+}
+
+html[data-theme="twitter"].dark {
+  --background: #000000;
+  --foreground: #e7e9ea;
+  --card: #17181c;
+  --card-foreground: #d9d9d9;
+  --popover: #000000;
+  --popover-foreground: #e7e9ea;
+  --primary: #1c9cf0;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f3f4;
+  --secondary-foreground: #0f1419;
+  --muted: #181818;
+  --muted-foreground: #72767a;
+  --accent: #061622;
+  --accent-foreground: #1c9cf0;
+  --destructive: #f4212e;
+  --destructive-foreground: #ffffff;
+  --border: #242628;
+  --input: #22303c;
+  --ring: #1da1f2;
+  --chart-1: #1e9df1;
+  --chart-2: #00b87a;
+  --chart-3: #f7b928;
+  --chart-4: #17bf63;
+  --chart-5: #e0245e;
+  --sidebar: #17181c;
+  --sidebar-foreground: #d9d9d9;
+  --sidebar-primary: #1da1f2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #061622;
+  --sidebar-accent-foreground: #1c9cf0;
+  --sidebar-border: #38444d;
+  --sidebar-ring: #1da1f2;
+  --font-heading: var(--font-sans);
+  --font-sans: Open Sans, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 1.3rem;
+  --shadow-x: 0px;
+  --shadow-y: 2px;
+  --shadow-blur: 0px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0;
+  --shadow-color: rgba(29,161,242,0.25);
+  --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+  /* App legacy variables mapping for dark mode */
+  --bg-app: var(--background);
+  --bg-base: var(--background);
+  --bg-surface: var(--muted);
+  --bg-elevated: var(--card);
+  --bg-overlay: var(--secondary);
+  --bg-highlight: var(--accent);
+  --border-subtle: var(--border);
+  --border-default: var(--border);
+  --border-strong: var(--primary);
+  --text-primary: var(--foreground);
+  --text-secondary: #8899a6;
+  --text-muted: #71767b;
+  --text-inverse: var(--primary-foreground);
+  
+  --accent-blue: #1c9cf0;
+  --accent-blue-dim: #158cd8;
+  --accent-blue-glow: rgba(28, 156, 240, 0.18);
+
+  --success: #00b87a;
+  --success-dim: #009e69;
+
+  --priority-urgent: var(--destructive);
+  --priority-high: #f7b928;
+  --priority-medium: #17bf63;
+  --priority-low: #8899a6;
+  --priority-ai: #7856ff;
+
+  --agent-accent: #73FF8C;
+  --agent-surface: rgba(12, 12, 12, 0.35);
+  --agent-input-bg: rgba(10, 10, 10, 0.45);
+  --agent-border: rgba(115, 255, 140, 0.15);
+}
+
+/* Claude Theme - Scoped */
+html[data-theme="claude"] {
+  --background: #faf9f5;
+  --foreground: #3d3929;
+  --card: #faf9f5;
+  --card-foreground: #141413;
+  --popover: #ffffff;
+  --popover-foreground: #28261b;
+  --primary: #c96442;
+  --primary-foreground: #ffffff;
+  --secondary: #e9e6dc;
+  --secondary-foreground: #535146;
+  --muted: #ede9de;
+  --muted-foreground: #83827d;
+  --accent: #e9e6dc;
+  --accent-foreground: #28261b;
+  --destructive: #141413;
+  --destructive-foreground: #ffffff;
+  --border: #dad9d4;
+  --input: #b4b2a7;
+  --ring: #c96442;
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #ded8c4;
+  --chart-4: #dbd3f0;
+  --chart-5: #b4552d;
+  --sidebar: #f5f4ee;
+  --sidebar-foreground: #3d3d3a;
+  --sidebar-primary: #c96442;
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #e9e6dc;
+  --sidebar-accent-foreground: #343434;
+  --sidebar-border: #ebebeb;
+  --sidebar-ring: #b5b5b5;
+  --font-heading: var(--font-sans);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --radius: 0.5rem;
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: oklch(0 0 0);
+  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
+  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
+  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 2px 4px -1px hsl(0 0% 0% / 0.10);
+  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10);
+  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10);
+  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+  /* App legacy variables mapping for light mode */
+  --bg-app: var(--background);
+  --bg-base: var(--background);
+  --bg-surface: var(--muted);
+  --bg-elevated: var(--card);
+  --bg-overlay: var(--secondary);
+  --bg-highlight: var(--accent);
+  --border-subtle: var(--border);
+  --border-default: var(--border);
+  --border-strong: var(--primary);
+  --text-primary: var(--foreground);
+  --text-secondary: var(--muted-foreground);
+  --text-muted: var(--muted-foreground);
+  --text-inverse: var(--primary-foreground);
+  
+  --accent-blue: #c96442;
+  --accent-blue-dim: #b05730;
+  --accent-blue-glow: rgba(201, 100, 66, 0.12);
+
+  --success: #17bf63;
+  --success-dim: #15a857;
+
+  --priority-urgent: var(--destructive);
+  --priority-high: #b05730;
+  --priority-medium: #c96442;
+  --priority-low: #83827d;
+  --priority-ai: #9c87f5;
+
+  --agent-accent: #73FF8C;
+  --agent-surface: rgba(12, 12, 12, 0.35);
+  --agent-input-bg: rgba(10, 10, 10, 0.45);
+  --agent-border: rgba(115, 255, 140, 0.15);
+}
+
+html[data-theme="claude"].dark {
+  --background: #262624;
+  --foreground: #c3c0b6;
+  --card: #262624;
+  --card-foreground: #faf9f5;
+  --popover: #30302e;
+  --popover-foreground: #e5e5e2;
+  --primary: #d97757;
+  --primary-foreground: #ffffff;
+  --secondary: #faf9f5;
+  --secondary-foreground: #30302e;
+  --muted: #1b1b19;
+  --muted-foreground: #b7b5a9;
+  --accent: #1a1915;
+  --accent-foreground: #f5f4ee;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #3e3e38;
+  --input: #52514a;
+  --ring: #d97757;
+  --chart-1: #b05730;
+  --chart-2: #9c87f5;
+  --chart-3: #1a1915;
+  --chart-4: #2f2b48;
+  --chart-5: #b4552d;
+  --sidebar: #1f1e1d;
+  --sidebar-foreground: #c3c0b6;
+  --sidebar-primary: #343434;
+  --sidebar-primary-foreground: #fbfbfb;
+  --sidebar-accent: #0f0f0e;
+  --sidebar-accent-foreground: #c3c0b6;
+  --sidebar-border: #ebebeb;
+  --sidebar-ring: #b5b5b5;
+  --font-heading: var(--font-sans);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --radius: 0.5rem;
+  --shadow-x: 0;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.1;
+  --shadow-color: oklch(0 0 0);
+  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
+  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
+  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 2px 4px -1px hsl(0 0% 0% / 0.10);
+  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10);
+  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10);
+  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+
+  /* App legacy variables mapping for dark mode */
+  --bg-app: var(--background);
+  --bg-base: var(--background);
+  --bg-surface: var(--muted);
+  --bg-elevated: var(--card);
+  --bg-overlay: var(--secondary);
+  --bg-highlight: var(--accent);
+  --border-subtle: var(--border);
+  --border-default: var(--border);
+  --border-strong: var(--primary);
+  --text-primary: var(--foreground);
+  --text-secondary: var(--muted-foreground);
+  --text-muted: var(--muted-foreground);
+  --text-inverse: var(--primary-foreground);
+  
+  --accent-blue: #d97757;
+  --accent-blue-dim: #b4552d;
+  --accent-blue-glow: rgba(217, 119, 87, 0.18);
+
+  --success: #17bf63;
+  --success-dim: #15a857;
+
+  --priority-urgent: var(--destructive);
+  --priority-high: #b05730;
+  --priority-medium: #c96442;
+  --priority-low: #b7b5a9;
+  --priority-ai: #9c87f5;
+
   --agent-accent: #73FF8C;
   --agent-surface: rgba(12, 12, 12, 0.35);
   --agent-input-bg: rgba(10, 10, 10, 0.45);

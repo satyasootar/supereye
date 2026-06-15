@@ -11,9 +11,14 @@ function useCssVar(name: string) {
   const [value, setValue] = useState('');
 
   useEffect(() => {
-    setValue(
-      getComputedStyle(document.documentElement).getPropertyValue(name).trim()
-    );
+    const update = () => {
+      setValue(
+        getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+      );
+    };
+    update();
+    window.addEventListener('color-theme-change', update);
+    return () => window.removeEventListener('color-theme-change', update);
   }, [resolvedTheme, name]);
 
   return value;

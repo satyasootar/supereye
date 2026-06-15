@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
@@ -57,6 +57,24 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
   const searchParams = useSearchParams();
   const { theme, setTheme } = useTheme();
   const { leftSidebarCollapsed, setLeftSidebarCollapsed } = useAppStore();
+
+  const [mounted, setMounted] = useState(false);
+  const [colorTheme, setColorTheme] = useState<'default' | 'twitter' | 'claude'>('default');
+
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem('color-theme') as 'default' | 'twitter' | 'claude';
+    if (saved) {
+      setColorTheme(saved);
+    }
+  }, []);
+
+  const handleColorThemeChange = (newTheme: 'default' | 'twitter' | 'claude') => {
+    setColorTheme(newTheme);
+    localStorage.setItem('color-theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+    window.dispatchEvent(new Event('color-theme-change'));
+  };
 
   const tabParam = searchParams.get('tab') as ProfileTab | null;
   const activeTab = TABS.some((t) => t.id === tabParam) ? tabParam! : 'account';
@@ -305,7 +323,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                   title="Appearance"
                   description="Customize how Supereye looks on your device."
                 >
-                  <ProfileRow label="Theme" description="Choose your preferred color scheme">
+                  <ProfileRow label="Mode" description="Choose between Light, Dark, or System mode">
                     <div className="flex items-center gap-1 rounded-lg border border-border-subtle bg-bg-surface p-1">
                       {(
                         [
@@ -315,7 +333,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                         ] as const
                       ).map((option) => {
                         const Icon = option.icon;
-                        const isActive = theme === option.value;
+                        const isActive = mounted && theme === option.value;
                         return (
                           <button
                             key={option.value}
@@ -330,6 +348,98 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                           >
                             <Icon className="h-3.5 w-3.5" />
                             {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </ProfileRow>
+
+                  <ProfileRow label="Color Palette" description="Choose your preferred color palette theme">
+                    <div className="flex flex-col gap-2 w-[320px]">
+                      {(
+                        [
+                          {
+                            value: 'default',
+                            label: 'Warm Beach',
+                            colors: {
+                              lightBg: '#fdfbf7',
+                              lightAccent: '#b45309',
+                              darkAccent: '#f97316',
+                              darkBg: '#1c1917',
+                            },
+                          },
+                          {
+                            value: 'twitter',
+                            label: 'Twitter Blue',
+                            colors: {
+                              lightBg: '#ffffff',
+                              lightAccent: '#1e9df1',
+                              darkAccent: '#1c9cf0',
+                              darkBg: '#000000',
+                            },
+                          },
+                          {
+                            value: 'claude',
+                            label: 'Claude Peach',
+                            colors: {
+                              lightBg: '#faf9f5',
+                              lightAccent: '#c96442',
+                              darkAccent: '#d97757',
+                              darkBg: '#262624',
+                            },
+                          },
+                        ] as const
+                      ).map((option) => {
+                        const isActive = mounted && colorTheme === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => handleColorThemeChange(option.value)}
+                            className={cn(
+                              'flex items-center justify-between w-full rounded-lg border p-3 text-left transition-all hover:bg-bg-highlight/40',
+                              isActive
+                                ? 'border-accent-blue bg-bg-highlight/20 shadow-sm'
+                                : 'border-border-subtle bg-bg-surface'
+                            )}
+                          >
+                            <span className="text-[13px] font-medium text-text-primary">
+                              {option.label}
+                            </span>
+                            <div className="flex items-center gap-3">
+                              <div className="flex -space-x-1">
+                                <span
+                                  className="h-4 w-4 rounded-full border border-black/10 dark:border-white/10 shadow-sm"
+                                  style={{ backgroundColor: option.colors.lightBg }}
+                                  title="Light Background"
+                                />
+                                <span
+                                  className="h-4 w-4 rounded-full border border-black/10 dark:border-white/10 shadow-sm"
+                                  style={{ backgroundColor: option.colors.lightAccent }}
+                                  title="Light Accent"
+                                />
+                                <span
+                                  className="h-4 w-4 rounded-full border border-black/10 dark:border-white/10 shadow-sm"
+                                  style={{ backgroundColor: option.colors.darkAccent }}
+                                  title="Dark Accent"
+                                />
+                                <span
+                                  className="h-4 w-4 rounded-full border border-black/10 dark:border-white/10 shadow-sm"
+                                  style={{ backgroundColor: option.colors.darkBg }}
+                                  title="Dark Background"
+                                />
+                              </div>
+                              <div
+                                className={cn(
+                                  'h-4 w-4 rounded-full border flex items-center justify-center transition-all',
+                                  isActive
+                                    ? 'border-accent-blue bg-accent-blue'
+                                    : 'border-border-strong bg-transparent'
+                                )}
+                              >
+                                {isActive && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                              </div>
+                            </div>
                           </button>
                         );
                       })}

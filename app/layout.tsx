@@ -34,6 +34,18 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("antialiased", firaCode.variable, merriweather.variable, poppins.variable)}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const theme = localStorage.getItem('color-theme') || 'default';
+                document.documentElement.setAttribute('data-theme', theme);
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
       <body suppressHydrationWarning className="relative min-h-screen">
         <Providers>{children}</Providers>
         <Toaster position="bottom-right" richColors />
