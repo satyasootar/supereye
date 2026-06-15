@@ -111,6 +111,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     setEmailPriorityFilter,
     selectedEmailId,
     setSelectedEmailId,
+    activeWorkspaceId,
   } = useAppStore();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -124,8 +125,20 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
   const [openLabels, setOpenLabels] = useState(false);
   const [openQuickFilters, setOpenQuickFilters] = useState(false);
-  const [urgentBannerDismissed, setUrgentBannerDismissed] = useState(false);
-  const lastDismissedUrgentCount = useRef(0);
+  
+  const [dismissedCount, setDismissedCount] = useState<number>(0);
+
+  // Load dismissed count from localStorage
+  const getDismissedCount = useCallback(() => {
+    if (typeof window === 'undefined') return 0;
+    const key = activeWorkspaceId ? `dismissedUrgentCount_${activeWorkspaceId}` : 'dismissedUrgentCount_global';
+    const val = localStorage.getItem(key);
+    return val ? parseInt(val, 10) : 0;
+  }, [activeWorkspaceId]);
+
+  useEffect(() => {
+    setDismissedCount(getDismissedCount());
+  }, [getDismissedCount, activeWorkspaceId]);
   const triageRequestedRef = useRef(false);
 
   const { data: labelsData } = useQuery({
@@ -273,12 +286,7 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
 
   const showPriorityUi = ['ALL', 'INBOX', 'CATEGORY_PROMOTIONS', 'CATEGORY_SOCIAL', 'CATEGORY_UPDATES'].includes(emailCategory);
   const urgentCount = triageData?.urgent ?? emails.filter((e) => e.priorityTier === 'urgent' && !e.isRead).length;
-
-  useEffect(() => {
-    if (urgentCount > lastDismissedUrgentCount.current) {
-      setUrgentBannerDismissed(false);
-    }
-  }, [urgentCount]);
+  const urgentBannerDismissed = urgentCount <= dismissedCount;
 
   useEffect(() => {
     const navigate = (delta: number) => {
@@ -744,8 +752,11 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
           </button>
           <button
             onClick={() => {
-              lastDismissedUrgentCount.current = urgentCount;
-              setUrgentBannerDismissed(true);
+              if (typeof window !== 'undefined') {
+                const key = activeWorkspaceId ? `dismissedUrgentCount_${activeWorkspaceId}` : 'dismissedUrgentCount_global';
+                localStorage.setItem(key, urgentCount.toString());
+              }
+              setDismissedCount(urgentCount);
             }}
             className="rounded-md p-1.5 text-text-muted hover:bg-[color:var(--priority-urgent)]/10 hover:text-[color:var(--priority-urgent)] transition-colors"
             title="Dismiss"

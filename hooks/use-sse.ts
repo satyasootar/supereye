@@ -72,7 +72,7 @@ export function useSSE() {
       };
 
       eventSource.onerror = (err) => {
-        console.error('[SSE] EventSource connection error or closed.', err);
+        console.warn('[SSE] EventSource connection closed or reconnecting...', err);
         eventSource?.close();
         eventSource = null;
 

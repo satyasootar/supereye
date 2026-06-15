@@ -1,17 +1,27 @@
-import { Geist, Inter, JetBrains_Mono } from "next/font/google"
+import { Poppins, Merriweather, Fira_Code } from "next/font/google"
 
 import "./globals.css"
 import { Providers } from "@/app/providers"
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'})
-const geist = Geist({subsets:['latin'],variable:'--font-heading'})
+const poppins = Poppins({
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
-const fontMono = JetBrains_Mono({
+const merriweather = Merriweather({
+  weight: ["300", "400", "700"],
+  subsets: ["latin"],
+  variable: "--font-serif",
+});
+
+const firaCode = Fira_Code({
+  weight: ["300", "400", "500", "600", "700"],
   subsets: ["latin"],
   variable: "--font-mono",
-})
+});
 
 export default function RootLayout({
   children,
@@ -22,7 +32,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, geist.variable, inter.variable)}
+      className={cn("antialiased", firaCode.variable, merriweather.variable, poppins.variable)}
     >
       <body suppressHydrationWarning className="relative min-h-screen">
         <Providers>{children}</Providers>
