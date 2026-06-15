@@ -53,7 +53,7 @@ function BentoCard({
   return (
     <div
       className={cn(
-        'group relative flex min-h-[18rem] flex-col overflow-hidden rounded-2xl',
+        'group relative flex min-h-[18rem] flex-col overflow-hidden rounded-[var(--radius-2xl)]',
         'border border-border-subtle bg-bg-elevated landing-float-sm',
         'transform-gpu transition-all duration-300',
         'hover:border-[color-mix(in_srgb,var(--accent-blue)_35%,transparent)]',

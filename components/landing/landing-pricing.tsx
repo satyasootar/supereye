@@ -80,7 +80,7 @@ export function LandingPricing() {
             viewport={{ once: true, margin: '-40px' }}
             transition={{ duration: 0.5, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-              'relative flex flex-col rounded-2xl border p-6 md:p-7',
+              'relative flex flex-col rounded-[var(--radius-2xl)] border p-6 md:p-7',
               plan.highlighted
                 ? 'border-accent-blue/50 bg-bg-elevated shadow-[0_0_40px_color-mix(in_srgb,var(--accent-blue)_12%,transparent)]'
                 : 'border-border-subtle bg-bg-elevated'
