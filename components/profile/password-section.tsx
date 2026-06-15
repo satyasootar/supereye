@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ProfileSection, ProfileRow } from '@/components/profile/profile-section';
-import { MIN_PASSWORD_LENGTH } from '@/lib/auth/password';
+const MIN_PASSWORD_LENGTH = 8;
 
 type PasswordSectionProps = {
   hasPassword: boolean;
