@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { db } from '@/lib/db';
 import { calendarEvents } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getTenant } from '@/lib/corsair';
 
 export async function GET(req: Request, { params }: { params: Promise<{ eventId: string }> }) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   try {
     const { eventId } = await params;
@@ -25,10 +24,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ eventId:
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ eventId: string }> }) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   try {
     const { eventId } = await params;
@@ -61,10 +59,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ eventI
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ eventId: string }> }) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   try {
     const { eventId } = await params;

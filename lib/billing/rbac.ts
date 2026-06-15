@@ -12,6 +12,7 @@ export class AuthorizationError extends Error {
 }
 
 export function isSuperAdminEmail(email: string | null | undefined): boolean {
+  if (!SUPER_ADMIN_EMAIL) return false;
   return email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 }
 

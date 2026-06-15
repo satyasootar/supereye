@@ -9,6 +9,17 @@ import { gmail } from '@corsair-dev/gmail';
 import { googlecalendar } from '@corsair-dev/googlecalendar';
 import { pool } from '@/lib/db/pool';
 
+function getCorsairKek(): string {
+  const kek = process.env.CORSAIR_KEK;
+  if (!kek) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('CORSAIR_KEK must be set in production');
+    }
+    return 'test-key-000000000000000000000000';
+  }
+  return kek;
+}
+
 const globalForCorsair = globalThis as typeof globalThis & {
   __supereyeCorsair?: ReturnType<typeof createCorsair>;
 };
@@ -18,7 +29,7 @@ export const corsair =
   createCorsair({
     plugins: [gmail(), googlecalendar()],
     database: pool,
-    kek: process.env.CORSAIR_KEK || 'test-key-000000000000000000000000',
+    kek: getCorsairKek(),
     multiTenancy: true,
   });
 

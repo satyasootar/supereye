@@ -1,22 +1,20 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { createThreadForUser, listThreadsForUser } from '@/lib/agent/threads';
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   const threads = await listThreadsForUser(session.user.id);
   return NextResponse.json({ threads });
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   const body = await req.json().catch(() => ({}));
   const title = typeof body.title === 'string' ? body.title : undefined;

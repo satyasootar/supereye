@@ -412,41 +412,11 @@ export function EmailReader() {
                                     img { background-color: transparent !important; max-width: 100%; height: auto; }
                                   </style>${email.body}`}
                       className="w-full min-h-[150px] border-none bg-transparent"
-                      sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
-                      onLoad={(e) => {
-                        const iframe = e.target as HTMLIFrameElement;
-                        try {
-                          const doc = iframe.contentDocument || iframe.contentWindow?.document;
-                          if (!doc) return;
-                          
-                          const resizeIframe = () => {
-                            if (doc.body) {
-                              iframe.style.height = doc.body.scrollHeight + 30 + 'px';
-                            }
-                          };
-
-                          // Initial resize
-                          resizeIframe();
-
-                          // Observe height changes using ResizeObserver
-                          if (doc.body && typeof ResizeObserver !== 'undefined') {
-                            const observer = new ResizeObserver(() => {
-                              resizeIframe();
-                            });
-                            observer.observe(doc.body);
-                          } else {
-                            // Fallback polling for image loading
-                            let count = 0;
-                            const interval = setInterval(() => {
-                              resizeIframe();
-                              if (++count > 15) clearInterval(interval);
-                            }, 200);
-                          }
-                        } catch (err) {}
-                      }}
+                      sandbox=""
+                      title="Email message body"
                     />
                   ) : (
-                    <div dangerouslySetInnerHTML={{ __html: email.snippet }} />
+                    <p className="whitespace-pre-wrap break-words text-text-secondary">{email.snippet}</p>
                   )}
                 </div>
 

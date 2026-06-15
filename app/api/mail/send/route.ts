@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { sseEmitter } from '@/lib/sse/emitter';
 import { getTenant } from '@/lib/corsair';
 import { handleCorsairError } from '@/lib/corsair-error';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import { db } from '@/lib/db';
 import { scheduledEmails } from '@/lib/db/schema';
+import { validateAttachmentFiles } from '@/lib/security/uploads';
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   const userId = session.user.id;
 
@@ -23,6 +23,10 @@ export async function POST(req: Request) {
     const scheduleAt = formData.get('scheduleAt') as string;
     const isDraft = formData.get('isDraft') === 'true';
     const attachmentFiles = formData.getAll('attachments') as File[];
+    const attachmentError = validateAttachmentFiles(attachmentFiles);
+    if (attachmentError) {
+      return NextResponse.json({ error: attachmentError }, { status: 400 });
+    }
 
     if (!to || to.length === 0) {
       return NextResponse.json({ error: 'Recipient is required' }, { status: 400 });

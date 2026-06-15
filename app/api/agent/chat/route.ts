@@ -1,5 +1,5 @@
 import { streamText, stepCountIs, generateText } from 'ai';
-import { auth } from '@/lib/auth';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { AgentStepEmitter, AgentActionEmitter } from '@/lib/agent/stream-events';
 import type { AgentStreamEvent } from '@/lib/agent/stream-events';
 import {
@@ -17,14 +17,12 @@ import {
   getThreadMessages,
 } from '@/lib/agent/threads';
 import { logAndConsumeAiUsage, checkAiAccess } from '@/lib/billing/usage';
-import { requireActiveUser } from '@/lib/billing/rbac';
 import { tokenErrorResponse } from '@/lib/billing/errors';
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   try {
     assertAgentConfigured();
@@ -39,7 +37,6 @@ export async function POST(req: Request) {
   const userId = session.user.id;
 
   try {
-    await requireActiveUser(userId);
     await checkAiAccess(userId);
   } catch (e) {
     const response = tokenErrorResponse(e);

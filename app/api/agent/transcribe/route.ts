@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { auth } from '@/lib/auth';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { logAndConsumeAiUsage, checkAiAccess } from '@/lib/billing/usage';
-import { requireActiveUser } from '@/lib/billing/rbac';
 import { tokenErrorResponse } from '@/lib/billing/errors';
+import { validateAudioFile } from '@/lib/security/uploads';
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -20,7 +19,6 @@ export async function POST(req: Request) {
   }
 
   try {
-    await requireActiveUser(session.user.id);
     await checkAiAccess(session.user.id);
   } catch (e) {
     const response = tokenErrorResponse(e);
@@ -33,6 +31,11 @@ export async function POST(req: Request) {
     const audio = formData.get('audio');
     if (!(audio instanceof Blob) || audio.size === 0) {
       return NextResponse.json({ error: 'No audio received' }, { status: 400 });
+    }
+
+    const audioError = validateAudioFile(audio);
+    if (audioError) {
+      return NextResponse.json({ error: audioError }, { status: 400 });
     }
 
     const openai = new OpenAI({ apiKey });

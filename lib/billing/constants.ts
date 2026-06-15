@@ -1,5 +1,5 @@
-/** Super Admin — only this email gets full admin access */
-export const SUPER_ADMIN_EMAIL = 'satya.sootar06@gmail.com';
+/** Super Admin — set via SUPER_ADMIN_EMAIL env var */
+export const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL ?? '';
 
 export const USER_ROLES = ['super_admin', 'user', 'enterprise_user'] as const;
 export type UserRole = (typeof USER_ROLES)[number];

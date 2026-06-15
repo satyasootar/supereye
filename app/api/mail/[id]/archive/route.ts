@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { db } from '@/lib/db';
 import { emails } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -9,10 +9,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   const { id: emailId } = await params;
   
@@ -49,7 +48,12 @@ export async function POST(
         labelIds: newLabels,
         updatedAt: new Date()
       })
-      .where(eq(emails.googleMessageId, emailId));
+      .where(
+        and(
+          eq(emails.userId, session.user.id),
+          eq(emails.googleMessageId, emailId)
+        )
+      );
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

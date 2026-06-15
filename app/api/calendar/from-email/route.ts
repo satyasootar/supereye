@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { db } from '@/lib/db';
 import { emails, calendarEvents, emailEventLinks } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   const userId = session.user.id;
 

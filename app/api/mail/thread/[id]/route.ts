@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { emails } from '@/lib/db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { getTenant } from '@/lib/corsair';
 import { getBody } from '@/lib/mail/sync';
 
@@ -10,11 +10,9 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   try {
     const { id: googleMessageId } = await params;
@@ -22,11 +20,19 @@ export async function GET(
     // First find the email to get its threadId
     const emailResults = await db.select()
       .from(emails)
-      .where(eq(emails.googleMessageId, googleMessageId))
+      .where(
+        and(
+          eq(emails.userId, session.user.id),
+          eq(emails.googleMessageId, googleMessageId)
+        )
+      )
       .limit(1);
 
     const initialEmail = emailResults[0];
-    const threadId = initialEmail?.threadId || googleMessageId;
+    if (!initialEmail) {
+      return NextResponse.json({ error: 'Email not found' }, { status: 404 });
+    }
+    const threadId = initialEmail.threadId || googleMessageId;
 
     const t = getTenant(session.user.id);
     

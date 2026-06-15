@@ -7,17 +7,15 @@
  *   const eventSource = new EventSource('/api/events/sse');
  *   eventSource.onmessage = (e) => console.log(JSON.parse(e.data));
  */
-import { auth } from '@/lib/auth';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { sseEmitter } from '@/lib/sse/emitter';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return new Response('Unauthorized', { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   const userId = session.user.id;
   const encoder = new TextEncoder();

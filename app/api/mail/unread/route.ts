@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { db } from '@/lib/db';
 import { emails } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ count: 0 });
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   try {
     const userId = session.user.id;

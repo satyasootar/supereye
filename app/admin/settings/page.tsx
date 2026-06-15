@@ -14,7 +14,9 @@ export default function AdminSettingsPage() {
           <dl className="space-y-3 text-sm">
             <div>
               <dt className="text-text-muted">Authorized email</dt>
-              <dd className="mt-1 font-medium text-text-primary">{SUPER_ADMIN_EMAIL}</dd>
+              <dd className="mt-1 font-medium text-text-primary">
+                {SUPER_ADMIN_EMAIL || 'Not configured (set SUPER_ADMIN_EMAIL)'}
+              </dd>
             </div>
             <p className="text-text-muted">
               Only this email receives super admin role on sign-in. Role changes for other

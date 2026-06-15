@@ -4,6 +4,7 @@ import { sql, and, eq, inArray, notInArray, gte, lte } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
 import { getTenant, corsair } from '@/lib/corsair';
 import { extractMeetLink, resolveEventLocation } from '@/lib/calendar/meet';
+import { createWebhookToken } from '@/lib/security/webhooks';
 
 export async function registerCalendarWatch(userId: string) {
   try {
@@ -49,7 +50,8 @@ export async function registerCalendarWatch(userId: string) {
 
     const { access_token } = (await tokenRes.json()) as { access_token: string };
     const channelId = `supereye-cal-${userId}`;
-    const webhookUrl = `${appUrl}/api/webhooks/corsair?tenantId=${userId}`;
+    const webhookToken = createWebhookToken(userId);
+    const webhookUrl = `${appUrl}/api/webhooks/corsair`;
 
     const watchRes = await fetch(
       'https://www.googleapis.com/calendar/v3/calendars/primary/events/watch',
@@ -63,6 +65,7 @@ export async function registerCalendarWatch(userId: string) {
           id: channelId,
           type: 'web_hook',
           address: webhookUrl,
+          token: webhookToken,
         }),
       }
     );

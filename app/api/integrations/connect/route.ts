@@ -1,15 +1,13 @@
 import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { isValidCorsairPlugin } from '@/lib/plugins/registry';
 import { generateOAuthUrl } from 'corsair/oauth';
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   const contentType = request.headers.get('content-type') ?? '';
   const isFormRequest =

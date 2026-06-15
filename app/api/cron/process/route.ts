@@ -3,11 +3,14 @@ import { db } from '@/lib/db';
 import { scheduledEmails } from '@/lib/db/schema';
 import { lte, eq, and } from 'drizzle-orm';
 import { getTenant } from '@/lib/corsair';
+import { verifyCronSecret } from '@/lib/security/api-auth';
 
-// For Vercel Cron or VPS cron jobs. We do not require auth, but you might want to add a secret token.
 export async function GET(req: Request) {
+  if (!verifyCronSecret(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    // 1. Fetch pending scheduled emails where scheduledAt <= now
     const pendingEmails = await db
       .select()
       .from(scheduledEmails)
@@ -24,7 +27,6 @@ export async function GET(req: Request) {
 
     let processedCount = 0;
 
-    // 2. Process each email
     for (const email of pendingEmails) {
       try {
         const t = getTenant(email.userId);
@@ -35,7 +37,6 @@ export async function GET(req: Request) {
           ...(email.threadId ? { threadId: email.threadId } : {})
         });
 
-        // Update status to 'sent'
         await db
           .update(scheduledEmails)
           .set({ status: 'sent', updatedAt: new Date() })
@@ -44,7 +45,6 @@ export async function GET(req: Request) {
         processedCount++;
       } catch (err) {
         console.error(`Failed to process scheduled email ${email.id}:`, err);
-        // Mark as failed so we don't keep retrying it infinitely if it's a hard error
         await db
           .update(scheduledEmails)
           .set({ status: 'failed', updatedAt: new Date() })

@@ -46,12 +46,12 @@ export async function GET(req: NextRequest) {
     successUrl = prefs.onboardingCompleted
       ? '/workspace'
       : '/workspace/onboarding?connected=1';
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('OAuth Callback Error:', error);
+    const message = error instanceof Error ? error.message : 'OAuth callback failed';
     return NextResponse.json({ 
       error: 'Failed to process OAuth callback',
-      message: error?.message,
-      stack: error?.stack 
+      message,
     }, { status: 500 });
   }
 

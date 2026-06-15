@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { emails } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   try {
     const { id } = await params;
@@ -20,7 +18,12 @@ export async function GET(
     // Fetch from our local DB cache first
     const emailResults = await db.select()
       .from(emails)
-      .where(eq(emails.googleMessageId, id))
+      .where(
+        and(
+          eq(emails.userId, session.user.id),
+          eq(emails.googleMessageId, id)
+        )
+      )
       .limit(1);
 
     const emailData = emailResults[0];
@@ -32,9 +35,6 @@ export async function GET(
     return NextResponse.json({ message: emailData });
   } catch (error: any) {
     console.error('Failed to fetch email:', error);
-    return NextResponse.json({ 
-      error: 'Failed to fetch email',
-      details: error?.message 
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch email' }, { status: 500 });
   }
 }

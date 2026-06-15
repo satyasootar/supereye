@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { db } from '@/lib/db';
 import { emails, emailEventLinks } from '@/lib/db/schema';
 import { eq, desc, ilike, or, sql, and } from 'drizzle-orm';
@@ -8,11 +8,9 @@ import { getBody } from '@/lib/mail/sync';
 import { mapEmailRowToMessage } from '@/lib/mail/priority';
 
 export async function GET(req: Request) {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get('q') || '';
