@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
 import LaserFlow from './LaserFlow';
+import { MockDashboard } from '@/components/landing/mock-dashboard';
 
 function useCssVar(name: string) {
   const { resolvedTheme } = useTheme();
@@ -20,26 +21,32 @@ function useCssVar(name: string) {
 /**
  * Hero + Dashboard showcase section.
  *
- * Layout strategy:
- * ┌─────────────────────────────────┐
- * │        LaserFlow (hero)         │  ← overflow:hidden, contains WebGL canvas
- * │                                 │
- * │   ┌───── rectangle top ──────┐  │  ← top-half of the "rectangle" with
- * │   │                          │  │     border-top + border-left/right,
- * │   │                          │  │     border-bottom-left/right-radius: 0
- * └───┼──────────────────────────┼──┘
- *     │   Dashboard area         │      ← continues seamlessly below,
- *     │   (your content here)    │        same width, matching border,
- *     │                          │        border-top: none,
- *     └──────────────────────────┘        border-bottom-left/right-radius: themed
+ * Layout strategy (matches the reference: the laser FALLS ON the dashboard):
  *
- * The two halves share the same width (86%) and horizontal center,
- * creating the illusion of one continuous bordered rectangle.
+ * ┌───────────────────────────────────────┐
+ * │            LaserFlow (hero)            │  ← overflow:hidden, WebGL canvas
+ * │                  ║                     │     beam descends from the top…
+ * │                  ▼                     │
+ * │        ┌───────────────────┐           │  ← …and its bright horizontal bloom
+ * │ ═══════╪═══════════════════╪═══════    │     lands exactly on the dashboard's
+ * │        │   Dashboard       │           │     top edge (light spills onto it).
+ * └────────┼───────────────────┼───────────┘
+ *          │  (full content)   │              The dashboard is a SINGLE bordered
+ *          │                   │              box pulled UP into the beam via a
+ *          └───────────────────┘              negative top margin — no fake halves,
+ *                                             no seam, no clipped content.
+ *
+ * Tunables:
+ *   HERO_HEIGHT       – height of the laser canvas area
+ *   DASHBOARD_HEIGHT  – fixed height of the dashboard showcase (full content)
+ *   OVERLAP           – how far the dashboard rises into the beam. Set so its
+ *                       top edge meets the beam's bloom (~0.55 * HERO_HEIGHT).
  */
 
 const RECT_WIDTH = '86%';
-const HERO_HEIGHT = 800;       // px – laser beam area
-const DASHBOARD_HEIGHT = 500;  // px – adjustable dashboard showcase area
+const HERO_HEIGHT = 640;       // px – laser beam descent area
+const DASHBOARD_HEIGHT = 600;  // px – full dashboard showcase area
+const OVERLAP = 290;           // px – dashboard rises this far into the beam
 
 export function LaserFlowBoxExample() {
   const revealImgRef = useRef<HTMLImageElement>(null);
@@ -92,25 +99,6 @@ export function LaserFlowBoxExample() {
           falloffStart={1.2}
         />
 
-        {/* Top half of the rectangle – sits inside the laser area */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: RECT_WIDTH,
-            height: '45%',
-            backgroundColor: 'var(--bg-elevated)',
-            borderTop: '2px solid var(--accent-blue)',
-            borderLeft: '2px solid var(--accent-blue)',
-            borderRight: '2px solid var(--accent-blue)',
-            borderBottom: 'none',
-            borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0',
-            zIndex: 6,
-          }}
-        />
-
         <img
           ref={revealImgRef}
           src="/bg-dashboard.png"
@@ -135,23 +123,47 @@ export function LaserFlowBoxExample() {
         />
       </div>
 
-      {/* ── Dashboard: Lower half of the rectangle ── */}
+      {/* ── Dashboard: a single bordered box pulled UP into the beam ── */}
       <div
         style={{
-          width: RECT_WIDTH,
-          minHeight: `${DASHBOARD_HEIGHT}px`,
-          margin: '0 auto',
-          backgroundColor: 'var(--bg-elevated)',
-          borderLeft: '2px solid var(--accent-blue)',
-          borderRight: '2px solid var(--accent-blue)',
-          borderBottom: '2px solid var(--accent-blue)',
-          borderTop: 'none',
-          borderRadius: '0 0 var(--radius-2xl) var(--radius-2xl)',
           position: 'relative',
-          zIndex: 6,
+          zIndex: 10,
+          width: RECT_WIDTH,
+          height: `${DASHBOARD_HEIGHT}px`,
+          margin: `${-OVERLAP}px auto 96px`,
+          backgroundColor: 'var(--bg-elevated)',
+          border:
+            '1px solid color-mix(in srgb, var(--accent-blue) 45%, transparent)',
+          borderRadius: 'var(--radius-2xl)',
+          overflow: 'hidden',
+          boxShadow:
+            '0 -2px 60px color-mix(in srgb, var(--accent-blue) 30%, transparent), 0 30px 80px rgba(0,0,0,0.55)',
         }}
       >
-        {/* Dashboard content will go here */}
+        {/* Light spilling onto the top of the dashboard (where the beam lands) */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 z-20"
+          style={{
+            height: '180px',
+            background:
+              'radial-gradient(ellipse 55% 130% at 50% 0%, color-mix(in srgb, var(--accent-blue) 38%, transparent), transparent 72%)',
+          }}
+        />
+        {/* Bright top edge highlight – the laser's contact line */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 z-20"
+          style={{
+            height: '2px',
+            background:
+              'linear-gradient(90deg, transparent, var(--accent-blue) 25%, color-mix(in srgb, var(--accent-blue) 90%, white) 50%, var(--accent-blue) 75%, transparent)',
+            boxShadow:
+              '0 0 22px 3px color-mix(in srgb, var(--accent-blue) 70%, transparent)',
+          }}
+        />
+
+        <MockDashboard />
       </div>
     </div>
   );
