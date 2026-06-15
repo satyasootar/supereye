@@ -98,8 +98,8 @@ export function LaserFlowBoxExample() {
           wispIntensity={30}
           flowSpeed={0.35}
           flowStrength={0.5}
-          fogIntensity={0.8}
-          fogScale={0.3}
+          fogIntensity={0.9}
+          fogScale={0.4}
           fogFallSpeed={0.6}
           decay={1.1}
           falloffStart={1.2}
