@@ -44,9 +44,9 @@ function useCssVar(name: string) {
  */
 
 const RECT_WIDTH = '86%';
-const HERO_HEIGHT = 640;       // px – laser beam descent area
-const DASHBOARD_HEIGHT = 600;  // px – full dashboard showcase area
-const OVERLAP = 290;           // px – dashboard rises this far into the beam
+const HERO_HEIGHT = 1200;       // px – laser beam descent area
+const DASHBOARD_HEIGHT = 700;  // px – full dashboard showcase area
+const OVERLAP = 595;           // px – dashboard rises this far into the beam
 
 export function LaserFlowBoxExample() {
   const revealImgRef = useRef<HTMLImageElement>(null);
@@ -70,7 +70,7 @@ export function LaserFlowBoxExample() {
           const el = revealImgRef.current;
           if (el) {
             el.style.setProperty('--mx', `${x}px`);
-            el.style.setProperty('--my', `${y + rect.height * 0.5}px`);
+            el.style.setProperty('--my', `${y}px`);
           }
         }}
         onMouseLeave={() => {
@@ -106,7 +106,10 @@ export function LaserFlowBoxExample() {
           style={{
             position: 'absolute',
             width: '100%',
-            top: '-50%',
+            height: '100%',
+            objectFit: 'cover',
+            top: '0px',
+            left: '0px',
             zIndex: 5,
             mixBlendMode: 'lighten',
             opacity: 0.3,
