@@ -124,6 +124,70 @@ export function LaserFlowBoxExample() {
             maskRepeat: 'no-repeat',
           } as React.CSSProperties}
         />
+
+        {/* ── Left Content Overlay ── */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '10%',
+            left: '7%',
+            maxWidth: '40%',
+            zIndex: 8,
+            pointerEvents: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px',
+          }}
+        >
+          <h1
+            style={{
+              fontSize: '3.75rem',
+              fontWeight: 800,
+              color: 'var(--text-primary)',
+              lineHeight: 1.1,
+              letterSpacing: '-0.03em',
+            }}
+          >
+            Your Entire Work Life,<br />
+            <span style={{ color: 'var(--accent-blue)' }}>One Eye Away.</span>
+          </h1>
+          <p
+            style={{
+              fontSize: '1.05rem',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.6,
+              maxWidth: '460px',
+            }}
+          >
+            Supereye brings your email, calendar, and favourite tools into one intelligent workspace. Plug in the apps you already use, let AI handle the rest, and run your entire workday from a single place.
+          </p>
+          <div style={{ pointerEvents: 'auto', marginTop: '8px' }}>
+            <button
+              style={{
+                padding: '12px 24px',
+                backgroundColor: 'var(--accent-blue)',
+                color: 'var(--text-inverse)',
+                borderRadius: 'var(--radius-md)',
+                fontWeight: 600,
+                fontSize: '15px',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+              }}
+            >
+              Get Started for Free
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* ── Dashboard: a single bordered box pulled UP into the beam ── */}
