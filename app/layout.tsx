@@ -1,4 +1,5 @@
 import { Poppins, Merriweather, Fira_Code } from "next/font/google"
+import Script from "next/script"
 
 import "./globals.css"
 import { Providers } from "@/app/providers"
@@ -34,8 +35,11 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("antialiased", firaCode.variable, merriweather.variable, poppins.variable)}
     >
-      <head>
-        <script
+      <head />
+      <body suppressHydrationWarning className="relative min-h-screen">
+        <Script
+          id="theme-initializer"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               try {
@@ -45,8 +49,6 @@ export default function RootLayout({
             `,
           }}
         />
-      </head>
-      <body suppressHydrationWarning className="relative min-h-screen">
         <Providers>{children}</Providers>
         <Toaster position="bottom-right" richColors />
       </body>

@@ -268,37 +268,37 @@ export function PluginWorkspace() {
 
   return (
     <LayoutGroup>
-      <div className="flex h-full min-h-0 w-full overflow-hidden bg-bg-app">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={`layout-${primary}-${sidebar ?? 'solo'}`}
-            className="flex h-full min-h-0 flex-1 overflow-hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <motion.div
-              className="h-full min-h-0 flex-1 overflow-hidden"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ ...springTransition, delay: 0.05 }}
-            >
-              {renderMain()}
-            </motion.div>
+      <div className="flex h-full w-full overflow-hidden bg-bg-app">
+        <div className="flex h-full flex-1 overflow-hidden">
+          {/* Main Panel Content with Slide Transition */}
+          <div className="relative h-full flex-1 overflow-hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={primary}
+                className="absolute inset-0 h-full w-full"
+                initial={{ opacity: 0, x: primary === 'calendar' ? -30 : 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: primary === 'calendar' ? 30 : -30 }}
+                transition={springTransition}
+              >
+                {renderMain()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
-            {hasSecondary && sidebar && activePlugins.includes(sidebar) && (
-              <AnimatePresence initial={false}>
-                <SecondaryPanel
-                  pluginId={sidebar}
-                  expanded={isRightPanelExpanded}
-                  onToggle={() => setIsRightPanelExpanded((v) => !v)}
-                  onFocus={() => focusPlugin(sidebar)}
-                />
-              </AnimatePresence>
-            )}
-          </motion.div>
-        </AnimatePresence>
+          {/* Right Sidebar Panel */}
+          {hasSecondary && sidebar && activePlugins.includes(sidebar) && (
+            <AnimatePresence mode="wait" initial={false}>
+              <SecondaryPanel
+                key={sidebar}
+                pluginId={sidebar}
+                expanded={isRightPanelExpanded}
+                onToggle={() => setIsRightPanelExpanded((v) => !v)}
+                onFocus={() => focusPlugin(sidebar)}
+              />
+            </AnimatePresence>
+          )}
+        </div>
       </div>
     </LayoutGroup>
   );
