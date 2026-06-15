@@ -59,17 +59,17 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
   const { leftSidebarCollapsed, setLeftSidebarCollapsed } = useAppStore();
 
   const [mounted, setMounted] = useState(false);
-  const [colorTheme, setColorTheme] = useState<'default' | 'twitter' | 'claude'>('default');
+  const [colorTheme, setColorTheme] = useState<'default' | 'twitter' | 'claude' | 'caffeine'>('default');
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem('color-theme') as 'default' | 'twitter' | 'claude';
+    const saved = localStorage.getItem('color-theme') as 'default' | 'twitter' | 'claude' | 'caffeine';
     if (saved) {
       setColorTheme(saved);
     }
   }, []);
 
-  const handleColorThemeChange = (newTheme: 'default' | 'twitter' | 'claude') => {
+  const handleColorThemeChange = (newTheme: 'default' | 'twitter' | 'claude' | 'caffeine') => {
     setColorTheme(newTheme);
     localStorage.setItem('color-theme', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
@@ -386,6 +386,16 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                               lightAccent: '#c96442',
                               darkAccent: '#d97757',
                               darkBg: '#262624',
+                            },
+                          },
+                          {
+                            value: 'caffeine',
+                            label: 'Caffeine',
+                            colors: {
+                              lightBg: '#f9f9f9',
+                              lightAccent: '#644a40',
+                              darkAccent: '#ffe0c2',
+                              darkBg: '#111111',
                             },
                           },
                         ] as const
