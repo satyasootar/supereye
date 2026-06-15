@@ -14,6 +14,7 @@ export type UsageDashboard = {
     userMessages: number;
     assistantMessages: number;
     messagesThisWeek: number;
+    last7Days: Array<{ date: string; value: number }>;
   };
   tokens: {
     total: number;
@@ -34,10 +35,12 @@ export type UsageDashboard = {
     canWaitCount: number;
     pendingCount: number;
     classifiedThisWeek: number;
+    last7Days: Array<{ date: string; value: number }>;
   };
   agentEmail: {
     sentViaAgent: number;
     sentThisWeek: number;
+    last7Days: Array<{ date: string; value: number }>;
   };
   recentThreads: Array<{
     id: string;
@@ -52,6 +55,20 @@ function weekAgo() {
   const d = new Date();
   d.setDate(d.getDate() - 7);
   return d;
+}
+
+function fillLast7Days(data: { date: string; value: number }[], sinceWeek: Date): Array<{ date: string; value: number }> {
+  const map = new Map(data.map((d) => [d.date, d.value]));
+  const result: Array<{ date: string; value: number }> = [];
+  const start = new Date(sinceWeek);
+  
+  for (let i = 0; i <= 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0]!;
+    result.push({ date: dateStr, value: map.get(dateStr) ?? 0 });
+  }
+  return result;
 }
 
 export async function getUserUsageDashboard(
@@ -74,6 +91,22 @@ export async function getUserUsageDashboard(
     .from(agentMessages)
     .innerJoin(agentThreads, eq(agentMessages.threadId, agentThreads.id))
     .where(eq(agentThreads.userId, userId));
+
+  const chatDaily = await db
+    .select({
+      date: sql<string>`to_char(date_trunc('day', ${agentMessages.createdAt}), 'YYYY-MM-DD')`,
+      value: sql<number>`count(*)::int`,
+    })
+    .from(agentMessages)
+    .innerJoin(agentThreads, eq(agentMessages.threadId, agentThreads.id))
+    .where(
+      and(
+        eq(agentThreads.userId, userId),
+        gte(agentMessages.createdAt, sinceWeek)
+      )
+    )
+    .groupBy(sql`date_trunc('day', ${agentMessages.createdAt})`)
+    .orderBy(sql`date_trunc('day', ${agentMessages.createdAt})`);
 
   const tokenByFeature = await db
     .select({
@@ -110,6 +143,11 @@ export async function getUserUsageDashboard(
     )
     .groupBy(sql`date_trunc('day', ${aiUsageEvents.createdAt})`)
     .orderBy(sql`date_trunc('day', ${aiUsageEvents.createdAt})`);
+    
+  const filledTokensLast7Days = fillLast7Days(
+    tokenLast7Days.map((t) => ({ date: t.date, value: t.totalTokens })),
+    sinceWeek
+  ).map((d) => ({ date: d.date, totalTokens: d.value }));
 
   const [emailStats] = await db
     .select({
@@ -121,6 +159,21 @@ export async function getUserUsageDashboard(
     })
     .from(emails)
     .where(eq(emails.userId, userId));
+
+  const emailDaily = await db
+    .select({
+      date: sql<string>`to_char(date_trunc('day', ${emails.priorityClassifiedAt}), 'YYYY-MM-DD')`,
+      value: sql<number>`count(*)::int`,
+    })
+    .from(emails)
+    .where(
+      and(
+        eq(emails.userId, userId),
+        gte(emails.priorityClassifiedAt, sinceWeek)
+      )
+    )
+    .groupBy(sql`date_trunc('day', ${emails.priorityClassifiedAt})`)
+    .orderBy(sql`date_trunc('day', ${emails.priorityClassifiedAt})`);
 
   const agentEmailStats = tokenByFeature.find(
     (row) => row.feature === 'agent_email_send'
@@ -136,6 +189,22 @@ export async function getUserUsageDashboard(
         gte(aiUsageEvents.createdAt, sinceWeek)
       )
     );
+
+  const agentEmailDaily = await db
+    .select({
+      date: sql<string>`to_char(date_trunc('day', ${aiUsageEvents.createdAt}), 'YYYY-MM-DD')`,
+      value: sql<number>`count(*)::int`,
+    })
+    .from(aiUsageEvents)
+    .where(
+      and(
+        eq(aiUsageEvents.userId, userId),
+        eq(aiUsageEvents.feature, 'agent_email_send'),
+        gte(aiUsageEvents.createdAt, sinceWeek)
+      )
+    )
+    .groupBy(sql`date_trunc('day', ${aiUsageEvents.createdAt})`)
+    .orderBy(sql`date_trunc('day', ${aiUsageEvents.createdAt})`);
 
   const recentThreadsRaw = await db
     .select({
@@ -159,6 +228,7 @@ export async function getUserUsageDashboard(
       userMessages: messageStats?.userCount ?? 0,
       assistantMessages: messageStats?.assistantCount ?? 0,
       messagesThisWeek: messageStats?.weekCount ?? 0,
+      last7Days: fillLast7Days(chatDaily, sinceWeek),
     },
     tokens: {
       total: tokenTotals?.total ?? 0,
@@ -171,10 +241,7 @@ export async function getUserUsageDashboard(
         outputTokens: row.outputTokens,
         count: row.count,
       })),
-      last7Days: tokenLast7Days.map((row) => ({
-        date: row.date,
-        totalTokens: row.totalTokens,
-      })),
+      last7Days: filledTokensLast7Days,
     },
     emailAi: {
       classifiedTotal: emailStats?.classifiedTotal ?? 0,
@@ -182,10 +249,12 @@ export async function getUserUsageDashboard(
       canWaitCount: emailStats?.canWaitCount ?? 0,
       pendingCount: emailStats?.pendingCount ?? 0,
       classifiedThisWeek: emailStats?.classifiedThisWeek ?? 0,
+      last7Days: fillLast7Days(emailDaily, sinceWeek),
     },
     agentEmail: {
       sentViaAgent: agentEmailStats?.count ?? 0,
       sentThisWeek: agentEmailWeek[0]?.count ?? 0,
+      last7Days: fillLast7Days(agentEmailDaily, sinceWeek),
     },
     recentThreads: recentThreadsRaw.map((thread) => ({
       id: thread.id,

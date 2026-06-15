@@ -16,7 +16,7 @@ import {
 import { ProfileSection } from '@/components/profile/profile-section';
 import { cn } from '@/lib/utils';
 import type { UsageDashboard } from '@/lib/usage/dashboard';
-import { Bar, BarChart, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
   ChartContainer,
   ChartTooltip,
@@ -43,16 +43,25 @@ function StatCard({
   hint,
   icon: Icon,
   accent,
+  data,
 }: {
   label: string;
   value: string | number;
   hint?: string;
   icon: typeof MessageSquare;
   accent?: 'blue' | 'urgent' | 'muted';
+  data?: Array<{ date: string; value: number }>;
 }) {
+  const chartColor =
+    accent === 'urgent'
+      ? 'var(--priority-urgent)'
+      : accent === 'blue'
+        ? 'var(--accent-blue)'
+        : 'var(--text-muted)';
+
   return (
-    <div className="rounded-xl border border-border-default bg-bg-elevated p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
+    <div className="relative overflow-hidden rounded-xl border border-border-default bg-bg-elevated p-4 shadow-sm flex flex-col justify-between min-h-[120px]">
+      <div className="flex items-start justify-between gap-3 relative z-10">
         <div className="min-w-0">
           <p className="text-[12px] font-medium uppercase tracking-wide text-text-muted">
             {label}
@@ -62,19 +71,40 @@ function StatCard({
           </p>
           {hint && <p className="mt-1.5 text-[12px] text-text-muted">{hint}</p>}
         </div>
-        <div
-          className={cn(
-            'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border',
-            accent === 'urgent'
-              ? 'border-[color:var(--priority-urgent)]/25 bg-[color:var(--priority-urgent)]/10 text-[color:var(--priority-urgent)]'
-              : accent === 'blue'
-                ? 'border-accent-blue/25 bg-accent-blue/10 text-accent-blue'
-                : 'border-border-subtle bg-bg-surface text-text-muted'
-          )}
-        >
-          <Icon className="h-4 w-4" />
-        </div>
+
       </div>
+      {data && data.length > 0 && (
+        <div className="absolute inset-x-0 bottom-0 h-16 pointer-events-none opacity-40">
+          <ChartContainer
+            config={{ value: { label: label, color: chartColor } }}
+            className="h-full w-full"
+          >
+            <AreaChart data={data} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient
+                  id={`fill-${label.replace(/\s+/g, '')}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="0%" stopColor="var(--color-value)" stopOpacity={0.6} />
+                  <stop offset="100%" stopColor="var(--color-value)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke="var(--color-value)"
+                fillOpacity={1}
+                fill={`url(#fill-${label.replace(/\s+/g, '')})`}
+                strokeWidth={2}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ChartContainer>
+        </div>
+      )}
     </div>
   );
 }
@@ -146,12 +176,14 @@ export function UsageDashboardSection() {
           hint={`${data.chat.messagesThisWeek} this week`}
           icon={MessageSquare}
           accent="blue"
+          data={data.chat.last7Days}
         />
         <StatCard
           label="Tokens used"
           value={formatTokens(data.tokens.total)}
           hint={`${formatTokens(data.tokens.input)} in · ${formatTokens(data.tokens.output)} out`}
           icon={Coins}
+          data={data.tokens.last7Days.map((d) => ({ date: d.date, value: d.totalTokens }))}
         />
         <StatCard
           label="Emails classified"
@@ -159,12 +191,14 @@ export function UsageDashboardSection() {
           hint={`${data.emailAi.classifiedThisWeek} this week`}
           icon={Sparkles}
           accent="blue"
+          data={data.emailAi.last7Days}
         />
         <StatCard
           label="AI emails sent"
           value={data.agentEmail.sentViaAgent}
           hint={`${data.agentEmail.sentThisWeek} this week`}
           icon={Send}
+          data={data.agentEmail.last7Days}
         />
       </div>
 
@@ -212,7 +246,7 @@ export function UsageDashboardSection() {
               config={{
                 totalTokens: {
                   label: 'Tokens',
-                  color: 'hsl(var(--chart-1))',
+                  color: 'var(--accent-blue)',
                 },
               }}
               className="h-[250px] w-full"
@@ -225,13 +259,14 @@ export function UsageDashboardSection() {
                 layout="vertical"
                 margin={{ left: -20, right: 0, top: 0, bottom: 0 }}
               >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-subtle)" opacity={0.5} />
                 <YAxis
                   dataKey="feature"
                   type="category"
                   tickLine={false}
                   axisLine={false}
                   width={140}
-                  tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
+                  tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
                 />
                 <XAxis type="number" hide />
                 <ChartTooltip
@@ -242,7 +277,7 @@ export function UsageDashboardSection() {
                   dataKey="totalTokens"
                   fill="var(--color-totalTokens)"
                   radius={[0, 4, 4, 0]}
-                  barSize={20}
+                  barSize={24}
                 />
               </BarChart>
             </ChartContainer>
@@ -297,37 +332,47 @@ export function UsageDashboardSection() {
               config={{
                 totalTokens: {
                   label: 'Tokens',
-                  color: 'hsl(var(--chart-2))',
+                  color: 'var(--accent-blue)',
                 },
               }}
               className="h-[250px] w-full"
             >
-              <BarChart
+              <AreaChart
                 data={data.tokens.last7Days.map((day) => ({
                   date: format(new Date(`${day.date}T12:00:00`), 'EEE'),
                   fullDate: format(new Date(`${day.date}T12:00:00`), 'MMM d, yyyy'),
                   totalTokens: day.totalTokens,
                 }))}
-                margin={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                margin={{ left: 0, right: 0, top: 10, bottom: 0 }}
               >
+                <defs>
+                  <linearGradient id="fillTokens" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-totalTokens)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--color-totalTokens)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-subtle)" opacity={0.5} />
                 <XAxis
                   dataKey="date"
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
+                  tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
                 />
                 <YAxis hide />
                 <ChartTooltip
                   cursor={false}
                   content={<ChartTooltipContent labelKey="fullDate" />}
                 />
-                <Bar
+                <Area
+                  type="monotone"
                   dataKey="totalTokens"
-                  fill="var(--color-totalTokens)"
-                  radius={[4, 4, 0, 0]}
+                  stroke="var(--color-totalTokens)"
+                  fillOpacity={1}
+                  fill="url(#fillTokens)"
+                  strokeWidth={2}
                 />
-              </BarChart>
+              </AreaChart>
             </ChartContainer>
           )}
         </ProfileSection>
