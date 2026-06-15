@@ -201,7 +201,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
             >
               {activeTab === 'account' && (
                 <div className="flex flex-col gap-6">
-                  <div className="flex items-center gap-5 rounded-xl border border-border-default bg-bg-elevated p-6">
+                  <div className="flex items-center gap-5 rounded-[var(--radius)] border border-border-default bg-bg-elevated p-6">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-border-default bg-bg-highlight">
                       {profile.image ? (
                         <img
@@ -319,48 +319,76 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
               {activeTab === 'dashboard' && <UsageDashboardSection />}
 
               {activeTab === 'appearance' && (
-                <ProfileSection
-                  title="Appearance"
-                  description="Customize how Supereye looks on your device."
-                >
-                  <ProfileRow label="Mode" description="Choose between Light, Dark, or System mode">
-                    <div className="flex items-center gap-1 rounded-lg border border-border-subtle bg-bg-surface p-1">
-                      {(
-                        [
-                          { value: 'light', label: 'Light', icon: Sun },
-                          { value: 'dark', label: 'Dark', icon: Moon },
-                          { value: 'system', label: 'System', icon: Monitor },
-                        ] as const
-                      ).map((option) => {
-                        const Icon = option.icon;
-                        const isActive = mounted && theme === option.value;
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => setTheme(option.value)}
-                            className={cn(
-                              'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors',
-                              isActive
-                                ? 'bg-bg-highlight text-text-primary shadow-sm'
-                                : 'text-text-muted hover:text-text-primary'
-                            )}
-                          >
-                            <Icon className="h-3.5 w-3.5" />
-                            {option.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </ProfileRow>
+                <div className="flex flex-col gap-6">
+                  <ProfileSection
+                    title="Appearance"
+                    description="Customize how Supereye looks on your device."
+                  >
+                    <ProfileRow label="Mode" description="Choose between Light, Dark, or System mode">
+                      <div className="flex items-center gap-1 rounded-lg border border-border-subtle bg-bg-surface p-1">
+                        {(
+                          [
+                            { value: 'light', label: 'Light', icon: Sun },
+                            { value: 'dark', label: 'Dark', icon: Moon },
+                            { value: 'system', label: 'System', icon: Monitor },
+                          ] as const
+                        ).map((option) => {
+                          const Icon = option.icon;
+                          const isActive = mounted && theme === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setTheme(option.value)}
+                              className={cn(
+                                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors',
+                                isActive
+                                  ? 'bg-bg-highlight text-text-primary shadow-sm'
+                                  : 'text-text-muted hover:text-text-primary'
+                              )}
+                            >
+                              <Icon className="h-3.5 w-3.5" />
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </ProfileRow>
 
-                  <ProfileRow label="Color Palette" description="Choose your preferred color palette theme">
-                    <div className="flex flex-col gap-2 w-[320px]">
+                    <ProfileRow
+                      label="Sidebar"
+                      description="Start with the navigation sidebar collapsed"
+                    >
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={leftSidebarCollapsed}
+                        onClick={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
+                        className={cn(
+                          'relative h-6 w-11 rounded-full transition-colors',
+                          leftSidebarCollapsed ? 'bg-accent-blue' : 'bg-bg-overlay'
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform',
+                            leftSidebarCollapsed && 'translate-x-5'
+                          )}
+                        />
+                      </button>
+                    </ProfileRow>
+                  </ProfileSection>
+
+                  <ProfileSection
+                    title="Color Palette"
+                    description="Choose your preferred color palette theme"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                       {(
                         [
                           {
                             value: 'default',
-                            label: 'Warm Beach',
+                            label: 'Default (Warm Beach)',
                             colors: {
                               lightBg: '#fdfbf7',
                               lightAccent: '#b45309',
@@ -470,7 +498,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                         );
                       })}
                       {/* More themes coming soon */}
-                      <div className="flex items-center justify-between w-full rounded-[var(--radius)] border border-dashed border-border-default bg-bg-surface/30 p-3 opacity-60 pointer-events-none select-none">
+                      <div className="col-span-1 sm:col-span-2 flex items-center justify-between w-full rounded-[var(--radius)] border border-dashed border-border-default bg-bg-surface/30 p-3 opacity-60 pointer-events-none select-none">
                         <span className="text-[13px] font-medium text-text-muted italic">
                           More themes coming soon...
                         </span>
@@ -480,31 +508,8 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                         </div>
                       </div>
                     </div>
-                  </ProfileRow>
-
-                  <ProfileRow
-                    label="Sidebar"
-                    description="Start with the navigation sidebar collapsed"
-                  >
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={leftSidebarCollapsed}
-                      onClick={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
-                      className={cn(
-                        'relative h-6 w-11 rounded-full transition-colors',
-                        leftSidebarCollapsed ? 'bg-accent-blue' : 'bg-bg-overlay'
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform',
-                          leftSidebarCollapsed && 'translate-x-5'
-                        )}
-                      />
-                    </button>
-                  </ProfileRow>
-                </ProfileSection>
+                  </ProfileSection>
+                </div>
               )}
 
               {activeTab === 'security' && (

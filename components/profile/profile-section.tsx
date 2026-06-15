@@ -14,7 +14,7 @@ export function ProfileSection({ title, description, children, className }: Prof
   return (
     <section
       className={cn(
-        'rounded-xl border border-border-default bg-bg-elevated shadow-sm',
+        'rounded-[var(--radius)] border border-border-default bg-bg-elevated shadow-sm',
         className
       )}
     >
