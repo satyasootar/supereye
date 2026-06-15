@@ -210,7 +210,7 @@ export function MockDashboard() {
   }, []);
 
   return (
-    <div className="flex h-full w-full overflow-hidden rounded-b-[var(--radius-2xl)]" style={{ fontSize: '13px' }}>
+    <div className="flex h-full w-full overflow-hidden rounded-b-[var(--radius-lg)]" style={{ fontSize: '13px' }}>
       {/* ── Left Sidebar ── */}
       <div className="flex h-full w-[220px] flex-shrink-0 flex-col border-r border-border-subtle bg-bg-surface overflow-hidden">
         {/* Workspace Switcher */}

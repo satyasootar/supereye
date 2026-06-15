@@ -134,10 +134,10 @@ export function LaserFlowBoxExample() {
           backgroundColor: 'var(--bg-elevated)',
           border:
             '1px solid color-mix(in srgb, var(--accent-blue) 45%, transparent)',
-          borderRadius: 'var(--radius-2xl)',
+          borderRadius: 'var(--radius-lg)',
           overflow: 'hidden',
           boxShadow:
-            '0 -2px 60px color-mix(in srgb, var(--accent-blue) 30%, transparent), 0 30px 80px rgba(0,0,0,0.55)',
+            '0 -40px 60px -40px color-mix(in srgb, var(--accent-blue) 30%, transparent), 0 30px 80px rgba(0,0,0,0.55)',
         }}
       >
         {/* Light spilling onto the top of the dashboard (where the beam lands) */}
