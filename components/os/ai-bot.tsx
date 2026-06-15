@@ -28,6 +28,8 @@ interface AiBotProps {
   openAgentOnClick?: boolean;
   /** Hides the bot while the agent is open. Default true for workspace FAB. */
   hideWhenAgentOpen?: boolean;
+  /** Disables all click handling (no agent open, no click emotions). */
+  disableClick?: boolean;
   className?: string;
   size?: 'sm' | 'md';
 }
@@ -35,6 +37,7 @@ interface AiBotProps {
 export function AiBot({
   openAgentOnClick = true,
   hideWhenAgentOpen = true,
+  disableClick = false,
   className,
   size = 'md',
 }: AiBotProps = {}) {
@@ -158,6 +161,8 @@ export function AiBot({
   }, [mousePosition, triggerEmotion]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
+    if (disableClick) return;
+
     e.stopPropagation();
     
     stateRef.current.clickCount += 1;
@@ -183,7 +188,7 @@ export function AiBot({
     if (openAgentOnClick) {
       setAgentOpen(true);
     }
-  }, [triggerEmotion, setAgentOpen, openAgentOnClick]);
+  }, [triggerEmotion, setAgentOpen, openAgentOnClick, disableClick]);
 
   const handleMouseEnter = useCallback(() => {
     stateRef.current.isHovered = true;
@@ -284,7 +289,8 @@ export function AiBot({
   return (
     <div 
       className={cn(
-        'cursor-pointer select-none transition-transform duration-300 hover:scale-105',
+        'select-none transition-transform duration-300',
+        disableClick ? 'cursor-default' : 'cursor-pointer hover:scale-105',
         openAgentOnClick ? 'fixed bottom-6 right-6 z-[100]' : 'relative z-0',
         className
       )}

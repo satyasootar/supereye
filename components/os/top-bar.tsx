@@ -35,7 +35,7 @@ export function TopBar() {
     <header className="sticky top-0 z-50 flex h-12 w-full items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md">
       {/* Left: Logo */}
       <div className="flex items-center gap-2 w-[200px]">
-        <div className="flex h-7 w-7 items-center justify-center rounded bg-accent-blue/10 text-accent-blue">
+        <div className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] bg-accent-blue/10 text-accent-blue">
           <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
@@ -54,7 +54,7 @@ export function TopBar() {
               key={tab.id}
               onClick={(e) => handleTabClick(e, tab.id)}
               className={cn(
-                "relative px-4 py-1.5 text-[13.5px] font-medium transition-colors rounded-md select-none flex items-center gap-1.5",
+                "relative px-4 py-1.5 text-[13.5px] font-medium transition-colors rounded-[var(--radius-md)] select-none flex items-center gap-1.5",
                 isActive 
                   ? "bg-bg-highlight text-text-primary" 
                   : "text-text-secondary hover:bg-bg-overlay hover:text-text-primary"
@@ -78,7 +78,7 @@ export function TopBar() {
 
       {/* Right: Utilities */}
       <div className="flex items-center justify-end w-[200px]">
-        <button className="text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-md hover:bg-bg-overlay cursor-pointer" title="Search (⌘K)">
+        <button className="text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-[var(--radius-md)] hover:bg-bg-overlay cursor-pointer" title="Search (⌘K)">
           <Search className="h-[18px] w-[18px]" />
         </button>
       </div>

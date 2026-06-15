@@ -74,7 +74,7 @@ export function LaserFlowBoxExample() {
         width: '86%',
         height: '60%',
         backgroundColor: 'var(--bg-elevated)',
-        borderRadius: '20px',
+        borderRadius: 'var(--radius-2xl)',
         border: '2px solid var(--accent-blue)',
         display: 'flex',
         alignItems: 'center',
