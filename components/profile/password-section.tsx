@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,8 @@ type PasswordSectionProps = {
 };
 
 export function PasswordSection({ hasPassword, email }: PasswordSectionProps) {
+  const router = useRouter();
+  const [hasPasswordState, setHasPasswordState] = useState(hasPassword);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -42,7 +45,7 @@ export function PasswordSection({ hasPassword, email }: PasswordSectionProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           newPassword,
-          ...(hasPassword ? { currentPassword } : {}),
+          ...(hasPasswordState ? { currentPassword } : {}),
         }),
       });
 
@@ -52,7 +55,11 @@ export function PasswordSection({ hasPassword, email }: PasswordSectionProps) {
         return;
       }
 
-      setSuccess(hasPassword ? 'Password updated successfully' : 'Password set successfully');
+      setSuccess(
+        hasPasswordState ? 'Password updated successfully' : 'Password set successfully'
+      );
+      setHasPasswordState(true);
+      router.refresh();
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -67,7 +74,7 @@ export function PasswordSection({ hasPassword, email }: PasswordSectionProps) {
     <ProfileSection
       title="Email & password"
       description={
-        hasPassword
+        hasPasswordState
           ? 'Update the password you use to sign in with email.'
           : 'Add a password so you can sign in with email in addition to Google.'
       }
@@ -79,7 +86,7 @@ export function PasswordSection({ hasPassword, email }: PasswordSectionProps) {
       )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {hasPassword && (
+        {hasPasswordState && (
           <ProfileRow label="Current password" description="Required to change your password">
             <Input
               type="password"
@@ -93,7 +100,7 @@ export function PasswordSection({ hasPassword, email }: PasswordSectionProps) {
         )}
 
         <ProfileRow
-          label={hasPassword ? 'New password' : 'Password'}
+          label={hasPasswordState ? 'New password' : 'Password'}
           description={`At least ${MIN_PASSWORD_LENGTH} characters`}
         >
           <Input
@@ -133,7 +140,7 @@ export function PasswordSection({ hasPassword, email }: PasswordSectionProps) {
         <div>
           <Button type="submit" disabled={loading || !email} className="gap-2">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {hasPassword ? 'Update password' : 'Set password'}
+            {hasPasswordState ? 'Update password' : 'Set password'}
           </Button>
         </div>
       </form>
