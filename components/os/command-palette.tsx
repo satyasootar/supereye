@@ -210,7 +210,6 @@ export function CommandPalette() {
     if (isCommandPaletteOpen) {
       setSearch('');
       setSelectedIndex(0);
-      requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [isCommandPaletteOpen]);
 
@@ -272,6 +271,7 @@ export function CommandPalette() {
             transition={{ duration: reduceMotion ? 0 : 0.2 }}
             className="absolute inset-0 z-0 bg-bg-app/75 backdrop-blur-md"
             onMouseDown={() => setCommandPaletteOpen(false)}
+            style={{ willChange: 'opacity' }}
           />
 
           <motion.div
@@ -282,8 +282,14 @@ export function CommandPalette() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -10 }}
             transition={transition}
+            onAnimationComplete={() => {
+              if (isCommandPaletteOpen) {
+                inputRef.current?.focus();
+              }
+            }}
             onMouseDown={(e) => e.stopPropagation()}
             className="relative z-10 flex w-full max-w-[640px] flex-col overflow-hidden rounded-xl border border-border-default bg-bg-elevated shadow-2xl shadow-black/40 max-h-[min(70vh,560px)]"
+            style={{ willChange: 'transform, opacity' }}
           >
             <div
               className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-60"
