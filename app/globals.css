@@ -977,6 +977,183 @@ html[data-theme="sage"].dark {
   --agent-border: rgba(115, 255, 140, 0.15);
 }
 
+/* Vintage Paper Theme - Scoped */
+html[data-theme="paper"] {
+  --background: #f5f1e6;
+  --foreground: #4a3f35;
+  --card: #fffcf5;
+  --card-foreground: #4a3f35;
+  --popover: #fffcf5;
+  --popover-foreground: #4a3f35;
+  --primary: #a67c52;
+  --primary-foreground: #ffffff;
+  --secondary: #e2d8c3;
+  --secondary-foreground: #5c4d3f;
+  --muted: #ece5d8;
+  --muted-foreground: #7d6b56;
+  --accent: #d4c8aa;
+  --accent-foreground: #4a3f35;
+  --destructive: #b54a35;
+  --destructive-foreground: #ffffff;
+  --border: #dbd0ba;
+  --input: #dbd0ba;
+  --ring: #a67c52;
+  --chart-1: #a67c52;
+  --chart-2: #8d6e4c;
+  --chart-3: #735a3a;
+  --chart-4: #b3906f;
+  --chart-5: #c0a080;
+  --sidebar: #ece5d8;
+  --sidebar-foreground: #4a3f35;
+  --sidebar-primary: #a67c52;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #d4c8aa;
+  --sidebar-accent-foreground: #4a3f35;
+  --sidebar-border: #dbd0ba;
+  --sidebar-ring: #a67c52;
+  --font-heading: var(--font-sans);
+  --font-sans: Libre Baskerville, serif;
+  --font-serif: Lora, serif;
+  --font-mono: IBM Plex Mono, monospace;
+  --radius: 0.25rem;
+  --shadow-x: 2px;
+  --shadow-y: 3px;
+  --shadow-blur: 5px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.12;
+  --shadow-color: hsl(28 13% 20%);
+  --shadow-2xs: 2px 3px 5px 0px hsl(28 13% 20% / 0.06);
+  --shadow-xs: 2px 3px 5px 0px hsl(28 13% 20% / 0.06);
+  --shadow-sm: 2px 3px 5px 0px hsl(28 13% 20% / 0.12), 2px 1px 2px -1px hsl(28 13% 20% / 0.12);
+  --shadow: 2px 3px 5px 0px hsl(28 13% 20% / 0.12), 2px 1px 2px -1px hsl(28 13% 20% / 0.12);
+  --shadow-md: 2px 3px 5px 0px hsl(28 13% 20% / 0.12), 2px 2px 4px -1px hsl(28 13% 20% / 0.12);
+  --shadow-lg: 2px 3px 5px 0px hsl(28 13% 20% / 0.12), 2px 4px 6px -1px hsl(28 13% 20% / 0.12);
+  --shadow-xl: 2px 3px 5px 0px hsl(28 13% 20% / 0.12), 2px 8px 10px -1px hsl(28 13% 20% / 0.12);
+  --shadow-2xl: 2px 3px 5px 0px hsl(28 13% 20% / 0.30);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+  /* App legacy variables mapping for light mode */
+  --bg-app: var(--background);
+  --bg-base: var(--background);
+  --bg-surface: var(--muted);
+  --bg-elevated: var(--card);
+  --bg-overlay: var(--secondary);
+  --bg-highlight: var(--accent);
+  --border-subtle: var(--border);
+  --border-default: var(--border);
+  --border-strong: var(--primary);
+  --text-primary: var(--foreground);
+  --text-secondary: var(--muted-foreground);
+  --text-muted: var(--muted-foreground);
+  --text-inverse: var(--primary-foreground);
+  
+  --accent-blue: #a67c52;
+  --accent-blue-dim: #8d6e4c;
+  --accent-blue-glow: rgba(166, 124, 82, 0.12);
+
+  --success: #17bf63;
+  --success-dim: #15a857;
+
+  --priority-urgent: var(--destructive);
+  --priority-high: #e2d8c3;
+  --priority-medium: #a67c52;
+  --priority-low: #7d6b56;
+  --priority-ai: #c0a080;
+
+  --agent-accent: #73FF8C;
+  --agent-surface: rgba(12, 12, 12, 0.35);
+  --agent-input-bg: rgba(10, 10, 10, 0.45);
+  --agent-border: rgba(115, 255, 140, 0.15);
+}
+
+html[data-theme="paper"].dark {
+  --background: #2d2621;
+  --foreground: #ece5d8;
+  --card: #3a322c;
+  --card-foreground: #ece5d8;
+  --popover: #3a322c;
+  --popover-foreground: #ece5d8;
+  --primary: #c0a080;
+  --primary-foreground: #2d2621;
+  --secondary: #4a4039;
+  --secondary-foreground: #ece5d8;
+  --muted: #312b26;
+  --muted-foreground: #c5bcac;
+  --accent: #59493e;
+  --accent-foreground: #ece5d8;
+  --destructive: #b54a35;
+  --destructive-foreground: #ffffff;
+  --border: #4a4039;
+  --input: #4a4039;
+  --ring: #c0a080;
+  --chart-1: #c0a080;
+  --chart-2: #b3906f;
+  --chart-3: #a67c52;
+  --chart-4: #8d6e4c;
+  --chart-5: #735a3a;
+  --sidebar: #2d2621;
+  --sidebar-foreground: #ece5d8;
+  --sidebar-primary: #c0a080;
+  --sidebar-primary-foreground: #2d2621;
+  --sidebar-accent: #59493e;
+  --sidebar-accent-foreground: #ece5d8;
+  --sidebar-border: #4a4039;
+  --sidebar-ring: #c0a080;
+  --font-heading: var(--font-sans);
+  --font-sans: Libre Baskerville, serif;
+  --font-serif: Lora, serif;
+  --font-mono: IBM Plex Mono, monospace;
+  --radius: 0.25rem;
+  --shadow-x: 2px;
+  --shadow-y: 3px;
+  --shadow-blur: 5px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.12;
+  --shadow-color: hsl(28 13% 20%);
+  --shadow-2xs: 2px 3px 5px 0px hsl(28 13% 20% / 0.06);
+  --shadow-xs: 2px 3px 5px 0px hsl(28 13% 20% / 0.06);
+  --shadow-sm: 2px 3px 5px 0px hsl(28 13% 20% / 0.12), 2px 1px 2px -1px hsl(28 13% 20% / 0.12);
+  --shadow: 2px 3px 5px 0px hsl(28 13% 20% / 0.12), 2px 1px 2px -1px hsl(28 13% 20% / 0.12);
+  --shadow-md: 2px 3px 5px 0px hsl(28 13% 20% / 0.12), 2px 2px 4px -1px hsl(28 13% 20% / 0.12);
+  --shadow-lg: 2px 3px 5px 0px hsl(28 13% 20% / 0.12), 2px 4px 6px -1px hsl(28 13% 20% / 0.12);
+  --shadow-xl: 2px 3px 5px 0px hsl(28 13% 20% / 0.12), 2px 8px 10px -1px hsl(28 13% 20% / 0.12);
+  --shadow-2xl: 2px 3px 5px 0px hsl(28 13% 20% / 0.30);
+
+  /* App legacy variables mapping for dark mode */
+  --bg-app: var(--background);
+  --bg-base: var(--background);
+  --bg-surface: var(--muted);
+  --bg-elevated: var(--card);
+  --bg-overlay: var(--secondary);
+  --bg-highlight: var(--accent);
+  --border-subtle: var(--border);
+  --border-default: var(--border);
+  --border-strong: var(--primary);
+  --text-primary: var(--foreground);
+  --text-secondary: var(--muted-foreground);
+  --text-muted: var(--muted-foreground);
+  --text-inverse: var(--primary-foreground);
+  
+  --accent-blue: #c0a080;
+  --accent-blue-dim: #a67c52;
+  --accent-blue-glow: rgba(192, 160, 128, 0.18);
+
+  --success: #17bf63;
+  --success-dim: #15a857;
+
+  --priority-urgent: var(--destructive);
+  --priority-high: #ced4bf;
+  --priority-medium: #a67c52;
+  --priority-low: #c5bcac;
+  --priority-ai: #b3906f;
+
+  --agent-accent: #73FF8C;
+  --agent-surface: rgba(12, 12, 12, 0.35);
+  --agent-input-bg: rgba(10, 10, 10, 0.45);
+  --agent-border: rgba(115, 255, 140, 0.15);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

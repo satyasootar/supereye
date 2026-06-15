@@ -55,21 +55,21 @@ type ProfilePageClientProps = {
 export function ProfilePageClient({ profile }: ProfilePageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const { leftSidebarCollapsed, setLeftSidebarCollapsed } = useAppStore();
 
   const [mounted, setMounted] = useState(false);
-  const [colorTheme, setColorTheme] = useState<'default' | 'twitter' | 'claude' | 'caffeine' | 'sage'>('default');
+  const [colorTheme, setColorTheme] = useState<'default' | 'twitter' | 'claude' | 'caffeine' | 'sage' | 'paper'>('default');
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem('color-theme') as 'default' | 'twitter' | 'claude' | 'caffeine' | 'sage';
+    const saved = localStorage.getItem('color-theme') as 'default' | 'twitter' | 'claude' | 'caffeine' | 'sage' | 'paper';
     if (saved) {
       setColorTheme(saved);
     }
   }, []);
 
-  const handleColorThemeChange = (newTheme: 'default' | 'twitter' | 'claude' | 'caffeine' | 'sage') => {
+  const handleColorThemeChange = (newTheme: 'default' | 'twitter' | 'claude' | 'caffeine' | 'sage' | 'paper') => {
     setColorTheme(newTheme);
     localStorage.setItem('color-theme', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
@@ -408,16 +408,27 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                               darkBg: '#0a0a0a',
                             },
                           },
+                          {
+                            value: 'paper',
+                            label: 'Vintage Paper',
+                            colors: {
+                              lightBg: '#f5f1e6',
+                              lightAccent: '#a67c52',
+                              darkAccent: '#c0a080',
+                              darkBg: '#2d2621',
+                            },
+                          },
                         ] as const
                       ).map((option) => {
                         const isActive = mounted && colorTheme === option.value;
+                        const isDarkActive = mounted && resolvedTheme === 'dark';
                         return (
                           <button
                             key={option.value}
                             type="button"
                             onClick={() => handleColorThemeChange(option.value)}
                             className={cn(
-                              'flex items-center justify-between w-full rounded-lg border p-3 text-left transition-all hover:bg-bg-highlight/40',
+                              'flex items-center justify-between w-full rounded-[var(--radius)] border p-3 text-left transition-all hover:bg-bg-highlight/40',
                               isActive
                                 ? 'border-accent-blue bg-bg-highlight/20 shadow-sm'
                                 : 'border-border-subtle bg-bg-surface'
@@ -426,43 +437,48 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                             <span className="text-[13px] font-medium text-text-primary">
                               {option.label}
                             </span>
-                            <div className="flex items-center gap-3">
-                              <div className="flex -space-x-1">
-                                <span
-                                  className="h-4 w-4 rounded-full border border-black/10 dark:border-white/10 shadow-sm"
-                                  style={{ backgroundColor: option.colors.lightBg }}
-                                  title="Light Background"
-                                />
-                                <span
-                                  className="h-4 w-4 rounded-full border border-black/10 dark:border-white/10 shadow-sm"
-                                  style={{ backgroundColor: option.colors.lightAccent }}
-                                  title="Light Accent"
-                                />
-                                <span
-                                  className="h-4 w-4 rounded-full border border-black/10 dark:border-white/10 shadow-sm"
-                                  style={{ backgroundColor: option.colors.darkAccent }}
-                                  title="Dark Accent"
-                                />
-                                <span
-                                  className="h-4 w-4 rounded-full border border-black/10 dark:border-white/10 shadow-sm"
-                                  style={{ backgroundColor: option.colors.darkBg }}
-                                  title="Dark Background"
-                                />
-                              </div>
-                              <div
-                                className={cn(
-                                  'h-4 w-4 rounded-full border flex items-center justify-center transition-all',
-                                  isActive
-                                    ? 'border-accent-blue bg-accent-blue'
-                                    : 'border-border-strong bg-transparent'
-                                )}
-                              >
-                                {isActive && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                              </div>
+                            <div className="flex items-center gap-1.5">
+                              {isDarkActive ? (
+                                <>
+                                  <span
+                                    className="h-5 w-5 rounded-full border border-black/10 dark:border-white/10 shadow-sm transition-all"
+                                    style={{ backgroundColor: option.colors.darkAccent }}
+                                    title="Dark Accent"
+                                  />
+                                  <span
+                                    className="h-5 w-5 rounded-full border border-black/10 dark:border-white/10 shadow-sm transition-all"
+                                    style={{ backgroundColor: option.colors.darkBg }}
+                                    title="Dark Background"
+                                  />
+                                </>
+                              ) : (
+                                <>
+                                  <span
+                                    className="h-5 w-5 rounded-full border border-black/10 dark:border-white/10 shadow-sm transition-all"
+                                    style={{ backgroundColor: option.colors.lightBg }}
+                                    title="Light Background"
+                                  />
+                                  <span
+                                    className="h-5 w-5 rounded-full border border-black/10 dark:border-white/10 shadow-sm transition-all"
+                                    style={{ backgroundColor: option.colors.lightAccent }}
+                                    title="Light Accent"
+                                  />
+                                </>
+                              )}
                             </div>
                           </button>
                         );
                       })}
+                      {/* More themes coming soon */}
+                      <div className="flex items-center justify-between w-full rounded-[var(--radius)] border border-dashed border-border-default bg-bg-surface/30 p-3 opacity-60 pointer-events-none select-none">
+                        <span className="text-[13px] font-medium text-text-muted italic">
+                          More themes coming soon...
+                        </span>
+                        <div className="flex gap-1.5">
+                          <span className="h-5 w-5 rounded-full border border-dashed border-border-strong/40 bg-transparent" />
+                          <span className="h-5 w-5 rounded-full border border-dashed border-border-strong/40 bg-transparent" />
+                        </div>
+                      </div>
                     </div>
                   </ProfileRow>
 
