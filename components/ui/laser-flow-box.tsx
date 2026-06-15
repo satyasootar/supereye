@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import LaserFlow from './LaserFlow';
 import { MockDashboard } from '@/components/landing/mock-dashboard';
@@ -162,8 +163,10 @@ export function LaserFlowBoxExample() {
             Supereye brings your email, calendar, and favourite tools into one intelligent workspace. Plug in the apps you already use, let AI handle the rest, and run your entire workday from a single place.
           </p>
           <div style={{ pointerEvents: 'auto', marginTop: '8px' }}>
-            <button
+            <Link
+              href="/login"
               style={{
+                display: 'inline-block',
                 padding: '12px 24px',
                 backgroundColor: 'var(--accent-blue)',
                 color: 'var(--text-inverse)',
@@ -174,6 +177,7 @@ export function LaserFlowBoxExample() {
                 cursor: 'pointer',
                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
                 transition: 'transform 0.2s, box-shadow 0.2s',
+                textDecoration: 'none',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-1px)';
@@ -185,7 +189,7 @@ export function LaserFlowBoxExample() {
               }}
             >
               Get Started for Free
-            </button>
+            </Link>
           </div>
         </div>
       </div>
