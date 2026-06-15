@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
+import { X } from 'lucide-react';
 
 type Emotion = 
   | 'neutral' 
@@ -73,6 +74,102 @@ export function AiBot({
       stateRef.current.emotion = 'neutral';
     }, duration);
   }, []);
+
+  const [showBubble, setShowBubble] = useState(false);
+  const [bubbleText, setBubbleText] = useState('');
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const WELCOME_STEPS = [
+    "Hey! I am Eye.",
+    "I can help you with sending emails,",
+    "creating calendar events, and more!"
+  ];
+
+  useEffect(() => {
+    if (!openAgentOnClick) return;
+    const dismissed = localStorage.getItem('eye-welcome-dismissed') === 'true';
+    if (dismissed) return;
+
+    const timer = setTimeout(() => {
+      setCurrentStep(0);
+      setShowBubble(true);
+      triggerEmotion('happy', 1500);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [openAgentOnClick, triggerEmotion]);
+
+  useEffect(() => {
+    if (isAgentOpen) {
+      setShowBubble(false);
+      localStorage.setItem('eye-welcome-dismissed', 'true');
+    }
+  }, [isAgentOpen]);
+
+  useEffect(() => {
+    if (!showBubble) {
+      setBubbleText('');
+      return;
+    }
+
+    const fullMessage = WELCOME_STEPS[currentStep] || '';
+    let currentText = '';
+    let i = 0;
+    let transitionTimer: NodeJS.Timeout | null = null;
+    let nextStepTimer: NodeJS.Timeout | null = null;
+
+    const interval = setInterval(() => {
+      if (i < fullMessage.length) {
+        currentText += fullMessage[i];
+        setBubbleText(currentText);
+        i++;
+      } else {
+        clearInterval(interval);
+        
+        // Wait 2 seconds, then close the bubble
+        transitionTimer = setTimeout(() => {
+          setShowBubble(false);
+
+          // Wait 800ms before starting next bubble
+          nextStepTimer = setTimeout(() => {
+            const nextStep = currentStep + 1;
+            const dismissed = localStorage.getItem('eye-welcome-dismissed') === 'true';
+            
+            if (nextStep < WELCOME_STEPS.length && !dismissed && !isAgentOpen) {
+              setCurrentStep(nextStep);
+              setShowBubble(true);
+              if (nextStep === 1) {
+                triggerEmotion('happy', 1500);
+              } else if (nextStep === 2) {
+                triggerEmotion('winking', 1500);
+              }
+            } else if (nextStep >= WELCOME_STEPS.length) {
+              localStorage.setItem('eye-welcome-dismissed', 'true');
+            }
+          }, 800);
+        }, 2000);
+      }
+    }, 25);
+
+    return () => {
+      clearInterval(interval);
+      if (transitionTimer) clearTimeout(transitionTimer);
+      if (nextStepTimer) clearTimeout(nextStepTimer);
+    };
+  }, [showBubble, currentStep, isAgentOpen, triggerEmotion]);
+
+  const handleDismissBubble = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowBubble(false);
+    localStorage.setItem('eye-welcome-dismissed', 'true');
+  };
+
+  const handleBubbleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowBubble(false);
+    localStorage.setItem('eye-welcome-dismissed', 'true');
+    setAgentOpen(true);
+  };
 
   // Track mouse position and velocity for surprise/scared detection
   useEffect(() => {
@@ -300,6 +397,44 @@ export function AiBot({
       title={openAgentOnClick ? 'Open AI Assistant' : 'supereye'}
       ref={containerRef}
     >
+      <AnimatePresence>
+        {showBubble && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, x: 20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.8, x: 20 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+            className="absolute bottom-2 right-[72px] w-[280px] rounded-xl border border-border-default bg-card/95 backdrop-blur-md p-3.5 shadow-lg cursor-pointer select-none text-left group/bubble"
+            onClick={handleBubbleClick}
+          >
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={handleDismissBubble}
+              className="absolute top-2 right-2 p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-highlight/50 transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
+
+            {/* Bubble contents */}
+            <div className="pr-4">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-accent-blue block mb-1">
+                Eye Assistant
+              </span>
+              <p className="text-[12.5px] leading-relaxed text-text-primary font-medium min-h-[3.5em]">
+                {bubbleText}
+                {bubbleText.length < (WELCOME_STEPS[currentStep]?.length || 0) && (
+                  <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-accent-blue animate-pulse align-middle" />
+                )}
+              </p>
+            </div>
+
+            {/* Speech bubble arrow */}
+            <div className="absolute right-[-5px] bottom-5 w-2.5 h-2.5 bg-card border-r border-t border-border-default rotate-[45deg]" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <svg 
         viewBox="0 0 100 100" 
         fill="none" 
