@@ -139,7 +139,13 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
           </h1>
         </div>
         <Badge variant="outline" className="border-border-default text-text-muted">
-          {profile.authProvider === 'google' ? 'Google account' : profile.authProvider}
+          {profile.authProvider === 'google+password'
+            ? 'Google + password'
+            : profile.authProvider === 'password'
+              ? 'Email & password'
+              : profile.authProvider === 'google'
+                ? 'Google account'
+                : profile.authProvider}
         </Badge>
       </header>
 

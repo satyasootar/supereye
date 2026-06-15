@@ -85,6 +85,13 @@
       "when": 1781700000000,
       "tag": "0012_billing_system",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1781750000000,
+      "tag": "0013_user_password_hash",
+      "breakpoints": true
     }
   ]
 }
