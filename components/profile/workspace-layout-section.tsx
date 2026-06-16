@@ -12,7 +12,7 @@ import {
 import { ProfileSection } from '@/components/profile/profile-section';
 import { isLayoutModeActive } from '@/lib/plugins/layout';
 import type { PluginId } from '@/lib/plugins/types';
-import { Mail, Calendar, Trash2, Loader2, Layers, Plus, Save, GitPullRequest, HardDrive } from 'lucide-react';
+import { Mail, Calendar, Trash2, Loader2, Layers, Plus, GitPullRequest, HardDrive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const PLUGIN_ICONS: Record<string, typeof Mail> = {
@@ -22,6 +22,93 @@ const PLUGIN_ICONS: Record<string, typeof Mail> = {
   drive: HardDrive,
 };
 
+type DragPayload = {
+  pluginId: PluginId;
+  sourceWorkspaceId: string | null;
+  sourceSlot: 'primary' | 'sidebar' | null;
+};
+
+function DraggablePluginChip({
+  pluginId,
+  sourceWorkspaceId,
+  sourceSlot,
+}: {
+  pluginId: PluginId;
+  sourceWorkspaceId: string | null;
+  sourceSlot: 'primary' | 'sidebar' | null;
+}) {
+  const Icon = PLUGIN_ICONS[pluginId] ?? Mail;
+  const plugin = getPlugin(pluginId);
+  return (
+    <div
+      draggable
+      onDragStart={(e) => {
+        const payload: DragPayload = { pluginId, sourceWorkspaceId, sourceSlot };
+        e.dataTransfer.setData('application/json', JSON.stringify(payload));
+        e.dataTransfer.effectAllowed = 'move';
+      }}
+      className={cn(
+        "flex items-center gap-2 rounded-md border border-border-default bg-bg-surface px-3 py-2 cursor-grab active:cursor-grabbing hover:border-accent-blue/50 transition-colors shadow-sm w-full"
+      )}
+    >
+      <Icon className="h-4 w-4 text-text-secondary" />
+      <span className="text-[13px] font-medium text-text-primary truncate">{plugin?.label ?? pluginId}</span>
+    </div>
+  );
+}
+
+function PluginSlot({
+  label,
+  pluginId,
+  workspaceId,
+  slotType,
+  onDropPlugin,
+}: {
+  label: string;
+  pluginId: PluginId | null;
+  workspaceId: string;
+  slotType: 'primary' | 'sidebar';
+  onDropPlugin: (payload: DragPayload, targetWorkspaceId: string, targetSlot: 'primary' | 'sidebar') => void;
+}) {
+  const [isOver, setIsOver] = useState(false);
+
+  return (
+    <label className="flex flex-col gap-1.5 flex-1 min-w-0 relative">
+      <span className="text-[12px] font-medium text-text-secondary">
+        {label}
+        {slotType === 'sidebar' && <span className="text-text-muted ml-1">(optional)</span>}
+      </span>
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          setIsOver(true);
+        }}
+        onDragLeave={() => setIsOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsOver(false);
+          try {
+            const payload = JSON.parse(e.dataTransfer.getData('application/json')) as DragPayload;
+            onDropPlugin(payload, workspaceId, slotType);
+          } catch (err) {}
+        }}
+        className={cn(
+          "flex min-h-[44px] flex-col justify-center rounded-md border-2 border-dashed p-1 transition-colors relative z-10",
+          isOver ? "border-accent-blue bg-accent-blue/5" : "border-transparent bg-bg-elevated",
+          !pluginId && "items-center border-border-default bg-bg-surface hover:border-border-strong"
+        )}
+      >
+        {pluginId ? (
+          <DraggablePluginChip pluginId={pluginId} sourceWorkspaceId={workspaceId} sourceSlot={slotType} />
+        ) : (
+          <span className="text-[12px] text-text-muted opacity-50">Drag plugin here</span>
+        )}
+      </div>
+    </label>
+  );
+}
+
 function WorkspacePluginEditor({
   workspaceId,
   workspaceName,
@@ -29,12 +116,11 @@ function WorkspacePluginEditor({
   isActive,
   primary,
   sidebar,
-  connectedPlugins,
   canDelete,
-  onSave,
   onDelete,
   isSaving,
   isDeleting,
+  onDropPlugin,
 }: {
   workspaceId: string;
   workspaceName: string;
@@ -42,50 +128,27 @@ function WorkspacePluginEditor({
   isActive: boolean;
   primary: PluginId;
   sidebar: PluginId | null;
-  connectedPlugins: PluginId[];
   canDelete: boolean;
-  onSave: (primary: PluginId, sidebar: PluginId | null) => Promise<void>;
   onDelete: () => Promise<void>;
   isSaving: boolean;
   isDeleting: boolean;
+  onDropPlugin: (payload: DragPayload, targetWorkspaceId: string, targetSlot: 'primary' | 'sidebar') => void;
 }) {
-  const [draftPrimary, setDraftPrimary] = useState(primary);
-  const [draftSidebar, setDraftSidebar] = useState<string>(sidebar ?? '');
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setDraftPrimary(primary);
-    setDraftSidebar(sidebar ?? '');
-  }, [primary, sidebar]);
-
-  const sidebarValue = draftSidebar || null;
-  const isDirty =
-    draftPrimary !== primary || sidebarValue !== sidebar;
-  const canSave =
-    isDirty &&
-    draftPrimary &&
-    connectedPlugins.includes(draftPrimary) &&
-    (!sidebarValue || (sidebarValue !== draftPrimary && connectedPlugins.includes(sidebarValue as PluginId)));
-
-  const handleSave = async () => {
-    setError(null);
-    try {
-      await onSave(draftPrimary, sidebarValue);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save');
-    }
-  };
-
   return (
     <li
       className={cn(
-        'rounded-xl border p-4 transition-colors',
+        'rounded-xl border p-4 transition-colors relative',
         isActive
           ? 'border-accent-blue/40 bg-accent-blue/5'
           : 'border-border-subtle bg-bg-surface'
       )}
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
+      {isSaving && (
+         <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-bg-surface/50 backdrop-blur-[1px]">
+           <Loader2 className="h-5 w-5 animate-spin text-accent-blue" />
+         </div>
+      )}
+      <div className="mb-4 flex items-start justify-between gap-3 relative z-10">
         <div>
           <p className="text-[13px] font-semibold text-text-primary">
             <span className="mr-2 font-mono text-[11px] text-text-muted">⌘{index + 1}</span>
@@ -101,68 +164,73 @@ function WorkspacePluginEditor({
             variant="ghost"
             disabled={isDeleting || isSaving}
             onClick={() => void onDelete()}
-            className="text-destructive hover:text-destructive"
+            className="text-destructive hover:text-destructive relative z-30"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[12px] font-medium text-text-secondary">Primary plugin</span>
-          <select
-            value={draftPrimary}
-            onChange={(e) => setDraftPrimary(e.target.value)}
-            className="rounded-md border border-border-default bg-bg-elevated px-3 py-2 text-[13px] text-text-primary"
-          >
-            {connectedPlugins.map((id) => (
-              <option key={id} value={id}>
-                {getPlugin(id)?.label ?? id}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[12px] font-medium text-text-secondary">
-            Second plugin <span className="text-text-muted">(optional)</span>
-          </span>
-          <select
-            value={draftSidebar}
-            onChange={(e) => setDraftSidebar(e.target.value)}
-            className="rounded-md border border-border-default bg-bg-elevated px-3 py-2 text-[13px] text-text-primary"
-          >
-            <option value="">None</option>
-            {connectedPlugins
-              .filter((id) => id !== draftPrimary)
-              .map((id) => (
-                <option key={id} value={id}>
-                  {getPlugin(id)?.label ?? id}
-                </option>
-              ))}
-          </select>
-        </label>
+      <div className="flex flex-col sm:flex-row gap-3 relative z-10">
+         <PluginSlot label="Primary plugin" pluginId={primary} workspaceId={workspaceId} slotType="primary" onDropPlugin={onDropPlugin} />
+         <PluginSlot label="Second plugin" pluginId={sidebar} workspaceId={workspaceId} slotType="sidebar" onDropPlugin={onDropPlugin} />
       </div>
-
-      {error && (
-        <p className="mt-3 text-[12px] text-destructive">{error}</p>
-      )}
-
-      <Button
-        size="sm"
-        disabled={!canSave || isSaving}
-        onClick={() => void handleSave()}
-        className="mt-4 gap-2"
-      >
-        {isSaving ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <Save className="h-3.5 w-3.5" />
-        )}
-        Save changes
-      </Button>
     </li>
   );
+}
+
+function UnassignedZone({ plugins, onDropPlugin }: { plugins: PluginId[], onDropPlugin: (payload: DragPayload, tId: null, tSlot: null) => void }) {
+  const [isOver, setIsOver] = useState(false);
+  return (
+    <div
+      onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
+      onDragLeave={() => setIsOver(false)}
+      onDrop={(e) => {
+        e.preventDefault(); setIsOver(false);
+        try {
+          const payload = JSON.parse(e.dataTransfer.getData('application/json')) as DragPayload;
+          onDropPlugin(payload, null, null);
+        } catch (err) {}
+      }}
+      className={cn(
+        "mt-4 rounded-xl border-2 border-dashed p-4 transition-colors min-h-[80px]",
+        isOver ? "border-accent-blue bg-accent-blue/5" : "border-border-default bg-bg-surface hover:border-border-strong"
+      )}
+    >
+       <h3 className="mb-3 text-[13px] font-medium text-text-secondary flex items-center gap-2">
+         <Layers className="h-4 w-4 text-text-muted" />
+         Unassigned Plugins
+       </h3>
+       <div className="flex flex-wrap gap-2">
+         {plugins.map(id => <div key={id} className="w-48"><DraggablePluginChip pluginId={id} sourceWorkspaceId={null} sourceSlot={null} /></div>)}
+         {plugins.length === 0 && <span className="text-[12px] text-text-muted mt-2">Drag plugins here to remove them from a workspace.</span>}
+       </div>
+    </div>
+  )
+}
+
+function CreateWorkspaceZone({ onDropPlugin }: { onDropPlugin: (payload: DragPayload, tId: 'new', tSlot: 'primary') => void }) {
+  const [isOver, setIsOver] = useState(false);
+  return (
+    <div
+      onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
+      onDragLeave={() => setIsOver(false)}
+      onDrop={(e) => {
+        e.preventDefault(); setIsOver(false);
+        try {
+          const payload = JSON.parse(e.dataTransfer.getData('application/json')) as DragPayload;
+          onDropPlugin(payload, 'new', 'primary');
+        } catch (err) {}
+      }}
+      className={cn(
+        "mt-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 transition-colors",
+        isOver ? "border-accent-blue bg-accent-blue/5" : "border-border-default bg-bg-surface hover:border-border-strong"
+      )}
+    >
+      <Plus className="mb-2 h-6 w-6 text-text-muted" />
+      <span className="text-[13px] font-medium text-text-secondary">Drag a plugin here to create a new workspace</span>
+    </div>
+  )
 }
 
 export function WorkspaceLayoutSection() {
@@ -173,43 +241,124 @@ export function WorkspaceLayoutSection() {
     createWorkspace,
     deleteWorkspace,
     updateWorkspaceLayout,
-    isCreating,
-    isUpdating,
     isDeleting,
   } = useWorkspaces();
+  
   const { activePlugins, primary, sidebar, setLayout, layoutModes } = useWorkspaceLayout();
   const layout = { primary, sidebar };
 
-  const [newPrimary, setNewPrimary] = useState<PluginId>('email');
-  const [newSidebar, setNewSidebar] = useState<string>('');
-  const [createError, setCreateError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (connectedPlugins.length > 0 && !connectedPlugins.includes(newPrimary)) {
-      setNewPrimary(connectedPlugins[0]);
-    }
-  }, [connectedPlugins, newPrimary]);
 
   const unassignedPlugins = connectedPlugins.filter(
     (id) => !workspaces.some((ws) => ws.pluginIds.includes(id))
   );
 
-  const handleCreate = async () => {
-    setCreateError(null);
+  const handleDropPlugin = async (
+    payload: DragPayload,
+    targetWorkspaceId: string | null | 'new',
+    targetSlot: 'primary' | 'sidebar' | null
+  ) => {
+    const { pluginId: draggedPluginId, sourceWorkspaceId, sourceSlot } = payload;
+    
+    // Do nothing if dropped in same slot
+    if (sourceWorkspaceId === targetWorkspaceId && sourceSlot === targetSlot) return;
+
+    let targetPluginId: PluginId | null = null;
+    let targetWs = workspaces.find(w => w.id === targetWorkspaceId);
+
+    if (targetWs && targetSlot) {
+      targetPluginId = targetSlot === 'primary' ? targetWs.primaryPluginId : targetWs.sidebarPluginId;
+    }
+
     try {
-      await createWorkspace({
-        primaryPluginId: newPrimary,
-        sidebarPluginId: newSidebar || null,
-        name: generateWorkspaceName(
-          newSidebar && newSidebar !== newPrimary
-            ? [newPrimary, newSidebar]
-            : [newPrimary]
-        ),
-      });
-      setNewSidebar('');
-    } catch (e) {
-      setCreateError(e instanceof Error ? e.message : 'Failed to create workspace');
+      if (targetWorkspaceId === 'new') {
+        setSavingId('new');
+        await createWorkspace({
+          primaryPluginId: draggedPluginId,
+          name: generateWorkspaceName([draggedPluginId])
+        });
+        
+        if (sourceWorkspaceId) {
+          const sw = workspaces.find(w => w.id === sourceWorkspaceId);
+          if (sw) {
+            let p = sw.primaryPluginId;
+            let s = sw.sidebarPluginId;
+            if (sourceSlot === 'primary') { p = s as PluginId; s = null; }
+            if (sourceSlot === 'sidebar') { s = null; }
+            if (!p) {
+              await deleteWorkspace(sw.id);
+            } else {
+              await updateWorkspaceLayout(sw.id, p, s);
+            }
+          }
+        }
+      } else if (targetWorkspaceId === null) {
+        if (sourceWorkspaceId) {
+          setSavingId(sourceWorkspaceId);
+          const sw = workspaces.find(w => w.id === sourceWorkspaceId);
+          if (sw) {
+            let p = sw.primaryPluginId;
+            let s = sw.sidebarPluginId;
+            if (sourceSlot === 'primary') { p = s as PluginId; s = null; }
+            if (sourceSlot === 'sidebar') { s = null; }
+            if (!p) {
+              await deleteWorkspace(sw.id);
+            } else {
+              await updateWorkspaceLayout(sw.id, p, s);
+            }
+          }
+        }
+      } else {
+        setSavingId(targetWorkspaceId);
+
+        if (sourceWorkspaceId && sourceWorkspaceId !== targetWorkspaceId && targetPluginId) {
+           const sw = workspaces.find(w => w.id === sourceWorkspaceId);
+           if (sw) {
+             let swPrimary = sw.primaryPluginId;
+             let swSidebar = sw.sidebarPluginId;
+             if (sourceSlot === 'primary') swPrimary = targetPluginId;
+             if (sourceSlot === 'sidebar') swSidebar = targetPluginId;
+             await updateWorkspaceLayout(sw.id, swPrimary, swSidebar);
+           }
+        } else if (sourceWorkspaceId && sourceWorkspaceId !== targetWorkspaceId && !targetPluginId) {
+           const sw = workspaces.find(w => w.id === sourceWorkspaceId);
+           if (sw) {
+             let p = sw.primaryPluginId;
+             let s = sw.sidebarPluginId;
+             if (sourceSlot === 'primary') { p = s as PluginId; s = null; }
+             if (sourceSlot === 'sidebar') { s = null; }
+             if (!p) {
+               await deleteWorkspace(sw.id);
+             } else {
+               await updateWorkspaceLayout(sw.id, p, s);
+             }
+           }
+        }
+
+        if (targetWs) {
+           let twPrimary = targetWs.primaryPluginId;
+           let twSidebar = targetWs.sidebarPluginId;
+           if (targetSlot === 'primary') twPrimary = draggedPluginId;
+           if (targetSlot === 'sidebar') twSidebar = draggedPluginId;
+           
+           if (sourceWorkspaceId === targetWorkspaceId && targetPluginId) {
+             if (sourceSlot === 'primary') twPrimary = targetPluginId;
+             if (sourceSlot === 'sidebar') twSidebar = targetPluginId;
+           }
+
+           if (twPrimary) {
+              await updateWorkspaceLayout(targetWs.id, twPrimary, twSidebar);
+           } else {
+              twPrimary = twSidebar as PluginId;
+              twSidebar = null;
+              if (twPrimary) {
+                 await updateWorkspaceLayout(targetWs.id, twPrimary, twSidebar);
+              }
+           }
+        }
+      }
+    } finally {
+      setSavingId(null);
     }
   };
 
@@ -230,7 +379,7 @@ export function WorkspaceLayoutSection() {
     <div className="flex flex-col gap-6">
       <ProfileSection
         title="Your workspaces"
-        description={`New plugins are assigned automatically (up to ${MAX_PLUGINS_PER_WORKSPACE} per workspace). You can rearrange them here anytime.`}
+        description={`Drag and drop plugins to rearrange them. A workspace holds up to ${MAX_PLUGINS_PER_WORKSPACE} plugins.`}
       >
         <ul className="flex flex-col gap-3">
           {workspaces.map((ws, index) => (
@@ -242,18 +391,10 @@ export function WorkspaceLayoutSection() {
               isActive={activeWorkspace?.id === ws.id}
               primary={ws.primaryPluginId}
               sidebar={ws.sidebarPluginId}
-              connectedPlugins={connectedPlugins}
               canDelete={workspaces.length > 1}
-              isSaving={savingId === ws.id && isUpdating}
+              isSaving={savingId === ws.id || savingId === 'new'}
               isDeleting={isDeleting}
-              onSave={async (primary, sidebar) => {
-                setSavingId(ws.id);
-                try {
-                  await updateWorkspaceLayout(ws.id, primary, sidebar);
-                } finally {
-                  setSavingId(null);
-                }
-              }}
+              onDropPlugin={handleDropPlugin as any}
               onDelete={async () => {
                 await deleteWorkspace(ws.id);
               }}
@@ -261,70 +402,9 @@ export function WorkspaceLayoutSection() {
           ))}
         </ul>
 
-        {unassignedPlugins.length > 0 && (
-          <p className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2.5 text-[12px] text-amber-700 dark:text-amber-300">
-            <Layers className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Unassigned: {unassignedPlugins.map((id) => getPlugin(id)?.label ?? id).join(', ')}.
-            Add them to a workspace below or save an existing workspace with room.
-          </p>
-        )}
+        <UnassignedZone plugins={unassignedPlugins} onDropPlugin={handleDropPlugin as any} />
+        <CreateWorkspaceZone onDropPlugin={handleDropPlugin as any} />
 
-        <p className="mt-4 flex items-start gap-2 text-[12px] text-text-muted">
-          <Layers className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-blue" />
-          Moving a plugin to another workspace removes it from the previous one automatically.
-        </p>
-      </ProfileSection>
-
-      <ProfileSection
-        title="Create workspace"
-        description={`Group up to ${MAX_PLUGINS_PER_WORKSPACE} connected plugins into a new workspace.`}
-      >
-        <div className="flex flex-col gap-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[12px] font-medium text-text-secondary">Primary plugin</span>
-              <select
-                value={newPrimary}
-                onChange={(e) => setNewPrimary(e.target.value)}
-                className="rounded-md border border-border-default bg-bg-surface px-3 py-2 text-[13px] text-text-primary"
-              >
-                {connectedPlugins.map((id) => (
-                  <option key={id} value={id}>
-                    {getPlugin(id)?.label ?? id}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[12px] font-medium text-text-secondary">Second plugin (optional)</span>
-              <select
-                value={newSidebar}
-                onChange={(e) => setNewSidebar(e.target.value)}
-                className="rounded-md border border-border-default bg-bg-surface px-3 py-2 text-[13px] text-text-primary"
-              >
-                <option value="">None</option>
-                {connectedPlugins
-                  .filter((id) => id !== newPrimary)
-                  .map((id) => (
-                    <option key={id} value={id}>
-                      {getPlugin(id)?.label ?? id}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          </div>
-          {createError && (
-            <p className="text-[12px] text-destructive">{createError}</p>
-          )}
-          <Button
-            onClick={() => void handleCreate()}
-            disabled={isCreating || connectedPlugins.length === 0}
-            className="w-fit gap-2"
-          >
-            {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Create workspace
-          </Button>
-        </div>
       </ProfileSection>
 
       {activeWorkspace && activePlugins.length > 1 && (
