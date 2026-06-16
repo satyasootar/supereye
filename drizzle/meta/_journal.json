@@ -106,6 +106,13 @@
       "when": 1781850000000,
       "tag": "0015_daily_brief",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1781900000000,
+      "tag": "0016_email_templates",
+      "breakpoints": true
     }
   ]
 }

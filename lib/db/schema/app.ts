@@ -230,6 +230,31 @@ export const scheduledEmails = pgTable(
   ]
 );
 
+// ─── Email Templates ─────────────────────────────────────────────────────
+export const emailTemplates = pgTable(
+  'email_templates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    subject: text('subject').notNull().default(''),
+    htmlContent: text('html_content').notNull(),
+    isPredefined: boolean('is_predefined').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('idx_email_templates_user_id').on(table.userId),
+    index('idx_email_templates_created_at').on(table.createdAt),
+  ]
+);
+
 // ─── Agent Chat Threads ─────────────────────────────────────────────────
 export const agentThreads = pgTable(
   'agent_threads',

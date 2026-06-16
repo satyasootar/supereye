@@ -54,6 +54,7 @@ export const USAGE_FEATURE_TO_ACTION: Record<string, string> = {
   chat: 'ai_chat',
   chat_summary: 'ai_chat_summary',
   email_triage: 'ai_email_triage',
+  email_compose_enhance: 'ai_email_draft',
   daily_brief: 'ai_daily_brief',
   transcribe: 'ai_transcribe',
   agent_email_send: 'ai_email_draft',

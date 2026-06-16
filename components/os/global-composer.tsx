@@ -1,15 +1,45 @@
-import { useState, useRef, KeyboardEvent } from 'react';
-import { motion } from 'framer-motion';
-import { addDays, setHours, setMinutes, nextFriday, format, isAfter } from 'date-fns';
+import { useState, useRef, useCallback, KeyboardEvent } from 'react';
+import { motion, useDragControls } from 'framer-motion';
+import { addDays, setHours, setMinutes, nextFriday, format } from 'date-fns';
 import { 
   X, Minus, Sparkles, Paperclip, Code, Calendar as CalendarIcon, 
-  Trash2, ChevronDown
+  Trash2, ChevronDown, Maximize2, Minimize2
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+
+type ComposeTone =
+  | 'professional'
+  | 'friendly'
+  | 'formal'
+  | 'persuasive'
+  | 'concise'
+  | 'empathetic';
+
+type MailTemplate = {
+  id: string;
+  name: string;
+  subject: string;
+  htmlContent: string;
+  isPredefined: boolean;
+};
+
+const TONE_OPTIONS: { value: ComposeTone; label: string }[] = [
+  { value: 'professional', label: 'Professional' },
+  { value: 'friendly', label: 'Friendly' },
+  { value: 'formal', label: 'Formal' },
+  { value: 'persuasive', label: 'Persuasive' },
+  { value: 'concise', label: 'Concise' },
+  { value: 'empathetic', label: 'Empathetic' },
+];
+
+const COMPOSE_SIZE_DEFAULT = { width: 520, height: 520 };
+const COMPOSE_SIZE_EXPANDED = { width: 820, height: 720 };
+const COMPOSE_SIZE_MIN = { width: 400, height: 320 };
+const COMPOSE_SIZE_MAX = { width: 1200, height: 900 };
 
 export function GlobalComposer() {
   const { isComposeOpen, setComposeOpen } = useAppStore();
@@ -19,13 +49,24 @@ export function GlobalComposer() {
   const [inputValue, setInputValue] = useState('');
   const [subject, setSubject] = useState('');
   const [bodyText, setBodyText] = useState('');
+  const [htmlBody, setHtmlBody] = useState('');
+  const [isHtmlMode, setIsHtmlMode] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showScheduleSend, setShowScheduleSend] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [scheduleAt, setScheduleAt] = useState<Date | null>(null);
+  const [tone, setTone] = useState<ComposeTone>('professional');
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
+  const [showHtmlPreview, setShowHtmlPreview] = useState(false);
+  const [enhancedDraft, setEnhancedDraft] = useState<string | null>(null);
+  const [originalDraft, setOriginalDraft] = useState<string | null>(null);
+  const [composeSize, setComposeSize] = useState(COMPOSE_SIZE_DEFAULT);
+  const [isExpanded, setIsExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragControls = useDragControls();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -38,6 +79,98 @@ export function GlobalComposer() {
   };
 
   const queryClient = useQueryClient();
+  const draftValue = isHtmlMode ? htmlBody : bodyText;
+
+  const templatesQuery = useQuery<{ templates: MailTemplate[] }>({
+    queryKey: ['mail-templates'],
+    queryFn: async () => {
+      const res = await fetch('/api/mail/templates');
+      if (!res.ok) throw new Error('Failed to load templates');
+      return res.json();
+    },
+    enabled: isComposeOpen && showTemplates,
+  });
+
+  const enhanceMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/mail/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          draft: draftValue,
+          tone,
+          isHtml: isHtmlMode,
+          subject,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? 'Enhance failed');
+      }
+      return res.json() as Promise<{ enhanced: string }>;
+    },
+    onSuccess: (data) => setEnhancedDraft(data.enhanced),
+  });
+
+  const openHtmlPreview = () => {
+    if (!isHtmlMode || !htmlBody.trim()) {
+      toast.error('Switch to HTML mode and load template/content first');
+      return;
+    }
+    const previewWindow = window.open('', '_blank', 'width=960,height=720');
+    if (!previewWindow) {
+      toast.error('Popup blocked. Please allow popups to preview HTML.');
+      return;
+    }
+    previewWindow.document.write(htmlBody);
+    previewWindow.document.close();
+  };
+
+  const toggleExpanded = useCallback(() => {
+    if (isMinimized) setIsMinimized(false);
+    setIsExpanded((prev) => {
+      const next = !prev;
+      setComposeSize(next ? COMPOSE_SIZE_EXPANDED : COMPOSE_SIZE_DEFAULT);
+      return next;
+    });
+  }, [isMinimized]);
+
+  const handleResizePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startW = composeSize.width;
+      const startH = composeSize.height;
+
+      const onMove = (ev: PointerEvent) => {
+        const width = Math.min(
+          COMPOSE_SIZE_MAX.width,
+          Math.max(COMPOSE_SIZE_MIN.width, startW - (ev.clientX - startX))
+        );
+        const height = Math.min(
+          COMPOSE_SIZE_MAX.height,
+          Math.max(COMPOSE_SIZE_MIN.height, startH - (ev.clientY - startY))
+        );
+        setComposeSize({ width, height });
+        setIsExpanded(false);
+      };
+
+      const onUp = () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+      };
+
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'nwse-resize';
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    },
+    [composeSize.height, composeSize.width]
+  );
 
   if (!isComposeOpen) return null;
 
@@ -87,7 +220,11 @@ export function GlobalComposer() {
       const formData = new FormData();
       formData.append('to', finalTo.join(', '));
       formData.append('subject', subject);
-      formData.append('text', bodyText);
+      const finalText = isHtmlMode ? htmlBody.replace(/<[^>]*>/g, ' ') : bodyText;
+      formData.append('text', finalText);
+      if (isHtmlMode && htmlBody.trim()) {
+        formData.append('html', htmlBody);
+      }
       if (scheduleAt && !isDraft) {
         formData.append('scheduleAt', scheduleAt.toISOString());
       }
@@ -116,10 +253,16 @@ export function GlobalComposer() {
       setToRecipients([]);
       setSubject('');
       setBodyText('');
+      setHtmlBody('');
+      setIsHtmlMode(false);
       setInputValue('');
       setAttachments([]);
       setScheduleAt(null);
       setIsMinimized(false);
+      setEnhancedDraft(null);
+      setOriginalDraft(null);
+      setComposeSize(COMPOSE_SIZE_DEFAULT);
+      setIsExpanded(false);
     } catch (error) {
       toast.error('Failed to send message');
     } finally {
@@ -162,31 +305,63 @@ export function GlobalComposer() {
 
   return (
     <motion.div 
-      drag
+      drag={!isMinimized}
+      dragControls={dragControls}
+      dragListener={false}
       dragMomentum={false}
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       className={cn(
-        "fixed bottom-0 right-24 z-[999] flex flex-col bg-bg-elevated border border-border-subtle rounded-t-xl shadow-2xl overflow-hidden will-change-transform",
-        isMinimized ? "h-[44px] w-[300px]" : "h-[500px] w-[500px] resize overflow-hidden"
+        'fixed bottom-0 right-24 z-[999] flex flex-col bg-bg-elevated border border-border-subtle rounded-t-xl shadow-2xl will-change-transform overflow-hidden'
       )}
       style={{
-        minWidth: isMinimized ? '300px' : '400px',
-        minHeight: isMinimized ? '44px' : '300px'
+        width: isMinimized ? 300 : composeSize.width,
+        height: isMinimized ? 44 : composeSize.height,
+        minWidth: isMinimized ? 300 : COMPOSE_SIZE_MIN.width,
+        minHeight: isMinimized ? 44 : COMPOSE_SIZE_MIN.height,
+        maxWidth: COMPOSE_SIZE_MAX.width,
+        maxHeight: COMPOSE_SIZE_MAX.height,
       }}
     >
+      {!isMinimized && (
+        <div
+          role="separator"
+          aria-label="Resize compose window"
+          onPointerDown={handleResizePointerDown}
+          className="absolute left-0 top-0 z-20 h-4 w-4 cursor-nwse-resize rounded-tl-xl bg-gradient-to-br from-border-subtle/80 to-transparent"
+          title="Drag to resize"
+        />
+      )}
       {/* Header (Drag Handle) */}
-      <div className="drag-handle flex items-center justify-between px-4 h-[44px] bg-bg-surface border-b border-border-subtle cursor-grab active:cursor-grabbing flex-shrink-0">
+      <div
+        className="drag-handle flex items-center justify-between px-4 h-[44px] bg-bg-surface border-b border-border-subtle cursor-grab active:cursor-grabbing flex-shrink-0"
+        onPointerDown={(e) => {
+          if (!isMinimized) dragControls.start(e);
+        }}
+      >
         <div className="flex items-center gap-2 overflow-hidden flex-1">
           <span className="text-[13px] font-medium text-text-primary truncate">{userName}</span>
           {userEmail && <span className="text-[13px] text-text-muted truncate">{userEmail}</span>}
         </div>
-        <div className="flex items-center gap-3 ml-4 text-text-muted">
+        <div className="flex items-center gap-2 ml-4 text-text-muted">
+          {!isMinimized && (
+            <button
+              type="button"
+              onClick={toggleExpanded}
+              className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-bg-overlay hover:text-text-primary transition-colors"
+              title={isExpanded ? 'Restore default size' : 'Expand compose window'}
+              aria-label={isExpanded ? 'Restore default size' : 'Expand compose window'}
+            >
+              {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </button>
+          )}
           <button 
             type="button" 
             onClick={() => setIsMinimized(!isMinimized)}
-            className="hover:text-text-primary transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-bg-overlay hover:text-text-primary transition-colors"
+            title={isMinimized ? 'Restore' : 'Minimize'}
+            aria-label={isMinimized ? 'Restore' : 'Minimize'}
           >
             <Minus className="h-4 w-4" />
           </button>
@@ -195,8 +370,14 @@ export function GlobalComposer() {
             onClick={() => {
               setComposeOpen(false);
               setIsMinimized(false);
+              setEnhancedDraft(null);
+              setOriginalDraft(null);
+              setComposeSize(COMPOSE_SIZE_DEFAULT);
+              setIsExpanded(false);
             }}
-            className="hover:text-text-primary transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-bg-overlay hover:text-text-primary transition-colors"
+            title="Close"
+            aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
@@ -276,15 +457,130 @@ export function GlobalComposer() {
 
           {/* Body */}
           <div className="flex-1 p-4 overflow-y-auto no-scrollbar">
+            {enhancedDraft && (
+              <div className="mb-3 rounded-md border border-accent-blue/30 bg-accent-blue/10 p-3 text-xs text-text-primary">
+                AI rewrite ready.
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    className="rounded bg-accent-blue px-2 py-1 text-white"
+                    onClick={() => {
+                      if (isHtmlMode) setHtmlBody(enhancedDraft);
+                      else setBodyText(enhancedDraft);
+                      setEnhancedDraft(null);
+                    }}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded border border-border-subtle px-2 py-1"
+                    onClick={() => enhanceMutation.mutate()}
+                  >
+                    Regenerate
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded border border-border-subtle px-2 py-1"
+                    onClick={() => {
+                      if (originalDraft != null) {
+                        if (isHtmlMode) setHtmlBody(originalDraft);
+                        else setBodyText(originalDraft);
+                      }
+                      setEnhancedDraft(null);
+                    }}
+                  >
+                    Revert
+                  </button>
+                </div>
+              </div>
+            )}
             <textarea 
               placeholder="..."
-              value={bodyText}
-              onChange={(e) => setBodyText(e.target.value)}
+              value={isHtmlMode ? htmlBody : bodyText}
+              onChange={(e) => {
+                if (isHtmlMode) setHtmlBody(e.target.value);
+                else setBodyText(e.target.value);
+              }}
               className="w-full h-full min-h-[150px] bg-transparent resize-none outline-none text-[14px] text-text-primary placeholder:text-text-muted no-scrollbar"
             />
           </div>
 
           {/* Attachments List */}
+          {showTemplates && (
+            <div className="max-h-[280px] overflow-y-auto border-t border-border-subtle px-4 py-3">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs font-medium text-text-muted">Marketing templates</p>
+                <button
+                  type="button"
+                  className="h-8 min-w-[140px] rounded-md border border-border-subtle px-3 text-xs font-medium text-accent-blue hover:bg-bg-overlay"
+                  onClick={async () => {
+                    if (!htmlBody.trim()) return toast.error('Add HTML content first');
+                    const name = window.prompt('Template name');
+                    if (!name) return;
+                    const res = await fetch('/api/mail/templates', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        name,
+                        subject,
+                        htmlContent: htmlBody,
+                      }),
+                    });
+                    if (!res.ok) return toast.error('Failed to save template');
+                    toast.success('Template saved');
+                    void queryClient.invalidateQueries({ queryKey: ['mail-templates'] });
+                  }}
+                >
+                  Save current template
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                {(templatesQuery.data?.templates ?? []).map((tpl) => (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    className="w-full rounded-md border border-border-subtle bg-bg-surface p-3 text-left text-xs transition-colors hover:border-accent-blue/40 hover:bg-bg-overlay"
+                    onClick={() => {
+                      setPreviewTemplateId(tpl.id);
+                      setSubject(tpl.subject);
+                      setHtmlBody(tpl.htmlContent);
+                      setIsHtmlMode(true);
+                    }}
+                  >
+                    <p className="font-medium text-text-primary">
+                      {tpl.name} {tpl.isPredefined ? '(built-in)' : ''}
+                    </p>
+                    <p className="truncate text-text-muted">{tpl.subject || 'No subject'}</p>
+                  </button>
+                ))}
+              </div>
+              {previewTemplateId && (
+                <div className="mt-3 rounded border border-border-subtle bg-bg-base p-2">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-[11px] text-text-muted">Template preview</p>
+                    <button
+                      type="button"
+                      className="h-7 rounded-md border border-border-subtle px-2 text-[11px] text-text-primary hover:bg-bg-overlay"
+                      onClick={() => setShowHtmlPreview((v) => !v)}
+                    >
+                      {showHtmlPreview ? 'Hide preview' : 'Show preview'}
+                    </button>
+                  </div>
+                  {showHtmlPreview && (
+                  <iframe
+                    title="Template preview"
+                    className="h-52 w-full rounded border border-border-subtle bg-white"
+                    srcDoc={
+                      templatesQuery.data?.templates.find((t) => t.id === previewTemplateId)?.htmlContent ?? ''
+                    }
+                  />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {attachments.length > 0 && (
             <div className="px-4 py-2 flex flex-wrap gap-2 border-t border-border-subtle">
               {attachments.map((file, idx) => (
@@ -304,14 +600,15 @@ export function GlobalComposer() {
           )}
 
           {/* Footer */}
-          <div className="flex items-center justify-between px-4 py-3 bg-bg-surface border-t border-border-subtle flex-shrink-0">
-            <div className="relative">
+          <div className="flex flex-col gap-3 px-4 py-3 bg-bg-surface border-t border-border-subtle flex-shrink-0">
+            <div className="flex items-center justify-between gap-3">
+            <div className="relative shrink-0">
               <div className="flex items-stretch rounded-md overflow-hidden shadow-sm">
                 <button 
                   type="button" 
                   onClick={() => handleSend(false)}
                   disabled={isSending}
-                  className="flex items-center px-5 py-1.5 bg-accent-blue hover:bg-accent-blue-dim text-white text-[14px] font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="flex h-9 min-w-[92px] items-center justify-center px-4 bg-accent-blue hover:bg-accent-blue-dim text-white text-[13px] font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isSending ? 'Sending...' : scheduleAt ? `Schedule send` : 'Send'}
                 </button>
@@ -320,7 +617,7 @@ export function GlobalComposer() {
                   type="button" 
                   onClick={() => setShowScheduleSend(!showScheduleSend)}
                   disabled={isSending}
-                  className="flex items-center justify-center px-2 py-1.5 bg-accent-blue hover:bg-accent-blue-dim text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="flex h-9 w-9 items-center justify-center bg-accent-blue hover:bg-accent-blue-dim text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </button>
@@ -382,8 +679,53 @@ export function GlobalComposer() {
               )}
             </div>
             
-            <div className="flex items-center gap-3 text-text-muted">
-              <button type="button" className="hover:text-text-primary transition-colors">
+            <div className="flex flex-wrap items-center justify-end gap-2 text-text-muted">
+              <select
+                value={tone}
+                onChange={(e) => setTone(e.target.value as ComposeTone)}
+                className="h-9 min-w-[110px] rounded-md border border-border-subtle bg-bg-elevated px-2 text-xs text-text-primary"
+              >
+                {TONE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="h-9 min-w-[92px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors"
+                onClick={() => {
+                  if (!draftValue.trim()) return toast.error('Draft is empty');
+                  setOriginalDraft(draftValue);
+                  enhanceMutation.mutate();
+                }}
+                disabled={enhanceMutation.isPending}
+              >
+                {enhanceMutation.isPending ? 'Enhancing...' : 'AI Enhance'}
+              </button>
+              <button
+                type="button"
+                className="h-9 min-w-[92px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors"
+                onClick={() => setShowTemplates((v) => !v)}
+              >
+                Templates
+              </button>
+              <button
+                type="button"
+                className="h-9 min-w-[80px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors"
+                onClick={() => setIsHtmlMode((v) => !v)}
+                title="Toggle HTML mode"
+              >
+                {isHtmlMode ? 'HTML on' : 'HTML off'}
+              </button>
+              <button
+                type="button"
+                className="h-9 min-w-[84px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors"
+                onClick={openHtmlPreview}
+              >
+                Preview
+              </button>
+              <button type="button" className="flex h-9 w-9 items-center justify-center rounded-md border border-border-subtle hover:text-text-primary transition-colors" title="AI tools">
                 <Sparkles className="h-4 w-4" />
               </button>
               <input 
@@ -395,15 +737,15 @@ export function GlobalComposer() {
               />
               <button 
                 type="button" 
-                className="hover:text-text-primary transition-colors"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-border-subtle hover:text-text-primary transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Paperclip className="h-4 w-4" />
               </button>
-              <button type="button" className="hover:text-text-primary transition-colors">
+              <button type="button" className="flex h-9 w-9 items-center justify-center rounded-md border border-border-subtle hover:text-text-primary transition-colors">
                 <Code className="h-4 w-4" />
               </button>
-              <button type="button" className="hover:text-text-primary transition-colors">
+              <button type="button" className="flex h-9 w-9 items-center justify-center rounded-md border border-border-subtle hover:text-text-primary transition-colors">
                 <CalendarIcon className="h-4 w-4" />
               </button>
               <div className="w-[1px] h-4 bg-border-strong mx-1"></div>
@@ -411,7 +753,7 @@ export function GlobalComposer() {
                 type="button" 
                 onClick={() => handleSend(true)}
                 disabled={isSending}
-                className="hover:text-text-primary transition-colors text-[13px] font-medium px-2"
+                className="h-9 min-w-[92px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors"
               >
                 Save Draft
               </button>
@@ -420,11 +762,14 @@ export function GlobalComposer() {
                 onClick={() => {
                   setComposeOpen(false);
                   setIsMinimized(false);
+                  setEnhancedDraft(null);
+                  setOriginalDraft(null);
                 }}
-                className="hover:text-text-primary transition-colors"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-border-subtle hover:text-text-primary transition-colors"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
+            </div>
             </div>
           </div>
         </div>

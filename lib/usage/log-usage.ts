@@ -5,6 +5,7 @@ export type UsageFeature =
   | 'chat'
   | 'chat_summary'
   | 'email_triage'
+  | 'email_compose_enhance'
   | 'daily_brief'
   | 'transcribe'
   | 'agent_email_send';

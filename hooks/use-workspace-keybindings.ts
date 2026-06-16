@@ -32,6 +32,9 @@ export function useWorkspaceKeybindings() {
       registerActionHandler(KEYBOARD_ACTIONS.OPEN_CHEAT_SHEET, () => {
         setCheatSheetOpen(true);
       }),
+      registerActionHandler(KEYBOARD_ACTIONS.OPEN_COMPOSE, () => {
+        useAppStore.getState().setComposeOpen(true);
+      }),
       registerActionHandler(KEYBOARD_ACTIONS.WORKSPACE_SWITCH, (bindingId) => {
         const index = parseInt(bindingId.split('.').pop() ?? '0', 10) - 1;
         const ws = workspaces[index];

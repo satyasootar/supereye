@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       return validationErrorResponse(parsed.error);
     }
 
-    const { to, subject, text, scheduleAt, isDraft } = parsed.data;
+    const { to, subject, text, html, scheduleAt, isDraft } = parsed.data;
     const t = getTenant(userId);
 
     const attachments = await Promise.all(
@@ -45,6 +45,7 @@ export async function POST(req: Request) {
       to,
       subject,
       text,
+      html: html || undefined,
       attachments,
     });
 

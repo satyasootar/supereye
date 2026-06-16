@@ -24,6 +24,14 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
     group: 'Essentials',
     allowInInsert: true,
   },
+  {
+    id: 'global.compose',
+    sequence: [{ key: 'c' }],
+    contexts: ['global', 'workspace', 'email', 'calendar'],
+    actionId: KEYBOARD_ACTIONS.OPEN_COMPOSE,
+    description: 'Open compose',
+    group: 'Essentials',
+  },
 
   // ─── Workspaces ─────────────────────────────────────────
   {

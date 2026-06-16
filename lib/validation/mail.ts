@@ -12,12 +12,14 @@ export const mailSendFieldsSchema = z.object({
   to: recipientsSchema,
   subject: z.string().max(998).default(''),
   text: z.string().max(500_000).default(''),
+  html: z.string().max(1_000_000).optional(),
   scheduleAt: futureIsoDateTimeSchema.optional(),
   isDraft: z.boolean().default(false),
 });
 
 export const mailReplyFieldsSchema = z.object({
   replyText: nonEmptyStringSchema.max(500_000),
+  html: z.string().max(1_000_000).optional(),
   threadId: googleMessageIdSchema,
   to: recipientsSchema,
   subject: z.string().trim().min(1).max(998),
@@ -47,6 +49,31 @@ export const mailTriagePostSchema = z.object({
   limit: z.number().int().min(1).max(20).optional(),
 }).default({});
 
+export const mailEnhanceSchema = z.object({
+  draft: z.string().trim().min(1).max(500_000),
+  tone: z.enum([
+    'professional',
+    'friendly',
+    'formal',
+    'persuasive',
+    'concise',
+    'empathetic',
+  ]),
+  isHtml: z.boolean().default(false),
+  subject: optionalTrimmedString,
+});
+
+export const mailTemplateCreateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  subject: z.string().max(998).default(''),
+  htmlContent: z.string().trim().min(1).max(1_000_000),
+});
+
+export const mailTemplateUpdateSchema = mailTemplateCreateSchema.partial().refine(
+  (data) => Boolean(data.name || data.subject !== undefined || data.htmlContent),
+  { message: 'At least one field is required' }
+);
+
 export const mailStarSchema = z.object({
   isStarred: z.boolean().default(true),
 });
@@ -71,6 +98,7 @@ export function parseMailFormFields(
     to: string;
     subject: string;
     text: string;
+    html?: string;
     scheduleAt?: string;
     isDraft: boolean;
   }>
@@ -80,6 +108,7 @@ export function parseMailFormFields(
     to: String(formData.get('to') ?? ''),
     subject: String(formData.get('subject') ?? ''),
     text: String(formData.get('text') ?? ''),
+    html: formData.get('html') ? String(formData.get('html')) : undefined,
     scheduleAt:
       typeof scheduleRaw === 'string' && scheduleRaw.trim()
         ? scheduleRaw.trim()
@@ -97,6 +126,7 @@ export function parseReplyPayload(
     const scheduleRaw = formData.get('scheduleAt');
     return mailReplyFieldsSchema.safeParse({
       replyText: String(formData.get('replyText') ?? ''),
+      html: formData.get('html') ? String(formData.get('html')) : undefined,
       threadId: String(formData.get('threadId') ?? ''),
       to: String(formData.get('to') ?? ''),
       subject: String(formData.get('subject') ?? ''),

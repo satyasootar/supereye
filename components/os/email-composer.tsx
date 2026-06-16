@@ -4,9 +4,17 @@ import {
   CornerUpLeft, X, MoreHorizontal, ChevronDown,
   Sparkles, Paperclip, Calendar as CalendarIcon, Trash2, Code
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 import { toast } from 'sonner';
+import { useMutation } from '@tanstack/react-query';
+
+type ComposeTone =
+  | 'professional'
+  | 'friendly'
+  | 'formal'
+  | 'persuasive'
+  | 'concise'
+  | 'empathetic';
 
 interface EmailComposerProps {
   onClose: () => void;
@@ -79,10 +87,37 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
   const [ccRecipients, setCcRecipients] = useState<string[]>([]);
   const [bccRecipients, setBccRecipients] = useState<string[]>([]);
   const [bodyText, setBodyText] = useState('');
+  const [htmlBody, setHtmlBody] = useState('');
+  const [isHtmlMode, setIsHtmlMode] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [scheduleAt, setScheduleAt] = useState<Date | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [tone, setTone] = useState<ComposeTone>('professional');
+  const [enhancedDraft, setEnhancedDraft] = useState<string | null>(null);
+  const [originalDraft, setOriginalDraft] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const draftValue = isHtmlMode ? htmlBody : bodyText;
+
+  const enhanceMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/mail/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          draft: draftValue,
+          tone,
+          isHtml: isHtmlMode,
+          subject,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? 'Enhance failed');
+      }
+      return res.json() as Promise<{ enhanced: string }>;
+    },
+    onSuccess: (data) => setEnhancedDraft(data.enhanced),
+  });
 
   // Calculate dynamic schedule times
   const now = new Date();
@@ -111,7 +146,7 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
       toast.error('Please add at least one recipient');
       return;
     }
-    if (!bodyText.trim()) {
+    if (!draftValue.trim()) {
       toast.error('Please enter a message');
       return;
     }
@@ -119,7 +154,11 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
     setIsSending(true);
     try {
       const formData = new FormData();
-      formData.append('replyText', bodyText);
+      const finalText = isHtmlMode ? htmlBody.replace(/<[^>]*>/g, ' ') : bodyText;
+      formData.append('replyText', finalText);
+      if (isHtmlMode && htmlBody.trim()) {
+        formData.append('html', htmlBody);
+      }
       if (threadId) formData.append('threadId', threadId);
       formData.append('to', toRecipients.join(', '));
       formData.append('subject', subject || '');
@@ -207,11 +246,48 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
 
       {/* Editor Area */}
       <div className="relative px-6 py-2">
+        {enhancedDraft && (
+          <div className="mb-2 rounded-md border border-accent-blue/30 bg-accent-blue/10 p-2 text-xs text-text-primary">
+            AI rewrite ready.
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                className="rounded bg-accent-blue px-2 py-1 text-white"
+                onClick={() => {
+                  if (isHtmlMode) setHtmlBody(enhancedDraft);
+                  else setBodyText(enhancedDraft);
+                  setEnhancedDraft(null);
+                }}
+              >
+                Accept
+              </button>
+              <button type="button" className="rounded border border-border-subtle px-2 py-1" onClick={() => enhanceMutation.mutate()}>
+                Regenerate
+              </button>
+              <button
+                type="button"
+                className="rounded border border-border-subtle px-2 py-1"
+                onClick={() => {
+                  if (originalDraft != null) {
+                    if (isHtmlMode) setHtmlBody(originalDraft);
+                    else setBodyText(originalDraft);
+                  }
+                  setEnhancedDraft(null);
+                }}
+              >
+                Revert
+              </button>
+            </div>
+          </div>
+        )}
         <textarea 
           aria-label="Email body"
           autoFocus
-          value={bodyText}
-          onChange={(e) => setBodyText(e.target.value)}
+          value={isHtmlMode ? htmlBody : bodyText}
+          onChange={(e) => {
+            if (isHtmlMode) setHtmlBody(e.target.value);
+            else setBodyText(e.target.value);
+          }}
           placeholder='Write, or press "space" for AI, "/" for commands...'
           className="w-full min-h-[250px] bg-transparent resize-none outline-none text-[15px] text-text-primary placeholder:text-text-muted leading-relaxed"
         />
@@ -316,7 +392,32 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
         </div>
         
         <div className="flex items-center gap-4 text-text-muted">
-          <button type="button" aria-label="AI Assistant" className="hover:text-text-primary transition-colors">
+          <select
+            value={tone}
+            onChange={(e) => setTone(e.target.value as ComposeTone)}
+            className="rounded border border-border-subtle bg-bg-elevated px-2 py-1 text-xs text-text-primary"
+          >
+            <option value="professional">Professional</option>
+            <option value="friendly">Friendly</option>
+            <option value="formal">Formal</option>
+            <option value="persuasive">Persuasive</option>
+            <option value="concise">Concise</option>
+            <option value="empathetic">Empathetic</option>
+          </select>
+          <button
+            type="button"
+            aria-label="AI Enhance"
+            className="rounded border border-border-subtle px-2 py-1 text-xs hover:text-text-primary transition-colors"
+            onClick={() => {
+              if (!draftValue.trim()) return toast.error('Draft is empty');
+              setOriginalDraft(draftValue);
+              enhanceMutation.mutate();
+            }}
+            disabled={enhanceMutation.isPending}
+          >
+            {enhanceMutation.isPending ? 'Enhancing...' : 'AI Enhance'}
+          </button>
+          <button type="button" aria-label="Toggle HTML mode" className="hover:text-text-primary transition-colors" onClick={() => setIsHtmlMode((v) => !v)}>
             <Sparkles className="h-5 w-5" />
           </button>
           

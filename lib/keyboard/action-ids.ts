@@ -7,6 +7,7 @@ export const KEYBOARD_ACTIONS = {
   FOCUS_HELP: 'global.focusHelp',
   GO_EMAIL: 'global.goEmail',
   GO_CALENDAR: 'global.goCalendar',
+  OPEN_COMPOSE: 'global.openCompose',
 
   // Workspace
   WORKSPACE_SWITCH: 'workspace.switch',
