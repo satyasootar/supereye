@@ -5,6 +5,11 @@ import {
   createEnterprisePlan,
   updatePlan,
 } from '@/lib/billing/plans';
+import { parseJsonBody } from '@/lib/validation/http';
+import {
+  adminPlanCreateSchema,
+  adminPlanPatchSchema,
+} from '@/lib/validation/admin';
 
 export async function GET(req: Request) {
   const authResult = await requireAdminSession();
@@ -19,8 +24,10 @@ export async function POST(req: Request) {
   const authResult = await requireAdminSession();
   if ('error' in authResult) return authResult.error;
 
-  const body = await req.json();
-  const plan = await createEnterprisePlan(body, authResult.admin.id);
+  const parsed = await parseJsonBody(req, adminPlanCreateSchema);
+  if ('error' in parsed) return parsed.error;
+
+  const plan = await createEnterprisePlan(parsed.data, authResult.admin.id);
   return NextResponse.json({ plan });
 }
 
@@ -28,11 +35,10 @@ export async function PATCH(req: Request) {
   const authResult = await requireAdminSession();
   if ('error' in authResult) return authResult.error;
 
-  const body = await req.json();
-  const { planId, ...data } = body;
-  if (!planId) {
-    return NextResponse.json({ error: 'planId required' }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(req, adminPlanPatchSchema);
+  if ('error' in parsed) return parsed.error;
+
+  const { planId, ...data } = parsed.data;
   const plan = await updatePlan(planId, data, authResult.admin.id);
   return NextResponse.json({ plan });
 }

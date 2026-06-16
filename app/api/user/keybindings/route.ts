@@ -6,6 +6,11 @@ import {
   upsertUserKeybindings,
 } from '@/lib/user/keybindings';
 import { parseUserKeyOverrides } from '@/lib/keyboard/validate-overrides';
+import { parseJsonBody } from '@/lib/validation/http';
+import {
+  keybindingsDeleteSchema,
+  keybindingsPatchSchema,
+} from '@/lib/validation/user';
 
 export async function GET() {
   const authResult = await requireActiveUserSession();
@@ -21,16 +26,11 @@ export async function PATCH(req: Request) {
   if ('error' in authResult) return authResult.error;
   const { session } = authResult;
 
-  const body = await req.json().catch(() => ({}));
+  const parsed = await parseJsonBody(req, keybindingsPatchSchema);
+  if ('error' in parsed) return parsed.error;
+  const body = parsed.data;
 
-  if (body.overrides === undefined && body.merge === undefined) {
-    return NextResponse.json(
-      { error: 'Provide overrides (full replace) or merge (partial update)' },
-      { status: 400 }
-    );
-  }
-
-  if (body.overrides !== undefined) {
+  if ('overrides' in body) {
     const overrides = parseUserKeyOverrides(body.overrides);
     const saved = await upsertUserKeybindings(session.user.id, overrides);
     return NextResponse.json({ overrides: saved });
@@ -46,14 +46,12 @@ export async function DELETE(req: Request) {
   if ('error' in authResult) return authResult.error;
   const { session } = authResult;
 
-  const body = await req.json().catch(() => ({}));
-  if (typeof body.bindingId !== 'string') {
-    return NextResponse.json({ error: 'bindingId required' }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(req, keybindingsDeleteSchema);
+  if ('error' in parsed) return parsed.error;
 
   const existing = await getUserKeybindings(session.user.id);
   const next = { ...existing };
-  delete next[body.bindingId];
+  delete next[parsed.data.bindingId];
   const saved = await upsertUserKeybindings(session.user.id, next);
   return NextResponse.json({ overrides: saved });
 }

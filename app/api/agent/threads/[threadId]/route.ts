@@ -5,6 +5,9 @@ import {
   getThreadWithMessages,
   renameThreadForUser,
 } from '@/lib/agent/threads';
+import { parseJsonBody } from '@/lib/validation/http';
+import { agentThreadPatchSchema } from '@/lib/validation/agent';
+import { uuidSchema } from '@/lib/validation/common';
 
 type RouteParams = { params: Promise<{ threadId: string }> };
 
@@ -14,6 +17,9 @@ export async function GET(_req: Request, { params }: RouteParams) {
   const { session } = authResult;
 
   const { threadId } = await params;
+  if (!uuidSchema.safeParse(threadId).success) {
+    return NextResponse.json({ error: 'Invalid thread id' }, { status: 400 });
+  }
   const data = await getThreadWithMessages(session.user.id, threadId);
 
   if (!data) {
@@ -29,11 +35,19 @@ export async function PATCH(req: Request, { params }: RouteParams) {
   const { session } = authResult;
 
   const { threadId } = await params;
-  const body = await req.json();
-  const title = typeof body.title === 'string' ? body.title : '';
+  if (!uuidSchema.safeParse(threadId).success) {
+    return NextResponse.json({ error: 'Invalid thread id' }, { status: 400 });
+  }
+
+  const parsed = await parseJsonBody(req, agentThreadPatchSchema);
+  if ('error' in parsed) return parsed.error;
 
   try {
-    const thread = await renameThreadForUser(session.user.id, threadId, title);
+    const thread = await renameThreadForUser(
+      session.user.id,
+      threadId,
+      parsed.data.title
+    );
     return NextResponse.json({
       thread: {
         id: thread.id,
@@ -53,6 +67,9 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
   const { session } = authResult;
 
   const { threadId } = await params;
+  if (!uuidSchema.safeParse(threadId).success) {
+    return NextResponse.json({ error: 'Invalid thread id' }, { status: 400 });
+  }
 
   try {
     await deleteThreadForUser(session.user.id, threadId);

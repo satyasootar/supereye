@@ -43,3 +43,20 @@ export const calendarAvailabilitySchema = z.object({
 export const calendarContactsQuerySchema = z.object({
   q: z.string().trim().max(200).default(''),
 });
+
+export const updateCalendarEventSchema = z
+  .object({
+    summary: nonEmptyStringSchema.max(500).optional(),
+    description: optionalTrimmedString,
+    start: eventDateTimeSchema.optional(),
+    end: eventDateTimeSchema.optional(),
+    attendees: z
+      .array(z.object({ email: z.string().email() }))
+      .max(50)
+      .optional(),
+    location: z.string().max(500).optional(),
+    colorId: z.string().max(16).optional(),
+  })
+  .refine((body) => Object.keys(body).length > 0, {
+    message: 'At least one event field is required',
+  });

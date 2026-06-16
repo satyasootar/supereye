@@ -6,6 +6,9 @@ import {
   deleteUserAdmin,
 } from '@/lib/billing/plans';
 import { suspendUser, activateUser } from '@/lib/billing/admin';
+import { parseJsonBody } from '@/lib/validation/http';
+import { adminUserUpdateSchema } from '@/lib/validation/admin';
+import { uuidSchema } from '@/lib/validation/common';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -14,6 +17,9 @@ export async function GET(_req: Request, context: RouteContext) {
   if ('error' in authResult) return authResult.error;
 
   const { id } = await context.params;
+  if (!uuidSchema.safeParse(id).success) {
+    return NextResponse.json({ error: 'Invalid user id' }, { status: 400 });
+  }
   const detail = await getUserDetailForAdmin(id);
   if (!detail) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -26,22 +32,24 @@ export async function PATCH(req: Request, context: RouteContext) {
   if ('error' in authResult) return authResult.error;
 
   const { id } = await context.params;
-  const body = await req.json();
+  if (!uuidSchema.safeParse(id).success) {
+    return NextResponse.json({ error: 'Invalid user id' }, { status: 400 });
+  }
 
-  if (body.action === 'suspend') {
+  const parsed = await parseJsonBody(req, adminUserUpdateSchema);
+  if ('error' in parsed) return parsed.error;
+  const body = parsed.data;
+
+  if ('action' in body && body.action === 'suspend') {
     await suspendUser(id, authResult.admin.id);
     return NextResponse.json({ ok: true });
   }
-  if (body.action === 'activate') {
+  if ('action' in body && body.action === 'activate') {
     await activateUser(id, authResult.admin.id);
     return NextResponse.json({ ok: true });
   }
 
-  const updated = await updateUserAdmin(
-    id,
-    { role: body.role, name: body.name },
-    authResult.admin.id
-  );
+  const updated = await updateUserAdmin(id, body, authResult.admin.id);
   return NextResponse.json({ user: updated });
 }
 

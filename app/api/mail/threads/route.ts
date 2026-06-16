@@ -4,16 +4,17 @@ import { db } from '@/lib/db';
 import { emails, emailEventLinks } from '@/lib/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 import { mapEmailRowToMessage } from '@/lib/mail/priority';
+import { parseQuery } from '@/lib/validation/http';
+import { mailThreadsQuerySchema } from '@/lib/validation/mail';
 
 export async function GET(req: Request) {
   const authResult = await requireActiveUserSession();
   if ('error' in authResult) return authResult.error;
   const { session } = authResult;
 
-  const { searchParams } = new URL(req.url);
-  const offset = parseInt(searchParams.get('offset') || '0', 10);
-  const category = searchParams.get('category') || 'INBOX';
-  const priority = searchParams.get('priority');
+  const parsed = parseQuery(req.url, mailThreadsQuerySchema);
+  if ('error' in parsed) return parsed.error;
+  const { offset, category, priority } = parsed.data;
   const priorityFilter =
     priority === 'urgent' || priority === 'can_wait'
       ? sql` AND ${emails.priorityTier} = ${priority}`

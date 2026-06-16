@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
-import { isValidCorsairPlugin } from '@/lib/plugins/registry';
 import { generateOAuthUrl } from 'corsair/oauth';
+import { validationErrorResponse } from '@/lib/validation/http';
+import { integrationsConnectSchema } from '@/lib/validation/integrations';
 
 export async function POST(request: NextRequest) {
   const authResult = await requireActiveUserSession();
@@ -16,16 +17,17 @@ export async function POST(request: NextRequest) {
   const body = isFormRequest
     ? await request.formData()
     : await request.json();
-  const plugin = body.get
+  const pluginRaw = body.get
     ? (body.get('plugin') as string | null)
     : (body.plugin as string);
 
-  if (!plugin || !isValidCorsairPlugin(plugin)) {
-    return Response.json(
-      { error: 'Invalid plugin.' },
-      { status: 400 }
-    );
+  const pluginParsed = integrationsConnectSchema.safeParse({
+    plugin: pluginRaw ?? '',
+  });
+  if (!pluginParsed.success) {
+    return validationErrorResponse(pluginParsed.error);
   }
+  const plugin = pluginParsed.data.plugin;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (!appUrl) {

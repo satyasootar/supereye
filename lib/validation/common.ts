@@ -49,6 +49,9 @@ export const googleMessageIdSchema = z
   .max(128)
   .regex(/^[a-zA-Z0-9]+$/, 'Invalid message id');
 
+/** Google Calendar event ids (more permissive than Gmail message ids). */
+export const googleEventIdSchema = z.string().trim().min(1).max(1024);
+
 export const pluginIdSchema = z.enum(['email', 'calendar', 'github']);
 
 export const corsairPluginSchema = z.enum(['gmail', 'googlecalendar', 'github']);

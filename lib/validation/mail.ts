@@ -39,7 +39,7 @@ export const mailThreadsQuerySchema = z.object({
       'CATEGORY_SOCIAL',
       'CATEGORY_UPDATES',
     ])
-    .optional(),
+    .default('INBOX'),
   priority: z.enum(['urgent', 'can_wait']).optional(),
 });
 

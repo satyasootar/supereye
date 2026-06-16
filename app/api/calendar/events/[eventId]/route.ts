@@ -4,6 +4,9 @@ import { db } from '@/lib/db';
 import { calendarEvents } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getTenant } from '@/lib/corsair';
+import { parseJsonBody } from '@/lib/validation/http';
+import { updateCalendarEventSchema } from '@/lib/validation/calendar';
+import { googleEventIdSchema } from '@/lib/validation/common';
 
 export async function GET(req: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const authResult = await requireActiveUserSession();
@@ -12,6 +15,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ eventId:
 
   try {
     const { eventId } = await params;
+    if (!googleEventIdSchema.safeParse(eventId).success) {
+      return NextResponse.json({ error: 'Invalid event id' }, { status: 400 });
+    }
     const t = getTenant(session.user.id);
     const event = await t.googlecalendar.api.events.get({
       calendarId: 'primary',
@@ -30,12 +36,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ eventI
 
   try {
     const { eventId } = await params;
-    const body = await req.json();
+    if (!googleEventIdSchema.safeParse(eventId).success) {
+      return NextResponse.json({ error: 'Invalid event id' }, { status: 400 });
+    }
+
+    const parsed = await parseJsonBody(req, updateCalendarEventSchema);
+    if ('error' in parsed) return parsed.error;
+
     const t = getTenant(session.user.id);
     const updatedEvent = await t.googlecalendar.api.events.update({
       calendarId: 'primary',
       id: eventId,
-      event: body
+      event: parsed.data
     });
 
     // Update local cache
@@ -65,6 +77,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ event
 
   try {
     const { eventId } = await params;
+    if (!googleEventIdSchema.safeParse(eventId).success) {
+      return NextResponse.json({ error: 'Invalid event id' }, { status: 400 });
+    }
     const t = getTenant(session.user.id);
     await t.googlecalendar.api.events.delete({
       calendarId: 'primary',

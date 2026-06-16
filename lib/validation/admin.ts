@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { paginationQuerySchema, userRoleSchema, uuidSchema } from './common';
 
 export const adminUsersQuerySchema = paginationQuerySchema.extend({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
   search: z.string().trim().max(200).optional(),
 });
 
@@ -22,16 +23,78 @@ export const adminAssignPlanSchema = z.object({
   planId: uuidSchema,
 });
 
-export const adminTokenAdjustSchema = z.discriminatedUnion('action', [
-  z.object({
-    action: z.literal('adjust'),
-    amount: z.number().int().refine((n) => n !== 0, 'Amount cannot be zero'),
-    reason: z.string().trim().min(1).max(500),
-  }),
+export const adminUserUpdateSchema = z.union([
+  adminUserActionSchema,
+  adminUserPatchSchema,
+]);
+
+export const adminTokenPostSchema = z.union([
   z.object({
     action: z.literal('reset'),
     monthlyAllocation: z.number().int().min(0),
   }),
+  z.object({
+    action: z.enum(['remove', 'bonus', 'adjust', 'add']).optional(),
+    amount: z.number().int().positive(),
+    reason: z.string().trim().min(1).max(500),
+  }),
+]);
+
+export const adminEnterpriseCreateSchema = z.object({
+  organizationName: z.string().trim().min(1).max(200),
+  userId: uuidSchema,
+  customPlanId: uuidSchema.optional(),
+  customMonthlyTokens: z.number().int().min(0).optional(),
+  customFeatureFlags: z.record(z.string(), z.boolean()).optional(),
+  customPluginLimit: z.number().int().min(0).nullable().optional(),
+  customTeamMemberLimit: z.number().int().min(0).nullable().optional(),
+});
+
+export const adminAuditQuerySchema = paginationQuerySchema.extend({
+  limit: z.coerce.number().int().min(1).max(100).default(100),
+});
+
+export const adminBillingQuerySchema = paginationQuerySchema.extend({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  search: z.string().trim().max(200).optional(),
+  status: z.enum(['paid', 'pending', 'failed', 'refunded']).optional(),
+});
+
+export const adminTokenQuerySchema = z.object({
+  type: z.enum(['costs', 'ledger', 'packs']).default('costs'),
+  userId: uuidSchema.optional(),
+});
+
+const adminTokenCostPatchFields = z.object({
+  tokenCost: z.number().int().min(0).optional(),
+  displayName: z.string().trim().min(1).max(120).optional(),
+  isActive: z.boolean().optional(),
+});
+
+const adminTokenPackPatchFields = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  tokenAmount: z.number().int().min(0).optional(),
+  priceCents: z.number().int().min(0).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const adminTokenPatchSchema = z.union([
+  adminTokenPackPatchFields
+    .extend({
+      type: z.literal('pack'),
+      id: uuidSchema,
+    })
+    .refine((body) => Object.keys(body).length > 2, {
+      message: 'At least one pack field is required',
+    }),
+  adminTokenCostPatchFields
+    .extend({
+      type: z.literal('cost').optional(),
+      id: uuidSchema,
+    })
+    .refine((body) => Object.keys(body).filter((k) => k !== 'type').length > 1, {
+      message: 'At least one cost field is required',
+    }),
 ]);
 
 export const adminPlanCreateSchema = z.object({

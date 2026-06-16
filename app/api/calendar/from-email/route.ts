@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { emails, calendarEvents, emailEventLinks } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
+import { parseJsonBody } from '@/lib/validation/http';
+import { calendarFromEmailSchema } from '@/lib/validation/mail';
 
 export async function POST(req: Request) {
   const authResult = await requireActiveUserSession();
@@ -12,9 +14,12 @@ export async function POST(req: Request) {
 
   const userId = session.user.id;
 
+  const parsed = await parseJsonBody(req, calendarFromEmailSchema);
+  if ('error' in parsed) return parsed.error;
+  const { emailId: googleMessageId, title, description, startTime, endTime, attendees } =
+    parsed.data;
+
   try {
-    const body = await req.json();
-    const { emailId: googleMessageId, title, description, startTime, endTime, attendees } = body;
 
     const { corsair } = await import('@/lib/corsair');
     const t = corsair.withTenant(userId) as any;

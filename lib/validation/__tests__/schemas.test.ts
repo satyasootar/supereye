@@ -23,6 +23,12 @@ import { createCalendarEventSchema } from '../calendar.ts';
 import { agentChatSchema } from '../agent.ts';
 import { billingTopUpSchema } from '../billing.ts';
 import { notificationReadSchema } from '../notifications.ts';
+import {
+  adminTokenPostSchema,
+  adminEnterpriseCreateSchema,
+  adminAssignPlanSchema,
+} from '../admin.ts';
+import { integrationsConnectSchema } from '../integrations.ts';
 import { formatZodError } from '../http.ts';
 
 const futureDate = new Date(Date.now() + 60_000).toISOString();
@@ -191,6 +197,52 @@ describe('validation notifications', () => {
     );
     assert.equal(notificationReadSchema.safeParse({ markAll: true }).success, true);
     assert.equal(notificationReadSchema.safeParse({}).success, false);
+  });
+});
+
+describe('validation admin', () => {
+  it('accepts token add/remove payloads', () => {
+    assert.equal(
+      adminTokenPostSchema.safeParse({
+        action: 'add',
+        amount: 1000,
+        reason: 'Promo',
+      }).success,
+      true
+    );
+    assert.equal(
+      adminTokenPostSchema.safeParse({
+        action: 'reset',
+        monthlyAllocation: 50000,
+      }).success,
+      true
+    );
+  });
+
+  it('validates enterprise account create', () => {
+    assert.equal(
+      adminEnterpriseCreateSchema.safeParse({
+        organizationName: 'Acme',
+        userId: '550e8400-e29b-41d4-a716-446655440000',
+      }).success,
+      true
+    );
+  });
+
+  it('validates plan assignment', () => {
+    assert.equal(
+      adminAssignPlanSchema.safeParse({
+        planId: '550e8400-e29b-41d4-a716-446655440000',
+      }).success,
+      true
+    );
+  });
+});
+
+describe('validation integrations', () => {
+  it('validates corsair plugin connect', () => {
+    assert.equal(integrationsConnectSchema.safeParse({ plugin: 'gmail' }).success, true);
+    assert.equal(integrationsConnectSchema.safeParse({ plugin: 'invalid' }).success, false);
   });
 });
 

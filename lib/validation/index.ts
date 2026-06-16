@@ -8,3 +8,4 @@ export * from './billing';
 export * from './admin';
 export * from './agent';
 export * from './notifications';
+export * from './integrations';

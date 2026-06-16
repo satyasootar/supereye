@@ -6,6 +6,8 @@ import { eq, desc, ilike, or, sql, and } from 'drizzle-orm';
 import { getTenant } from '@/lib/corsair';
 import { getBody } from '@/lib/mail/sync';
 import { mapEmailRowToMessage } from '@/lib/mail/priority';
+import { parseQuery } from '@/lib/validation/http';
+import { mailSearchQuerySchema } from '@/lib/validation/mail';
 
 export async function GET(req: Request) {
   const authResult = await requireActiveUserSession();
@@ -13,10 +15,14 @@ export async function GET(req: Request) {
   const { session } = authResult;
 
   const { searchParams } = new URL(req.url);
-  const q = searchParams.get('q') || '';
-  if (!q.trim()) {
+  const rawQ = searchParams.get('q') ?? '';
+  if (!rawQ.trim()) {
     return NextResponse.json({ messages: [] });
   }
+
+  const parsed = parseQuery(req.url, mailSearchQuerySchema);
+  if ('error' in parsed) return parsed.error;
+  const q = parsed.data.q;
 
   try {
     const userId = session.user.id;

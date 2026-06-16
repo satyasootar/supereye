@@ -7,15 +7,19 @@ import {
   updateTopUpPack,
   listTokenLedger,
 } from '@/lib/billing/plans';
+import { parseJsonBody, parseQuery } from '@/lib/validation/http';
+import { adminTokenPatchSchema, adminTokenQuerySchema } from '@/lib/validation/admin';
 
 export async function GET(req: Request) {
   const authResult = await requireAdminSession();
   if ('error' in authResult) return authResult.error;
 
-  const type = new URL(req.url).searchParams.get('type') ?? 'costs';
+  const parsed = parseQuery(req.url, adminTokenQuerySchema);
+  if ('error' in parsed) return parsed.error;
+
+  const { type, userId } = parsed.data;
 
   if (type === 'ledger') {
-    const userId = new URL(req.url).searchParams.get('userId') ?? undefined;
     const ledger = await listTokenLedger({ userId });
     return NextResponse.json({ ledger });
   }
@@ -32,14 +36,18 @@ export async function PATCH(req: Request) {
   const authResult = await requireAdminSession();
   if ('error' in authResult) return authResult.error;
 
-  const body = await req.json();
-  const { type, id, ...data } = body;
+  const parsed = await parseJsonBody(req, adminTokenPatchSchema);
+  if ('error' in parsed) return parsed.error;
 
-  if (type === 'pack') {
+  const body = parsed.data;
+
+  if (body.type === 'pack') {
+    const { type: _type, id, ...data } = body;
     const pack = await updateTopUpPack(id, data, authResult.admin.id);
     return NextResponse.json({ pack });
   }
 
+  const { type: _type, id, ...data } = body;
   const cost = await updateTokenActionCost(id, data, authResult.admin.id);
   return NextResponse.json({ cost });
 }

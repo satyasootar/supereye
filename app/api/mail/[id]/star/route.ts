@@ -4,6 +4,9 @@ import { db } from '@/lib/db';
 import { emails } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
+import { parseJsonBody, validationErrorResponse } from '@/lib/validation/http';
+import { mailStarSchema } from '@/lib/validation/mail';
+import { googleMessageIdSchema } from '@/lib/validation/common';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const authResult = await requireActiveUserSession();
@@ -12,13 +15,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const userId = session.user.id;
   const { id: messageId } = await params;
+  if (!googleMessageIdSchema.safeParse(messageId).success) {
+    return NextResponse.json({ error: 'Invalid message id' }, { status: 400 });
+  }
+
+  const body = await req.json().catch(() => ({}));
+  const starParsed = mailStarSchema.safeParse(body);
+  if (!starParsed.success) {
+    return validationErrorResponse(starParsed.error);
+  }
+  const isStarred = starParsed.data.isStarred;
 
   try {
     const { corsair } = await import('@/lib/corsair');
     const t = corsair.withTenant(userId) as any;
-
-    const body = await req.json().catch(() => ({}));
-    const isStarred = body.isStarred !== false;
 
     await t.gmail.api.messages.modify({
       userId: 'me',
