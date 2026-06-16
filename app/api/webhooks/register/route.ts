@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
-import { corsair } from '@/lib/corsair';
+import { registerGmailWatch } from '@/lib/mail/watch';
+import { registerCalendarWatch } from '@/lib/calendar/sync';
 
 export async function POST(req: Request) {
   const authResult = await requireActiveUserSession();
@@ -8,48 +9,30 @@ export async function POST(req: Request) {
   const { session } = authResult;
 
   const userId = session.user.id;
-  const t = corsair.withTenant(userId) as any;
 
   try {
-    const results: any = {};
+    const results: Record<string, unknown> = {};
 
-    // 1. Register Gmail Webhook
-    const topicName = process.env.GMAIL_PUBSUB_TOPIC;
-    if (topicName) {
-      try {
-        const watchRes = await t.gmail.api.users.watch({
-          userId: 'me',
-          requestBody: {
-            topicName,
-            labelIds: ['INBOX']
-          }
-        });
-        results.gmail = watchRes;
-      } catch (e: any) {
-        console.error('Failed to register Gmail watch:', e.message);
-        results.gmailError = e.message;
-      }
-    } else {
+    const gmailWatch = await registerGmailWatch(userId);
+    if (gmailWatch) {
+      results.gmail = gmailWatch;
+    } else if (!process.env.GMAIL_PUBSUB_TOPIC) {
       results.gmailError = 'GMAIL_PUBSUB_TOPIC env var not set';
+    } else {
+      results.gmailError = 'Failed to register Gmail watch';
     }
 
-    // 2. Register Calendar Webhook
-    try {
-      const { registerCalendarWatch } = await import('@/lib/calendar/sync');
-      const watchRes = await registerCalendarWatch(userId);
-      if (watchRes) {
-        results.calendar = watchRes;
-      } else {
-        results.calendarError = 'Failed to register calendar watch';
-      }
-    } catch (e: any) {
-      console.error('Failed to register Calendar watch:', e.message);
-      results.calendarError = e.message;
+    const calendarWatch = await registerCalendarWatch(userId);
+    if (calendarWatch) {
+      results.calendar = calendarWatch;
+    } else {
+      results.calendarError = 'Failed to register calendar watch';
     }
 
     return NextResponse.json({ success: true, results });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Webhook registration error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Registration failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

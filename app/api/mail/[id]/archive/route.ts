@@ -30,7 +30,7 @@ export async function POST(
     const t = getTenant(session.user.id);
 
     // Gmail: Archiving means removing the 'INBOX' label
-    await t.gmail.api.users.messages.modify({
+    await t.gmail.api.messages.modify({
       userId: 'me',
       id: emailId,
       requestBody: {

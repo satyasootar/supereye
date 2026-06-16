@@ -3,6 +3,7 @@ import { emails, syncState } from '@/lib/db/schema';
 import { sql } from 'drizzle-orm';
 import { sseEmitter } from '@/lib/sse/emitter';
 import { getTenant } from '@/lib/corsair';
+import { registerGmailWatch } from '@/lib/mail/watch';
 
 export function getBody(payload: any): string {
   if (!payload) return '';
@@ -31,23 +32,13 @@ export async function syncGmailForUser(userId: string) {
   try {
     const t = getTenant(userId);
 
-    // Automatically register/renew the push notification watch
-    const topicName = process.env.GMAIL_PUBSUB_TOPIC;
-    if (topicName) {
-      try {
-        await t.gmail.api.users.watch({
-          userId: 'me',
-          requestBody: {
-            topicName,
-            labelIds: ['INBOX']
-          }
-        });
-      } catch (watchErr: any) {
-        console.error('Failed to register/renew Gmail watch:', watchErr.message);
-      }
-    }
+    // Renew Gmail push notification watch (expires ~7 days)
+    await registerGmailWatch(userId);
 
-    const gmailResult = await t.gmail.api.messages.list({ maxResults: 20 });
+    const gmailResult = await t.gmail.api.messages.list({
+      userId: 'me',
+      maxResults: 20,
+    });
     const messageIds = gmailResult.messages || [];
 
     const toInsert = [];
@@ -84,7 +75,12 @@ export async function syncGmailForUser(userId: string) {
           toAddresses,
           historyId: m.historyId
         });
-      } catch (err) {
+      } catch (err: unknown) {
+        const status =
+          err && typeof err === 'object' && 'status' in err
+            ? (err as { status?: number }).status
+            : undefined;
+        if (status === 404) continue;
         console.error('Failed to fetch message', msg.id, err);
       }
     }

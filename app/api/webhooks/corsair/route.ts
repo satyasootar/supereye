@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { sseEmitter } from '@/lib/sse/emitter';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { syncGmailForUser } from '@/lib/mail/sync';
 import { syncCalendarForUser } from '@/lib/calendar/sync';
 import { processWebhook } from 'corsair';
@@ -53,10 +53,11 @@ export async function POST(req: Request) {
         const decoded = Buffer.from(message.data, 'base64').toString('utf8');
         const data = JSON.parse(decoded) as { emailAddress?: string };
         if (data.emailAddress) {
+          const normalizedEmail = data.emailAddress.trim().toLowerCase();
           const userRecords = await db
             .select({ id: users.id })
             .from(users)
-            .where(eq(users.email, data.emailAddress))
+            .where(sql`lower(${users.email}) = ${normalizedEmail}`)
             .limit(1);
           if (userRecords.length > 0) {
             userId = userRecords[0].id;
@@ -78,13 +79,17 @@ export async function POST(req: Request) {
 
     console.log(`[Webhook] Received update for user ${userId} from provider ${provider}`);
 
-    try {
-      const headersObject = Object.fromEntries(req.headers.entries());
-      const queryObj = { tenantId: userId };
-      const safeBodyText = bodyText ? bodyText : '{}';
-      await processWebhook(corsair, headersObject, safeBodyText, queryObj);
-    } catch (e) {
-      console.warn(`[Webhook] Corsair processWebhook failed (often expected in local dev):`, e);
+    // Corsair's Gmail webhook handler calls the API with the email address as
+    // userId (404). We sync via syncGmailForUser which uses userId: 'me'.
+    if (provider !== 'gmail') {
+      try {
+        const headersObject = Object.fromEntries(req.headers.entries());
+        const queryObj = { tenantId: userId };
+        const safeBodyText = bodyText ? bodyText : '{}';
+        await processWebhook(corsair, headersObject, safeBodyText, queryObj);
+      } catch (e) {
+        console.warn(`[Webhook] Corsair processWebhook failed:`, e);
+      }
     }
 
     if (provider === 'gmail') {
