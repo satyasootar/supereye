@@ -74,7 +74,9 @@ export async function POST(request: NextRequest) {
       {
         error:
           message.includes('client_id') || message.includes('credentials')
-            ? `${plugin} is not configured. Run: npx corsair setup --${plugin}`
+            ? plugin === 'googledrive'
+              ? 'Google Drive is not configured. Run: npx corsair setup --googledrive client_id=YOUR_ID client_secret=YOUR_SECRET (use the same Google OAuth app as Gmail/Calendar). Also enable Google Drive API in Google Cloud Console.'
+              : `${plugin} is not configured. Run: npx corsair setup --${plugin} client_id=YOUR_ID client_secret=YOUR_SECRET`
             : 'Failed to generate auth URL',
       },
       { status: 500 }

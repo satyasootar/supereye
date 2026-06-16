@@ -33,6 +33,7 @@ const nextConfig: NextConfig = {
     'corsair',
     '@corsair-dev/gmail',
     '@corsair-dev/googlecalendar',
+    '@corsair-dev/googledrive',
   ],
   async headers() {
     return [

@@ -21,6 +21,7 @@ function activeContexts(
   if (panel === 'email') ctx.push('email');
   if (panel === 'calendar') ctx.push('calendar');
   if (panel === 'github') ctx.push('github');
+  if (panel === 'drive') ctx.push('drive');
   return ctx;
 }
 

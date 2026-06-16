@@ -19,6 +19,8 @@ export type SSEEventType =
   | 'calendar:updated'
   // GitHub
   | 'github:updated'
+  // Drive
+  | 'drive:updated'
   // Notifications
   | 'notification:new'
   // Cross-app sync
@@ -41,6 +43,7 @@ export const SSE_INVALIDATION_MAP: Record<SSEEventType, string[][]> = {
   'brief:updated': [['brief', 'today']],
   'calendar:updated': [['calendar-events'], ['calendar', 'events'], ['brief', 'today']],
   'github:updated': [['github', 'repos'], ['github', 'activity'], ['github', 'pulls'], ['github', 'issues']],
+  'drive:updated': [['drive', 'files'], ['drive', 'recent'], ['drive', 'search']],
   'notification:new': [['notifications']],
   'sync:requested': [['mail-threads'], ['emails', 'threads'], ['emails', 'unread-count'], ['calendar-events'], ['calendar', 'events']],
 };

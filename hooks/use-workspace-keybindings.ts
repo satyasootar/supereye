@@ -21,7 +21,9 @@ export function useWorkspaceKeybindings() {
           ? 'email'
           : layout.primary === 'github'
             ? 'github'
-            : 'workspace';
+            : layout.primary === 'drive'
+              ? 'drive'
+              : 'workspace';
     setActivePanel(panel);
   }, [layout.primary, setActivePanel]);
 
@@ -66,7 +68,9 @@ export function useWorkspaceKeybindings() {
               ? 'calendar'
               : other === 'github'
                 ? 'github'
-                : 'email'
+                : other === 'drive'
+                  ? 'drive'
+                  : 'email'
           );
         }
       }),

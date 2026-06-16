@@ -8,6 +8,7 @@ import { createCorsair } from 'corsair';
 import { gmail } from '@corsair-dev/gmail';
 import { googlecalendar } from '@corsair-dev/googlecalendar';
 import { github } from '@corsair-dev/github';
+import { googledrive } from '@corsair-dev/googledrive';
 import { pool } from '@/lib/db/pool';
 
 function getCorsairKek(): string {
@@ -28,7 +29,7 @@ const globalForCorsair = globalThis as typeof globalThis & {
 export const corsair =
   globalForCorsair.__supereyeCorsair ??
   createCorsair({
-    plugins: [gmail(), googlecalendar(), github()],
+    plugins: [gmail(), googlecalendar(), github(), googledrive()],
     database: pool,
     kek: getCorsairKek(),
     multiTenancy: true,

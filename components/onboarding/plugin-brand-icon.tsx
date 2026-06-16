@@ -12,6 +12,7 @@ const PLUGIN_ICON_SRC: Record<string, string | { light: string; dark: string }> 
     light: '/Icons/github/GitHub_light.svg',
     dark: '/Icons/github/GitHub_dark.svg',
   },
+  drive: '/Icons/drive.svg',
 };
 
 export function PluginBrandIcon({

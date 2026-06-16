@@ -7,6 +7,8 @@ import { CalendarGrid } from './calendar-grid';
 import { EmailCompactPanel } from './email-compact-panel';
 import { GithubMainPanel } from './github-main-panel';
 import { GithubCompactPanel } from './github-compact-panel';
+import { DriveMainPanel } from './drive-main-panel';
+import { DriveCompactPanel } from './drive-compact-panel';
 import { useAppStore } from '@/lib/store/app-store';
 import { useWorkspaceLayout } from '@/hooks/use-workspace-layout';
 import { getPlugin } from '@/lib/plugins/registry';
@@ -21,6 +23,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   GitPullRequest,
+  HardDrive,
 } from 'lucide-react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { CreateEventModal } from './create-event-modal';
@@ -115,8 +118,9 @@ function SecondaryPanel({
   const isEmail = pluginId === 'email';
   const isCalendar = pluginId === 'calendar';
   const isGithub = pluginId === 'github';
-  const Icon = isEmail ? Mail : isCalendar ? Calendar : GitPullRequest;
-  const width = isEmail ? 400 : isGithub ? 360 : 320;
+  const isDrive = pluginId === 'drive';
+  const Icon = isEmail ? Mail : isCalendar ? Calendar : isDrive ? HardDrive : GitPullRequest;
+  const width = isEmail ? 400 : isGithub || isDrive ? 360 : 320;
 
   return (
     <motion.div
@@ -154,6 +158,7 @@ function SecondaryPanel({
           {isEmail && <EmailCompactPanel hideHeader />}
           {isCalendar && <CalendarSidebar variant="right-panel" />}
           {isGithub && <GithubCompactPanel hideHeader />}
+          {isDrive && <DriveCompactPanel hideHeader />}
         </div>
       </motion.div>
 
@@ -215,6 +220,16 @@ function SecondaryPanel({
             <GitPullRequest className="h-4 w-4" />
           </button>
         )}
+        {isDrive && (
+          <button
+            type="button"
+            onClick={onToggle}
+            title="Drive files"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary"
+          >
+            <HardDrive className="h-4 w-4" />
+          </button>
+        )}
       </motion.div>
     </motion.div>
   );
@@ -226,7 +241,7 @@ function NoPluginsState() {
       <div className="rounded-xl border border-border-default bg-bg-elevated px-8 py-10 shadow-sm">
         <h2 className="text-[18px] font-semibold text-text-primary">Connect your tools</h2>
         <p className="mt-2 max-w-sm text-[14px] text-text-muted">
-          Link Email, Calendar, or GitHub to populate your workspace. You can add integrations anytime.
+          Link Email, Calendar, GitHub, or Drive to populate your workspace. You can add integrations anytime.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link
@@ -260,6 +275,7 @@ export function PluginWorkspace() {
     if (primary === 'calendar') return <CalendarGrid />;
     if (primary === 'email') return <EmailMainPanel />;
     if (primary === 'github') return <GithubMainPanel />;
+    if (primary === 'drive') return <DriveMainPanel />;
     return null;
   };
 

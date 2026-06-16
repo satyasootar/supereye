@@ -15,6 +15,7 @@ import { createCorsair } from 'corsair';
 import { gmail } from '@corsair-dev/gmail';
 import { googlecalendar } from '@corsair-dev/googlecalendar';
 import { github } from '@corsair-dev/github';
+import { googledrive } from '@corsair-dev/googledrive';
 import pg from 'pg';
 
 const { Pool } = pg;
@@ -28,7 +29,7 @@ function getCorsairKek(): string {
 }
 
 export const corsair = createCorsair({
-  plugins: [gmail(), googlecalendar(), github()],
+  plugins: [gmail(), googlecalendar(), github(), googledrive()],
   database: pool,
   kek: getCorsairKek(),
   multiTenancy: true,

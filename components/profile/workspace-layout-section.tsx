@@ -12,13 +12,14 @@ import {
 import { ProfileSection } from '@/components/profile/profile-section';
 import { isLayoutModeActive } from '@/lib/plugins/layout';
 import type { PluginId } from '@/lib/plugins/types';
-import { Mail, Calendar, Trash2, Loader2, Layers, Plus, Save, GitPullRequest } from 'lucide-react';
+import { Mail, Calendar, Trash2, Loader2, Layers, Plus, Save, GitPullRequest, HardDrive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const PLUGIN_ICONS: Record<string, typeof Mail> = {
   email: Mail,
   calendar: Calendar,
   github: GitPullRequest,
+  drive: HardDrive,
 };
 
 function WorkspacePluginEditor({

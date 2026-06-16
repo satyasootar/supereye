@@ -28,13 +28,15 @@ Before users can log in, the Supereye application itself needs to be authorized 
 2. Ensure your OAuth consent screen includes the necessary scopes:
    - `https://mail.google.com/` (Gmail)
    - `https://www.googleapis.com/auth/calendar` (Calendar)
+   - `https://www.googleapis.com/auth/drive.readonly` (Drive — or `drive` for full access)
 3. Inject the application credentials into the local database using the CLI:
 
 ```bash
 npx corsair setup --googlecalendar client_id=YOUR_ID client_secret=YOUR_SECRET
 npx corsair setup --gmail client_id=YOUR_ID client_secret=YOUR_SECRET topic_id=dummy-topic
+npx corsair setup --googledrive client_id=YOUR_ID client_secret=YOUR_SECRET
 ```
-*(This saves the Google OAuth app credentials into the `corsair_integrations` table).*
+*(Use the same `client_id` / `client_secret` from your Google Cloud OAuth app for all three. Enable **Google Drive API** in APIs & Services → Library, and add the Drive scope to your OAuth consent screen.)*
 
 ---
 

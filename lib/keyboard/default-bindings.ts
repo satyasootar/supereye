@@ -10,7 +10,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'global.cheatSheet',
     sequence: [{ key: '?' }],
-    contexts: ['global', 'workspace', 'email', 'calendar', 'github'],
+    contexts: ['global', 'workspace', 'email', 'calendar', 'github', 'drive'],
     actionId: KEYBOARD_ACTIONS.OPEN_CHEAT_SHEET,
     description: 'Show shortcuts',
     group: 'Essentials',
@@ -18,7 +18,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'global.commandPalette',
     sequence: [modKey('k')],
-    contexts: ['global', 'workspace', 'email', 'calendar', 'github'],
+    contexts: ['global', 'workspace', 'email', 'calendar', 'github', 'drive'],
     actionId: KEYBOARD_ACTIONS.OPEN_COMMAND_PALETTE,
     description: 'Command palette',
     group: 'Essentials',
@@ -27,7 +27,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'global.compose',
     sequence: [{ key: 'c' }],
-    contexts: ['global', 'workspace', 'email', 'calendar', 'github'],
+    contexts: ['global', 'workspace', 'email', 'calendar', 'github', 'drive'],
     actionId: KEYBOARD_ACTIONS.OPEN_COMPOSE,
     description: 'Open compose',
     group: 'Essentials',
@@ -37,7 +37,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'workspace.switch.1',
     sequence: [{ key: '1' }],
-    contexts: ['workspace', 'email', 'calendar', 'github'],
+    contexts: ['workspace', 'email', 'calendar', 'github', 'drive'],
     actionId: KEYBOARD_ACTIONS.WORKSPACE_SWITCH,
     description: 'Go to workspace 1',
     group: 'Workspaces',
@@ -45,7 +45,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'workspace.switch.2',
     sequence: [{ key: '2' }],
-    contexts: ['workspace', 'email', 'calendar', 'github'],
+    contexts: ['workspace', 'email', 'calendar', 'github', 'drive'],
     actionId: KEYBOARD_ACTIONS.WORKSPACE_SWITCH,
     description: 'Go to workspace 2',
     group: 'Workspaces',
@@ -53,7 +53,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'workspace.switch.3',
     sequence: [{ key: '3' }],
-    contexts: ['workspace', 'email', 'calendar', 'github'],
+    contexts: ['workspace', 'email', 'calendar', 'github', 'drive'],
     actionId: KEYBOARD_ACTIONS.WORKSPACE_SWITCH,
     description: 'Go to workspace 3',
     group: 'Workspaces',
@@ -61,7 +61,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'workspace.switch.4',
     sequence: [{ key: '4' }],
-    contexts: ['workspace', 'email', 'calendar', 'github'],
+    contexts: ['workspace', 'email', 'calendar', 'github', 'drive'],
     actionId: KEYBOARD_ACTIONS.WORKSPACE_SWITCH,
     description: 'Go to workspace 4',
     group: 'Workspaces',
@@ -69,7 +69,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'workspace.switch.5',
     sequence: [{ key: '5' }],
-    contexts: ['workspace', 'email', 'calendar', 'github'],
+    contexts: ['workspace', 'email', 'calendar', 'github', 'drive'],
     actionId: KEYBOARD_ACTIONS.WORKSPACE_SWITCH,
     description: 'Go to workspace 5',
     group: 'Workspaces',
@@ -77,7 +77,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'workspace.cyclePrev',
     sequence: [{ key: '[' }],
-    contexts: ['workspace', 'email', 'calendar', 'github'],
+    contexts: ['workspace', 'email', 'calendar', 'github', 'drive'],
     actionId: KEYBOARD_ACTIONS.WORKSPACE_CYCLE_PREV,
     description: 'Previous workspace',
     group: 'Workspaces',
@@ -85,7 +85,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'workspace.cycleNext',
     sequence: [{ key: ']' }],
-    contexts: ['workspace', 'email', 'calendar', 'github'],
+    contexts: ['workspace', 'email', 'calendar', 'github', 'drive'],
     actionId: KEYBOARD_ACTIONS.WORKSPACE_CYCLE_NEXT,
     description: 'Next workspace',
     group: 'Workspaces',
@@ -93,7 +93,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'workspace.cyclePlugin',
     sequence: [{ key: 'tab' }],
-    contexts: ['workspace', 'email', 'calendar', 'github'],
+    contexts: ['workspace', 'email', 'calendar', 'github', 'drive'],
     actionId: KEYBOARD_ACTIONS.WORKSPACE_CYCLE_PLUGIN,
     description: 'Switch plugin in workspace (Tab)',
     group: 'Workspaces',
@@ -105,7 +105,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'agent.toggle',
     sequence: [modKey('j')],
-    contexts: ['global', 'workspace', 'email', 'calendar', 'github', 'modal'],
+    contexts: ['global', 'workspace', 'email', 'calendar', 'github', 'drive', 'modal'],
     actionId: KEYBOARD_ACTIONS.AGENT_TOGGLE,
     description: 'Toggle AI assistant',
     group: 'AI Assistant',
@@ -114,7 +114,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'agent.newChat',
     sequence: [modKey('j', true)],
-    contexts: ['global', 'workspace', 'email', 'calendar', 'github', 'modal'],
+    contexts: ['global', 'workspace', 'email', 'calendar', 'github', 'drive', 'modal'],
     actionId: KEYBOARD_ACTIONS.AGENT_NEW_CHAT,
     description: 'New AI chat',
     group: 'AI Assistant',

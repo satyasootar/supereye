@@ -29,6 +29,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useWorkspaceLayout } from '@/hooks/use-workspace-layout';
 import { CalendarSidebar } from './calendar-sidebar';
 import { GithubSidebar } from './github-sidebar';
+import { DriveSidebar } from './drive-sidebar';
 import { WorkspaceSwitcher } from './workspace-switcher';
 
 export function EmailSidebar() {
@@ -148,6 +149,7 @@ export function EmailSidebar() {
 
   const showCalendarNav = activePlugins.includes('calendar') && primary === 'calendar';
   const showGithubNav = activePlugins.includes('github') && primary === 'github';
+  const showDriveNav = activePlugins.includes('drive') && primary === 'drive';
   const showEmailNav = activePlugins.includes('email') && primary === 'email';
 
   if (showCalendarNav) {
@@ -204,6 +206,35 @@ export function EmailSidebar() {
           </div>
           <div className="flex-1 overflow-hidden">
             <GithubSidebar variant="default" />
+          </div>
+        </div>
+      );
+    }
+  } else if (showDriveNav) {
+    if (isSidebarCollapsed) {
+      content = (
+        <div className="flex-1 w-[48px] overflow-hidden">
+          <DriveSidebar variant="default" />
+        </div>
+      );
+    } else {
+      content = (
+        <div className="flex h-full w-[240px] flex-col bg-bg-surface">
+          <div className="flex h-12 flex-shrink-0 items-center justify-between px-3 border-b border-border-subtle bg-bg-surface">
+            <div className="flex items-center gap-2">
+              <HardDrive className="h-4 w-4 text-text-primary" />
+              <span className="text-[14px] font-semibold text-text-primary">Drive</span>
+            </div>
+            <button
+              onClick={() => setLeftSidebarCollapsed(true)}
+              className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-overlay transition-colors"
+              title="Collapse Sidebar"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <DriveSidebar variant="default" />
           </div>
         </div>
       );

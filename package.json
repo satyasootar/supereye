@@ -14,7 +14,8 @@
     "test:keyboard": "npx tsx --test lib/keyboard/__tests__/keyboard.test.ts lib/keyboard/__tests__/validate-overrides.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "setup:drive": "npx tsx scripts/setup-googledrive-from-calendar.ts"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.50",
@@ -25,6 +26,7 @@
     "@corsair-dev/github": "^0.1.10",
     "@corsair-dev/gmail": "^0.1.4",
     "@corsair-dev/googlecalendar": "^0.1.3",
+    "@corsair-dev/googledrive": "^0.1.3",
     "@corsair-dev/mcp": "^0.1.22",
     "@tanstack/react-query": "^5.101.0",
     "@types/nodemailer": "^8.0.1",

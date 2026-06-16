@@ -43,6 +43,11 @@ export async function GET(req: NextRequest) {
       syncGithubForUser(result.tenantId).catch(err =>
         console.error('[OAuth Callback] Initial GitHub sync failed:', err)
       );
+    } else if (result.plugin === 'googledrive') {
+      const { syncDriveForUser } = await import('@/lib/drive/sync');
+      syncDriveForUser(result.tenantId).catch(err =>
+        console.error('[OAuth Callback] Initial Drive sync failed:', err)
+      );
     }
 
     await syncWorkspacesFromPlugins(result.tenantId);

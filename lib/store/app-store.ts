@@ -8,11 +8,12 @@ import {
 import type { PluginId } from '@/lib/plugins/types';
 
 export type TabId = 'email';
-export type WorkspaceMode = 'email' | 'calendar' | 'github';
+export type WorkspaceMode = 'email' | 'calendar' | 'github' | 'drive';
 export type GithubView = 'pulls' | 'issues';
 export type GithubSection = 'overview' | 'inbox' | 'repo';
 export type GithubRepoTab = 'pulls' | 'issues' | 'commits' | 'releases' | 'actions';
 export type GithubInboxFilter = 'all' | 'pulls' | 'issues';
+export type DriveSection = 'recent' | 'browse';
 
 export type AgentMessage = {
   id: string;
@@ -78,6 +79,9 @@ interface AppState {
   githubInboxFilter: GithubInboxFilter;
   selectedGithubRepo: string | null;
   selectedGithubItemKey: string | null;
+  driveSection: DriveSection;
+  selectedDriveFolderId: string | null;
+  selectedDriveFileId: string | null;
   isAgentOpen: boolean;
   agentMessages: AgentMessage[];
   agentThreadId: string | null;
@@ -125,6 +129,11 @@ interface AppState {
     kind: 'pull' | 'issue';
     number: number;
   }) => void;
+  setDriveSection: (section: DriveSection) => void;
+  setSelectedDriveFolderId: (folderId: string | null) => void;
+  setSelectedDriveFileId: (fileId: string | null) => void;
+  openDriveFolder: (folderId: string) => void;
+  openDriveFile: (fileId: string) => void;
   setAgentOpen: (open: boolean) => void;
   addAgentMessage: (msg: AgentMessage) => void;
   setAgentMessages: (messages: AgentMessage[]) => void;
@@ -165,6 +174,9 @@ export const useAppStore = create<AppState>()(
       githubInboxFilter: 'all',
       selectedGithubRepo: null,
       selectedGithubItemKey: null,
+      driveSection: 'recent',
+      selectedDriveFolderId: null,
+      selectedDriveFileId: null,
       isAgentOpen: false,
       agentMessages: [],
       agentThreadId: null,
@@ -319,6 +331,21 @@ export const useAppStore = create<AppState>()(
           selectedGithubItemKey: key,
         });
       },
+      setDriveSection: (section) =>
+        set({ driveSection: section, selectedDriveFileId: null }),
+      setSelectedDriveFolderId: (folderId) => set({ selectedDriveFolderId: folderId }),
+      setSelectedDriveFileId: (fileId) => set({ selectedDriveFileId: fileId }),
+      openDriveFolder: (folderId) =>
+        set({
+          driveSection: 'browse',
+          selectedDriveFolderId: folderId,
+          selectedDriveFileId: null,
+        }),
+      openDriveFile: (fileId) =>
+        set({
+          driveSection: 'browse',
+          selectedDriveFileId: fileId,
+        }),
       setAgentOpen: (open) => set({ isAgentOpen: open }),
       addAgentMessage: (msg) => set((state) => ({
         agentMessages: [...state.agentMessages, msg],
@@ -392,6 +419,8 @@ export const useAppStore = create<AppState>()(
         githubRepoTab: state.githubRepoTab,
         githubInboxFilter: state.githubInboxFilter,
         selectedGithubRepo: state.selectedGithubRepo,
+        driveSection: state.driveSection,
+        selectedDriveFolderId: state.selectedDriveFolderId,
         agentThreadId: state.agentThreadId,
       }),
     }

@@ -83,6 +83,8 @@ export function useAgentContext(): AgentContext {
     contextLabel = `Calendar · ${calendarView}`;
   } else if (workspaceMode === 'github') {
     contextLabel = 'GitHub';
+  } else if (workspaceMode === 'drive') {
+    contextLabel = 'Google Drive';
   }
 
   return {

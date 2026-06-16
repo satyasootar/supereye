@@ -39,6 +39,7 @@ import { BotSettingsSection } from '@/components/profile/bot-settings-section';
 import { BillingSection } from '@/components/profile/billing-section';
 import { PasswordSection } from '@/components/profile/password-section';
 import { getPlugin } from '@/lib/plugins/registry';
+import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
 import { useAppStore } from '@/lib/store/app-store';
 import type { UserProfile } from '@/lib/user/profile';
 import { toast } from 'sonner';
@@ -294,11 +295,10 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                 <div className="flex flex-col gap-6">
                   <ProfileSection
                     title="Connected services"
-                    description="Supereye uses separate OAuth connections for Gmail and Calendar. These power email sync, scheduling, and your AI assistant."
+                    description="Connect the tools you use. Each integration powers its workspace panel and AI context."
                   >
                     {profile.integrations.map((integration) => {
                       const meta = getPlugin(integration.id);
-                      const Icon = integration.id === 'email' ? Mail : Calendar;
                       return (
                         <ProfileRow
                           key={integration.id}
@@ -326,7 +326,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                                 {connecting === integration.corsairPlugin ? (
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                 ) : (
-                                  <Icon className="h-3.5 w-3.5" />
+                                  <PluginBrandIcon pluginId={integration.id} size={14} />
                                 )}
                                 Connect
                               </Button>
@@ -342,10 +342,9 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                     description="Sign-in and integrations are separate for security."
                   >
                     <p className="text-[13px] leading-relaxed text-text-secondary">
-                      Your Google login authenticates you into Supereye. Gmail and Calendar
-                      connections grant the permissions needed to read mail, send messages, and
-                      manage events on your behalf. You can reconnect at any time if permissions
-                      change.
+                      Your sign-in authenticates you into Supereye. Plugin connections grant the
+                      permissions needed to read mail, manage calendar events, browse Drive files,
+                      and more. You can reconnect at any time if permissions change.
                     </p>
                   </ProfileSection>
                 </div>

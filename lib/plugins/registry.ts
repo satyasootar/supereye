@@ -35,6 +35,16 @@ export const PLUGIN_REGISTRY: PluginDefinition[] = [
     availableInOnboarding: true,
     order: 2,
   },
+  {
+    id: 'drive',
+    corsairPlugin: 'googledrive',
+    label: 'Google Drive',
+    shortLabel: 'Drive',
+    description: 'Browse, search, and open files without leaving your workspace.',
+    matchers: ['googledrive', 'google_drive', 'drive'],
+    availableInOnboarding: true,
+    order: 3,
+  },
 ];
 
 export const MAX_PLUGINS_PER_WORKSPACE = 2;

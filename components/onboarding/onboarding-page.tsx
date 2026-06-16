@@ -27,6 +27,9 @@ const PLUGIN_META: Record<string, { iconBg: string }> = {
   github: {
     iconBg: 'bg-white dark:bg-bg-elevated',
   },
+  drive: {
+    iconBg: 'bg-white dark:bg-bg-elevated',
+  },
 };
 
 type OnboardingStep = 'connect' | 'shortcuts';

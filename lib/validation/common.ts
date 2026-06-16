@@ -52,9 +52,9 @@ export const googleMessageIdSchema = z
 /** Google Calendar event ids (more permissive than Gmail message ids). */
 export const googleEventIdSchema = z.string().trim().min(1).max(1024);
 
-export const pluginIdSchema = z.enum(['email', 'calendar', 'github']);
+export const pluginIdSchema = z.enum(['email', 'calendar', 'github', 'drive']);
 
-export const corsairPluginSchema = z.enum(['gmail', 'googlecalendar', 'github']);
+export const corsairPluginSchema = z.enum(['gmail', 'googlecalendar', 'github', 'googledrive']);
 
 export const userRoleSchema = z.enum(['super_admin', 'user', 'enterprise_user']);
 
