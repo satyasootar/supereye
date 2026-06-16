@@ -6,6 +6,9 @@ import { useAppStore } from '@/lib/store/app-store';
 import { useTheme } from 'next-themes';
 import { useKeyboardStore } from '@/lib/keyboard/keyboard-store';
 import { useWorkspaces } from '@/hooks/use-workspaces';
+import { useSuperSearch } from '@/hooks/use-super-search';
+import { navigateSuperSearchResult } from '@/lib/search/navigate-result';
+import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
 import {
   Search,
   Mail,
@@ -16,12 +19,14 @@ import {
   ArrowUp,
   ArrowDown,
   CornerDownLeft,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ShortcutKbd } from '@/components/keyboard/shortcuts-reference';
 import type { LucideIcon } from 'lucide-react';
 import type { PluginId } from '@/lib/plugins/types';
+import type { SuperSearchResult } from '@/lib/search/types';
 
 type Command = {
   id: string;
@@ -32,7 +37,40 @@ type Command = {
   action: () => void;
 };
 
+type PaletteItem =
+  | { kind: 'command'; command: Command }
+  | { kind: 'search'; result: SuperSearchResult };
+
+export function superSearchCategory(kind: string): string {
+  switch (kind) {
+    case 'email':
+      return 'Super Search · Email';
+    case 'calendar':
+      return 'Super Search · Calendar';
+    case 'github_repo':
+    case 'github_pull':
+    case 'github_issue':
+      return 'Super Search · GitHub';
+    case 'drive_file':
+    case 'drive_folder':
+      return 'Super Search · Drive';
+    default:
+      return 'Super Search';
+  }
+}
+
 const SPRING = { type: 'spring' as const, duration: 0.38, bounce: 0.14 };
+
+function formatSearchDate(date?: string | null): string | null {
+  if (!date) return null;
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: parsed.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+  });
+}
 
 export function CommandPalette() {
   const router = useRouter();
@@ -45,6 +83,11 @@ export function CommandPalette() {
     setEmailCategory,
     setCalendarView,
     setCurrentDateStr,
+    setSelectedEmailId,
+    openGithubRepo,
+    openGithubItem,
+    openDriveFolder,
+    openDriveFile,
   } = useAppStore();
   const { setTheme, theme } = useTheme();
   const { setCheatSheetOpen } = useKeyboardStore();
@@ -52,6 +95,13 @@ export function CommandPalette() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  const superSearchEnabled = isCommandPaletteOpen && search.trim().length >= 2;
+  const {
+    data: superSearchData,
+    isFetching: isSuperSearchFetching,
+    isError: isSuperSearchError,
+  } = useSuperSearch(search, superSearchEnabled);
 
   const transition = reduceMotion ? { duration: 0 } : SPRING;
 
@@ -70,6 +120,33 @@ export function CommandPalette() {
       }
     },
     [activePlugins, focusPlugin]
+  );
+
+  const navigateSearch = useCallback(
+    (result: SuperSearchResult) => {
+      navigateSuperSearchResult(result, {
+        focusPlugin: (pluginId) => focusPluginIfAvailable(pluginId as PluginId),
+        setSelectedEmailId,
+        setEmailCategory,
+        setCurrentDateStr,
+        setCalendarView,
+        openGithubRepo,
+        openGithubItem,
+        openDriveFolder,
+        openDriveFile,
+      });
+    },
+    [
+      focusPluginIfAvailable,
+      openDriveFile,
+      openDriveFolder,
+      openGithubItem,
+      openGithubRepo,
+      setCalendarView,
+      setCurrentDateStr,
+      setEmailCategory,
+      setSelectedEmailId,
+    ]
   );
 
   const commands = useMemo<Command[]>(
@@ -187,24 +264,52 @@ export function CommandPalette() {
     [commands, search]
   );
 
-  const groupedCommands = useMemo(
-    () =>
-      filteredCommands.reduce(
-        (acc, cmd) => {
-          if (!acc[cmd.category]) acc[cmd.category] = [];
-          acc[cmd.category].push(cmd);
-          return acc;
-        },
-        {} as Record<string, Command[]>
-      ),
-    [filteredCommands]
+  const paletteItems = useMemo<PaletteItem[]>(() => {
+    const searchResults = superSearchData?.results ?? [];
+    const items: PaletteItem[] = searchResults.map((result) => ({
+      kind: 'search',
+      result,
+    }));
+    for (const command of filteredCommands) {
+      items.push({ kind: 'command', command });
+    }
+    return items;
+  }, [filteredCommands, superSearchData?.results]);
+
+  const groupedItems = useMemo(() => {
+    const groups: Record<string, PaletteItem[]> = {};
+    for (const item of paletteItems) {
+      const category =
+        item.kind === 'search'
+          ? superSearchCategory(item.result.kind)
+          : item.command.category;
+      if (!groups[category]) groups[category] = [];
+      groups[category].push(item);
+    }
+    return groups;
+  }, [paletteItems]);
+
+  const getItemId = useCallback((item: PaletteItem) => {
+    if (item.kind === 'command') return item.command.id;
+    return `search:${item.result.kind}:${item.result.id}`;
+  }, []);
+
+  const executeItem = useCallback(
+    (item: PaletteItem) => {
+      if (item.kind === 'command') {
+        runCommand(item.command.action);
+      } else {
+        runCommand(() => navigateSearch(item.result));
+      }
+    },
+    [navigateSearch, runCommand]
   );
 
   const executeSelected = useCallback(() => {
-    const cmd = filteredCommands[selectedIndex];
-    if (!cmd) return;
-    runCommand(cmd.action);
-  }, [filteredCommands, runCommand, selectedIndex]);
+    const item = paletteItems[selectedIndex];
+    if (!item) return;
+    executeItem(item);
+  }, [executeItem, paletteItems, selectedIndex]);
 
   useEffect(() => {
     if (isCommandPaletteOpen) {
@@ -215,17 +320,19 @@ export function CommandPalette() {
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [search]);
+  }, [search, superSearchData?.results]);
 
-  const selectedCommandId = filteredCommands[selectedIndex]?.id;
+  const selectedItemId = paletteItems[selectedIndex]
+    ? getItemId(paletteItems[selectedIndex])
+    : undefined;
 
   useEffect(() => {
-    if (!selectedCommandId || !listRef.current) return;
+    if (!selectedItemId || !listRef.current) return;
     const el = listRef.current.querySelector(
-      `[data-command-id="${selectedCommandId}"]`
+      `[data-palette-id="${selectedItemId}"]`
     );
     el?.scrollIntoView({ block: 'nearest' });
-  }, [selectedCommandId]);
+  }, [selectedItemId]);
 
   useEffect(() => {
     if (!isCommandPaletteOpen) return;
@@ -242,21 +349,27 @@ export function CommandPalette() {
   }, [isCommandPaletteOpen, setCommandPaletteOpen]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (filteredCommands.length === 0) return;
+    if (paletteItems.length === 0) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev + 1) % filteredCommands.length);
+      setSelectedIndex((prev) => (prev + 1) % paletteItems.length);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex(
-        (prev) => (prev - 1 + filteredCommands.length) % filteredCommands.length
+        (prev) => (prev - 1 + paletteItems.length) % paletteItems.length
       );
     } else if (e.key === 'Enter') {
       e.preventDefault();
       executeSelected();
     }
   };
+
+  const showSuperSearchHint = search.trim().length > 0 && search.trim().length < 2;
+  const showEmptyState =
+    paletteItems.length === 0 &&
+    !isSuperSearchFetching &&
+    search.trim().length >= 2;
 
   let absoluteIndex = 0;
 
@@ -301,21 +414,25 @@ export function CommandPalette() {
 
             <div className="relative flex shrink-0 items-center gap-3 border-b border-border-subtle px-4">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border-subtle bg-bg-surface text-text-muted">
-                <Search className="h-4 w-4" />
+                {isSuperSearchFetching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
               </div>
               <input
                 ref={inputRef}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={handleInputKeyDown}
-                placeholder="Type a command or search…"
+                placeholder="Super Search emails, calendar, GitHub, Drive…"
                 className="h-[52px] flex-1 bg-transparent text-[16px] text-text-primary outline-none placeholder:text-text-muted"
               />
               <ShortcutKbd keys="esc" className="hidden sm:inline-flex" />
             </div>
 
             <div ref={listRef} className="custom-scrollbar flex-1 overflow-y-auto px-2 py-2">
-              {Object.entries(groupedCommands).map(([category, cmds]) => (
+              {Object.entries(groupedItems).map(([category, items]) => (
                 <div key={category} className="mb-1">
                   <div className="flex items-center gap-3 px-3 py-2">
                     <span className="shrink-0 text-[11px] font-medium uppercase tracking-wider text-text-muted">
@@ -325,15 +442,68 @@ export function CommandPalette() {
                   </div>
 
                   <ul className="space-y-0.5">
-                    {cmds.map((cmd) => {
+                    {items.map((item) => {
                       const currentIndex = absoluteIndex++;
                       const isSelected = currentIndex === selectedIndex;
+                      const itemId = getItemId(item);
 
+                      if (item.kind === 'search') {
+                        const { result } = item;
+                        const dateLabel = formatSearchDate(result.date);
+
+                        return (
+                          <li key={itemId} className="relative">
+                            <button
+                              type="button"
+                              data-palette-id={itemId}
+                              className={cn(
+                                'relative flex min-h-10 w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition-[background-color,border-color,color] duration-75',
+                                isSelected
+                                  ? 'border border-accent-blue/25 bg-accent-blue/10 text-text-primary'
+                                  : 'border border-transparent text-text-secondary hover:bg-bg-overlay hover:text-text-primary'
+                              )}
+                              onMouseEnter={() => setSelectedIndex(currentIndex)}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => executeItem(item)}
+                            >
+                              <span className="relative flex min-w-0 items-center gap-3">
+                                <span
+                                  className={cn(
+                                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors duration-75',
+                                    isSelected
+                                      ? 'border-accent-blue/30 bg-bg-elevated'
+                                      : 'border-border-subtle bg-bg-surface'
+                                  )}
+                                >
+                                  <PluginBrandIcon pluginId={result.pluginId} size={14} />
+                                </span>
+                                <span className="min-w-0">
+                                  <span className="block truncate text-[14px] font-medium">
+                                    {result.title}
+                                  </span>
+                                  {result.subtitle && (
+                                    <span className="block truncate text-[12px] text-text-muted">
+                                      {result.subtitle}
+                                    </span>
+                                  )}
+                                </span>
+                              </span>
+                              {dateLabel && (
+                                <span className="shrink-0 text-[11px] text-text-muted">
+                                  {dateLabel}
+                                </span>
+                              )}
+                            </button>
+                          </li>
+                        );
+                      }
+
+                      const cmd = item.command;
                       return (
-                        <li key={cmd.id} className="relative">
+                        <li key={itemId} className="relative">
                           <button
                             type="button"
-                            data-command-id={cmd.id}
+                            data-palette-id={itemId}
                             className={cn(
                               'relative flex h-10 w-full items-center justify-between gap-3 rounded-md px-3 text-left transition-[background-color,border-color,color] duration-75',
                               isSelected
@@ -342,7 +512,7 @@ export function CommandPalette() {
                             )}
                             onMouseEnter={() => setSelectedIndex(currentIndex)}
                             onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => runCommand(cmd.action)}
+                            onClick={() => executeItem(item)}
                           >
                             <span className="relative flex min-w-0 items-center gap-3">
                               <span
@@ -377,8 +547,14 @@ export function CommandPalette() {
                 </div>
               ))}
 
+              {showSuperSearchHint && (
+                <p className="px-3 py-8 text-center text-[13px] text-text-muted">
+                  Type at least 2 characters to Super Search your workspace
+                </p>
+              )}
+
               <AnimatePresence mode="wait">
-                {filteredCommands.length === 0 && (
+                {showEmptyState && (
                   <motion.div
                     key="empty"
                     initial={{ opacity: 0, y: 8 }}
@@ -391,10 +567,12 @@ export function CommandPalette() {
                       <Search className="h-4 w-4" />
                     </div>
                     <p className="text-[14px] font-medium text-text-primary">
-                      No matching commands
+                      {isSuperSearchError ? 'Search unavailable' : 'No results found'}
                     </p>
                     <p className="text-[13px] text-text-muted">
-                      Try a different search term
+                      {isSuperSearchError
+                        ? 'Try again in a moment'
+                        : 'Try a different search term or command'}
                     </p>
                   </motion.div>
                 )}
@@ -414,8 +592,10 @@ export function CommandPalette() {
                 </span>
               </div>
               <span className="text-[11px] text-text-muted">
-                {filteredCommands.length} command
-                {filteredCommands.length === 1 ? '' : 's'}
+                {paletteItems.length} result{paletteItems.length === 1 ? '' : 's'}
+                {superSearchData?.meta.tookMs != null && search.trim().length >= 2
+                  ? ` · ${superSearchData.meta.tookMs}ms`
+                  : ''}
               </span>
             </div>
           </motion.div>
