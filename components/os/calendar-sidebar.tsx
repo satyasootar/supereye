@@ -18,6 +18,7 @@ const miniCalDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 import { useAppStore } from '@/lib/store/app-store';
 
 import { useQuery } from '@tanstack/react-query';
+import { isCalendarEventUpcoming } from '@/lib/calendar/event-utils';
 
 export function CalendarSidebar({ 
   variant = 'default',
@@ -35,6 +36,12 @@ export function CalendarSidebar({
   const isCalendarMode = workspaceMode === 'calendar';
 
   const [upcomingExpanded, setUpcomingExpanded] = useState(true);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const activeDate = useMemo(() => new Date(currentDateStr), [currentDateStr]);
   const [viewedMonth, setViewedMonth] = useState(activeDate.getMonth());
@@ -115,17 +122,16 @@ export function CalendarSidebar({
     return set;
   }, [events]);
 
-  const upcomingEventsList = [...(events || [])]
-    .filter(evt => {
-      const d = new Date(evt.start?.dateTime || evt.start?.date);
-      const now = new Date();
-      // Let's just say "upcoming" means within the next 7 days, or just future events
-      return d.getTime() + 86400000 >= now.getTime(); // Include today
-    })
-    .sort((a, b) => new Date(a.start?.dateTime || a.start?.date).getTime() - new Date(b.start?.dateTime || b.start?.date).getTime())
-    .slice(0, 5);
-
-  const now = new Date();
+  const upcomingEventsList = useMemo(() => {
+    return [...(events || [])]
+      .filter((evt) => isCalendarEventUpcoming(evt, now))
+      .sort(
+        (a, b) =>
+          new Date(a.start?.dateTime || a.start?.date).getTime() -
+          new Date(b.start?.dateTime || b.start?.date).getTime()
+      )
+      .slice(0, 5);
+  }, [events, now]);
   const isTodayDate = (d: Date) => {
     return d.getDate() === now.getDate() &&
            d.getMonth() === now.getMonth() &&
