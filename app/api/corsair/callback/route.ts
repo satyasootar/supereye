@@ -38,6 +38,11 @@ export async function GET(req: NextRequest) {
       syncGmailForUser(result.tenantId).catch(err => 
         console.error('[OAuth Callback] Initial Gmail sync failed:', err)
       );
+    } else if (result.plugin === 'github') {
+      const { syncGithubForUser } = await import('@/lib/github/sync');
+      syncGithubForUser(result.tenantId).catch(err =>
+        console.error('[OAuth Callback] Initial GitHub sync failed:', err)
+      );
     }
 
     await syncWorkspacesFromPlugins(result.tenantId);

@@ -17,6 +17,8 @@ export type SSEEventType =
   | 'brief:updated'
   // Calendar
   | 'calendar:updated'
+  // GitHub
+  | 'github:updated'
   // Notifications
   | 'notification:new'
   // Cross-app sync
@@ -38,6 +40,7 @@ export const SSE_INVALIDATION_MAP: Record<SSEEventType, string[][]> = {
   'email:triage': [['emails', 'threads'], ['emails', 'triage'], ['brief', 'today']],
   'brief:updated': [['brief', 'today']],
   'calendar:updated': [['calendar-events'], ['calendar', 'events'], ['brief', 'today']],
+  'github:updated': [['github', 'repos'], ['github', 'activity'], ['github', 'pulls'], ['github', 'issues']],
   'notification:new': [['notifications']],
   'sync:requested': [['mail-threads'], ['emails', 'threads'], ['emails', 'unread-count'], ['calendar-events'], ['calendar', 'events']],
 };

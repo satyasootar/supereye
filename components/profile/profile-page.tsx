@@ -41,6 +41,7 @@ import { PasswordSection } from '@/components/profile/password-section';
 import { getPlugin } from '@/lib/plugins/registry';
 import { useAppStore } from '@/lib/store/app-store';
 import type { UserProfile } from '@/lib/user/profile';
+import { toast } from 'sonner';
 
 type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security' | 'shortcuts' | 'dashboard' | 'bot' | 'billing';
 
@@ -104,11 +105,14 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plugin: corsairPlugin }),
       });
-      if (!res.ok) throw new Error('Failed to start connection');
-      const { authUrl } = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Failed to start connection');
+      const { authUrl } = data as { authUrl?: string };
+      if (!authUrl) throw new Error('No authorization URL returned');
       window.location.href = authUrl;
-    } catch {
+    } catch (e) {
       setConnecting(null);
+      toast.error(e instanceof Error ? e.message : 'Failed to connect');
     }
   };
 

@@ -7,6 +7,7 @@ export type BindingContext =
   | 'workspace'
   | 'email'
   | 'calendar'
+  | 'github'
   | 'modal';
 
 /** Single step in a chord or sequence, e.g. ctrl+k or g */

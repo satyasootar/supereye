@@ -39,6 +39,21 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // GitHub is configured as `api_key` (PAT) in Corsair, not OAuth (`oauth_2`).
+    // The current UX button still calls this OAuth connect endpoint, so we return
+    // a clear remediation message instead of failing with HTTP 500.
+    if (plugin === 'github') {
+      return NextResponse.json(
+        {
+          error:
+            'GitHub uses a Personal Access Token (api_key), not OAuth. ' +
+            `Set it once for this account (tenantId: ${session.user.id}) with: ` +
+            'npx corsair setup --plugin=github --tenant <tenantId> api_key=<GITHUB_PAT>',
+        },
+        { status: 400 }
+      );
+    }
+
     const { corsair } = await import('@/lib/corsair');
 
     const { url: authUrl } = await generateOAuthUrl(corsair, plugin, {

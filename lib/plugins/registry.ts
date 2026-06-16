@@ -33,7 +33,6 @@ export const PLUGIN_REGISTRY: PluginDefinition[] = [
     description: 'Pull requests, issues, and repo activity alongside your work.',
     matchers: ['github'],
     availableInOnboarding: true,
-    comingSoon: true,
     order: 2,
   },
 ];

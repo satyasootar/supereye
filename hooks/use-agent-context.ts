@@ -1,6 +1,6 @@
 'use client';
 
-import { useAppStore } from '@/lib/store/app-store';
+import { useAppStore, type WorkspaceMode } from '@/lib/store/app-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { useMemo } from 'react';
@@ -8,7 +8,7 @@ import { useMemo } from 'react';
 export type AgentContext = {
   userName: string;
   folder: string;
-  workspaceMode: 'email' | 'calendar';
+  workspaceMode: WorkspaceMode;
   calendarView: string;
   currentDate: string;
   timeZone: string;
@@ -81,6 +81,8 @@ export function useAgentContext(): AgentContext {
     contextLabel = `Email: ${selectedSubject ?? 'Loading...'}`;
   } else if (workspaceMode === 'calendar') {
     contextLabel = `Calendar · ${calendarView}`;
+  } else if (workspaceMode === 'github') {
+    contextLabel = 'GitHub';
   }
 
   return {

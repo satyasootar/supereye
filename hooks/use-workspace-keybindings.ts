@@ -19,7 +19,9 @@ export function useWorkspaceKeybindings() {
         ? 'calendar'
         : layout.primary === 'email'
           ? 'email'
-          : 'workspace';
+          : layout.primary === 'github'
+            ? 'github'
+            : 'workspace';
     setActivePanel(panel);
   }, [layout.primary, setActivePanel]);
 
@@ -59,7 +61,13 @@ export function useWorkspaceKeybindings() {
         const other = activeWorkspace.pluginIds.find((id) => id !== current);
         if (other) {
           focusPlugin(other);
-          setActivePanel(other === 'calendar' ? 'calendar' : 'email');
+          setActivePanel(
+            other === 'calendar'
+              ? 'calendar'
+              : other === 'github'
+                ? 'github'
+                : 'email'
+          );
         }
       }),
     ];

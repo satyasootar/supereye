@@ -60,15 +60,18 @@ export function resolveWorkspaceLayout(
   return { primary, sidebar };
 }
 
-export function layoutToWorkspaceMode(primary: PluginId): 'email' | 'calendar' {
-  return primary === 'calendar' ? 'calendar' : 'email';
+export function layoutToWorkspaceMode(primary: PluginId): 'email' | 'calendar' | 'github' {
+  if (primary === 'calendar') return 'calendar';
+  if (primary === 'github') return 'github';
+  return 'email';
 }
 
 export function workspaceModeToLayout(
-  mode: 'email' | 'calendar',
+  mode: 'email' | 'calendar' | 'github',
   activePlugins: PluginId[]
 ): WorkspaceLayout {
-  const primary = mode === 'calendar' ? 'calendar' : 'email';
+  const primary =
+    mode === 'calendar' ? 'calendar' : mode === 'github' ? 'github' : 'email';
 
   if (!activePlugins.includes(primary)) {
     return resolveWorkspaceLayout(activePlugins, {

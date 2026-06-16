@@ -8,7 +8,8 @@ import {
 import type { PluginId } from '@/lib/plugins/types';
 
 export type TabId = 'email';
-export type WorkspaceMode = 'email' | 'calendar';
+export type WorkspaceMode = 'email' | 'calendar' | 'github';
+export type GithubView = 'pulls' | 'issues';
 
 export type AgentMessage = {
   id: string;
@@ -68,6 +69,9 @@ interface AppState {
   leftSidebarCollapsed: boolean;
   calendarView: 'Month' | 'Week' | 'Day' | 'Year';
   currentDateStr: string;
+  githubView: GithubView;
+  selectedGithubRepo: string | null;
+  selectedGithubItemKey: string | null;
   isAgentOpen: boolean;
   agentMessages: AgentMessage[];
   agentThreadId: string | null;
@@ -98,6 +102,9 @@ interface AppState {
   setLeftSidebarCollapsed: (collapsed: boolean) => void;
   setCalendarView: (view: 'Month' | 'Week' | 'Day' | 'Year') => void;
   setCurrentDateStr: (dateStr: string) => void;
+  setGithubView: (view: GithubView) => void;
+  setSelectedGithubRepo: (repo: string | null) => void;
+  setSelectedGithubItemKey: (key: string | null) => void;
   setAgentOpen: (open: boolean) => void;
   addAgentMessage: (msg: AgentMessage) => void;
   setAgentMessages: (messages: AgentMessage[]) => void;
@@ -132,6 +139,9 @@ export const useAppStore = create<AppState>()(
       leftSidebarCollapsed: false,
       calendarView: 'Month',
       currentDateStr: new Date().toISOString(),
+      githubView: 'pulls',
+      selectedGithubRepo: null,
+      selectedGithubItemKey: null,
       isAgentOpen: false,
       agentMessages: [],
       agentThreadId: null,
@@ -233,6 +243,9 @@ export const useAppStore = create<AppState>()(
       setLeftSidebarCollapsed: (collapsed) => set({ leftSidebarCollapsed: collapsed }),
       setCalendarView: (view) => set({ calendarView: view }),
       setCurrentDateStr: (dateStr) => set({ currentDateStr: dateStr }),
+      setGithubView: (view) => set({ githubView: view, selectedGithubItemKey: null }),
+      setSelectedGithubRepo: (repo) => set({ selectedGithubRepo: repo, selectedGithubItemKey: null }),
+      setSelectedGithubItemKey: (key) => set({ selectedGithubItemKey: key }),
       setAgentOpen: (open) => set({ isAgentOpen: open }),
       addAgentMessage: (msg) => set((state) => ({
         agentMessages: [...state.agentMessages, msg],
@@ -301,6 +314,8 @@ export const useAppStore = create<AppState>()(
         leftSidebarCollapsed: state.leftSidebarCollapsed,
         calendarView: state.calendarView,
         currentDateStr: state.currentDateStr,
+        githubView: state.githubView,
+        selectedGithubRepo: state.selectedGithubRepo,
         agentThreadId: state.agentThreadId,
       }),
     }
