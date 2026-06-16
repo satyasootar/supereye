@@ -45,7 +45,8 @@ export async function fetchBriefGithubData(userId: string): Promise<BriefGithubD
       attentionItems,
     };
   } catch (error) {
-    console.error('[daily-brief] GitHub data fetch failed:', error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn(`[daily-brief] GitHub data fetch failed: ${msg}`);
     return null;
   }
 }

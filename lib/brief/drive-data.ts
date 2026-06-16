@@ -37,7 +37,8 @@ export async function fetchBriefDriveData(userId: string): Promise<BriefDriveDat
       attentionItems,
     };
   } catch (error) {
-    console.error('[daily-brief] Drive data fetch failed:', error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn(`[daily-brief] Drive data fetch failed: ${msg}`);
     return null;
   }
 }
