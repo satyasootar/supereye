@@ -18,6 +18,9 @@ import {
 } from '@/lib/agent/threads';
 import { logAndConsumeAiUsage, checkAiAccess } from '@/lib/billing/usage';
 import { tokenErrorResponse } from '@/lib/billing/errors';
+import { parseJsonBody, formatZodError } from '@/lib/validation/http';
+import { agentChatSchema } from '@/lib/validation/agent';
+import { z } from 'zod';
 
 export async function POST(req: Request) {
   const authResult = await requireActiveUserSession();
@@ -44,14 +47,39 @@ export async function POST(req: Request) {
     throw e;
   }
 
-  const body = await req.json();
-  const { message, threadId: incomingThreadId, context } = body;
+  const rawBody = await req.json();
+  const chatParsed = agentChatSchema
+    .or(
+      z.object({
+        messages: z.array(
+          z.object({
+            role: z.string(),
+            content: z.string().optional(),
+          })
+        ),
+        threadId: z.string().uuid().nullable().optional(),
+        context: agentChatSchema.shape.context,
+      })
+    )
+    .safeParse(rawBody);
+
+  if (!chatParsed.success) {
+    return new Response(JSON.stringify({ error: formatZodError(chatParsed.error) }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const body = chatParsed.data;
+  const { threadId: incomingThreadId, context } = body;
 
   const userMessage =
-    typeof message === 'string'
-      ? message.trim()
-      : typeof body.messages === 'object' && Array.isArray(body.messages)
-        ? [...body.messages].reverse().find((m: { role: string }) => m.role === 'user')?.content?.trim()
+    'message' in body && body.message
+      ? body.message.trim()
+      : 'messages' in body && Array.isArray(body.messages)
+        ? [...body.messages]
+            .reverse()
+            .find((m) => m.role === 'user' && m.content?.trim())?.content?.trim() ?? ''
         : '';
 
   if (!userMessage) {

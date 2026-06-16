@@ -1,32 +1,22 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { deleteUserAccount, DeleteAccountError } from '@/lib/user/delete-account';
+import { parseJsonBody } from '@/lib/validation/http';
+import { deleteAccountSchema } from '@/lib/validation/user';
 
 export async function POST(req: Request) {
   const authResult = await requireActiveUserSession();
   if ('error' in authResult) return authResult.error;
   const { session } = authResult;
 
-  let body: { confirmEmail?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  const confirmEmail = body.confirmEmail;
-  if (typeof confirmEmail !== 'string' || !confirmEmail.trim()) {
-    return NextResponse.json(
-      { error: 'Enter your email address to confirm deletion' },
-      { status: 400 }
-    );
-  }
+  const parsed = await parseJsonBody(req, deleteAccountSchema);
+  if ('error' in parsed) return parsed.error;
 
   try {
     await deleteUserAccount(
       session.user.id,
       session.user.email,
-      confirmEmail
+      parsed.data.confirmEmail
     );
 
     return NextResponse.json({ success: true });

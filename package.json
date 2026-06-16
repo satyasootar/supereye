@@ -10,6 +10,7 @@
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
+    "test": "node scripts/run-tests.mjs",
     "test:keyboard": "npx tsx --test lib/keyboard/__tests__/keyboard.test.ts lib/keyboard/__tests__/validate-overrides.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

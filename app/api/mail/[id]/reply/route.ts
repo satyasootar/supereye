@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { db } from '@/lib/db';
-import { emails, scheduledEmails } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { scheduledEmails } from '@/lib/db/schema';
 import { sseEmitter } from '@/lib/sse/emitter';
 import { getTenant } from '@/lib/corsair';
 import { handleCorsairError } from '@/lib/corsair-error';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
+import { validateAttachmentFiles } from '@/lib/security/uploads';
+import { validationErrorResponse } from '@/lib/validation/http';
+import { parseReplyPayload } from '@/lib/validation/mail';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const authResult = await requireActiveUserSession();
@@ -17,44 +19,58 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id: messageId } = await params;
 
   try {
-    const formData = await req.formData();
-    const replyText = formData.get('replyText') as string;
-    const threadId = formData.get('threadId') as string;
-    const to = formData.get('to') as string;
-    const subject = formData.get('subject') as string;
-    const scheduleAt = formData.get('scheduleAt') as string;
-    const attachmentFiles = formData.getAll('attachments') as File[];
+    const contentType = req.headers.get('content-type') ?? '';
+    const isForm = contentType.includes('multipart/form-data');
+    const formData = isForm ? await req.formData() : null;
+    const jsonBody = isForm ? null : await req.json();
 
+    const attachmentFiles = formData?.getAll('attachments') as File[] | undefined;
+    if (attachmentFiles?.length) {
+      const attachmentError = validateAttachmentFiles(attachmentFiles);
+      if (attachmentError) {
+        return NextResponse.json({ error: attachmentError }, { status: 400 });
+      }
+    }
+
+    const parsed = parseReplyPayload(req, jsonBody, formData);
+    if (!parsed.success) {
+      return validationErrorResponse(parsed.error);
+    }
+
+    const { replyText, threadId, to, subject, scheduleAt } = parsed.data;
     const t = getTenant(userId);
 
-    // Fetch the original message to get its RFC 2822 Message-ID
     const originalMsg = await t.gmail.api.messages.get({
       userId: 'me',
       id: messageId,
-      format: 'metadata'
+      format: 'metadata',
     });
 
-    const headers = originalMsg.payload?.headers || [];
-    const rfcMessageId = originalMsg.payload?.headers?.find((h: any) => h.name === 'Message-ID')?.value;
-    const existingReferences = originalMsg.payload?.headers?.find((h: any) => h.name === 'References')?.value || '';
-    
-    const newReferences = existingReferences 
+    const rfcMessageId = originalMsg.payload?.headers?.find(
+      (h: { name?: string; value?: string }) => h.name === 'Message-ID'
+    )?.value;
+    const existingReferences =
+      originalMsg.payload?.headers?.find(
+        (h: { name?: string; value?: string }) => h.name === 'References'
+      )?.value || '';
+
+    const newReferences = existingReferences
       ? `${existingReferences} ${rfcMessageId}`.trim()
       : rfcMessageId;
 
     const attachments = await Promise.all(
-      attachmentFiles.map(async (file) => ({
+      (attachmentFiles ?? []).map(async (file) => ({
         filename: file.name,
         content: Buffer.from(await file.arrayBuffer()),
-        contentType: file.type
+        contentType: file.type,
       }))
     );
 
-    const mailOptions: any = {
+    const mailOptions: Record<string, unknown> = {
       to,
       subject: subject.toLowerCase().startsWith('re:') ? subject : `Re: ${subject}`,
       text: replyText,
-      attachments
+      attachments,
     };
 
     if (rfcMessageId) mailOptions.inReplyTo = rfcMessageId;
@@ -70,7 +86,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         rawPayload: raw,
         threadId,
         scheduledAt: new Date(scheduleAt),
-        status: 'pending'
+        status: 'pending',
       });
       return NextResponse.json({ success: true, scheduled: true });
     }
@@ -78,11 +94,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     await t.gmail.api.messages.send({
       userId: 'me',
       raw,
-      threadId
+      threadId,
     });
 
-    // We don't necessarily update our local DB immediately with the sent message
-    // because the webhook / sync will catch it, but we can emit a sync request.
     sseEmitter.emit(userId, { type: 'sync:requested' });
 
     return NextResponse.json({ success: true });

@@ -3,16 +3,19 @@ import { db } from '@/lib/db';
 import { notifications } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
+import { parseQuery } from '@/lib/validation/http';
+import { notificationsQuerySchema } from '@/lib/validation/notifications';
 
 export async function GET(req: Request) {
   try {
     const authResult = await requireActiveUserSession();
-  if ('error' in authResult) return authResult.error;
-  const { session } = authResult;
+    if ('error' in authResult) return authResult.error;
+    const { session } = authResult;
 
-    const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
-    const page = parseInt(searchParams.get('page') || '1', 10);
+    const parsed = parseQuery(req.url, notificationsQuerySchema);
+    if ('error' in parsed) return parsed.error;
+
+    const { limit, page = 1 } = parsed.data;
     const offset = (page - 1) * limit;
 
     const notifs = await db
@@ -24,8 +27,9 @@ export async function GET(req: Request) {
       .offset(offset);
 
     return NextResponse.json({ notifications: notifs });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching notifications:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Failed to fetch notifications';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

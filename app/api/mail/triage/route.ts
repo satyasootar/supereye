@@ -7,6 +7,8 @@ import {
 import { getTriageModel } from '@/lib/agent/triage-model';
 import { checkAiAccess } from '@/lib/billing/usage';
 import { tokenErrorResponse } from '@/lib/billing/errors';
+import { parseJsonBody } from '@/lib/validation/http';
+import { mailTriagePostSchema } from '@/lib/validation/mail';
 
 export async function GET() {
   const authResult = await requireActiveUserSession();
@@ -46,11 +48,10 @@ export async function POST(req: Request) {
     throw e;
   }
 
-  const body = await req.json().catch(() => ({}));
-  const limit =
-    typeof body.limit === 'number' && body.limit > 0 && body.limit <= 20
-      ? body.limit
-      : 10;
+  const parsed = await parseJsonBody(req, mailTriagePostSchema.default({}));
+  if ('error' in parsed) return parsed.error;
+
+  const limit = parsed.data.limit ?? 10;
 
   try {
     const result = await triagePendingEmailsForUser(session.user.id, limit);

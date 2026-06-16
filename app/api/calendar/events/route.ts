@@ -5,6 +5,8 @@ import { calendarEvents, emailEventLinks, emails, syncState } from '@/lib/db/sch
 import { eq, gte, lte, and, asc } from 'drizzle-orm';
 import { createGoogleCalendarEvent } from '@/lib/calendar/create-event';
 import { sseEmitter } from '@/lib/sse/emitter';
+import { parseJsonBody } from '@/lib/validation/http';
+import { createCalendarEventSchema } from '@/lib/validation/calendar';
 
 export async function GET() {
   const authResult = await requireActiveUserSession();
@@ -91,7 +93,9 @@ export async function POST(req: Request) {
   const { session } = authResult;
 
   try {
-    const body = await req.json();
+    const parsed = await parseJsonBody(req, createCalendarEventSchema);
+    if ('error' in parsed) return parsed.error;
+
     const {
       summary,
       description,
@@ -101,7 +105,7 @@ export async function POST(req: Request) {
       location,
       colorId,
       addGoogleMeet,
-    } = body;
+    } = parsed.data;
 
     const createdEvent = await createGoogleCalendarEvent(session.user.id, {
       summary,

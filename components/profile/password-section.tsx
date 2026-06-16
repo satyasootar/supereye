@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ProfileSection, ProfileRow } from '@/components/profile/profile-section';
-const MIN_PASSWORD_LENGTH = 8;
+import { setPasswordSchema } from '@/lib/validation/user';
 
 type PasswordSectionProps = {
   hasPassword: boolean;
@@ -33,8 +33,12 @@ export function PasswordSection({ hasPassword, email }: PasswordSectionProps) {
       return;
     }
 
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+    const passwordCheck = setPasswordSchema.safeParse({
+      newPassword,
+      ...(hasPasswordState ? { currentPassword } : {}),
+    });
+    if (!passwordCheck.success) {
+      setError(passwordCheck.error.issues[0]?.message ?? 'Invalid password');
       return;
     }
 
@@ -101,7 +105,7 @@ export function PasswordSection({ hasPassword, email }: PasswordSectionProps) {
 
         <ProfileRow
           label={hasPasswordState ? 'New password' : 'Password'}
-          description={`At least ${MIN_PASSWORD_LENGTH} characters`}
+          description={`At least 8 characters`}
         >
           <Input
             type="password"
@@ -109,7 +113,7 @@ export function PasswordSection({ hasPassword, email }: PasswordSectionProps) {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
-            minLength={MIN_PASSWORD_LENGTH}
+            minLength={8}
             className="max-w-xs"
           />
         </ProfileRow>
@@ -121,7 +125,7 @@ export function PasswordSection({ hasPassword, email }: PasswordSectionProps) {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            minLength={MIN_PASSWORD_LENGTH}
+            minLength={8}
             className="max-w-xs"
           />
         </ProfileRow>

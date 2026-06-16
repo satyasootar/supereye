@@ -1,7 +1,9 @@
-function parseSuperAdminEmails(): string[] {
+function parseSuperAdminEmailsFromSources(
+  ...sources: (string | undefined)[]
+): string[] {
   const emails = new Set<string>();
 
-  for (const source of [process.env.SUPER_ADMIN_EMAILS, process.env.SUPER_ADMIN_EMAIL]) {
+  for (const source of sources) {
     if (!source) continue;
     for (const part of source.split(',')) {
       const email = part.trim().toLowerCase();
@@ -13,7 +15,12 @@ function parseSuperAdminEmails(): string[] {
 }
 
 /** Super admin emails — comma-separated in SUPER_ADMIN_EMAILS (or legacy SUPER_ADMIN_EMAIL) */
-export const SUPER_ADMIN_EMAILS = parseSuperAdminEmails();
+export const SUPER_ADMIN_EMAILS = parseSuperAdminEmailsFromSources(
+  process.env.SUPER_ADMIN_EMAILS,
+  process.env.SUPER_ADMIN_EMAIL
+);
+
+export { parseSuperAdminEmailsFromSources };
 
 export const USER_ROLES = ['super_admin', 'user', 'enterprise_user'] as const;
 export type UserRole = (typeof USER_ROLES)[number];

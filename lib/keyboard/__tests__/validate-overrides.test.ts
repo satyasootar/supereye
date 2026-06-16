@@ -12,10 +12,10 @@ describe('parseUserKeyOverrides', () => {
   it('accepts valid binding overrides', () => {
     const result = parseUserKeyOverrides({
       'global.commandPalette': [{ key: 'k', mod: true }],
-      'email.next': [{ key: 'j' }],
+      'workspace.switch.1': [{ key: 'j' }],
     });
     assert.equal(result['global.commandPalette']?.[0].key, 'k');
-    assert.equal(result['email.next']?.[0].key, 'j');
+    assert.equal(result['workspace.switch.1']?.[0].key, 'j');
   });
 
   it('rejects unknown binding ids', () => {
@@ -27,15 +27,15 @@ describe('parseUserKeyOverrides', () => {
 
   it('rejects malformed sequences', () => {
     const result = parseUserKeyOverrides({
-      'email.next': [{ key: '' }],
+      'workspace.switch.1': [{ key: '' }],
     });
     assert.deepEqual(result, {});
   });
 
   it('normalizes key casing', () => {
     const result = parseUserKeyOverrides({
-      'email.prev': [{ key: 'K' }],
+      'workspace.switch.2': [{ key: 'K' }],
     });
-    assert.equal(result['email.prev']?.[0].key, 'k');
+    assert.equal(result['workspace.switch.2']?.[0].key, 'k');
   });
 });

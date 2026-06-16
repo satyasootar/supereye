@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { emailSchema } from '@/lib/validation/common';
 
 export function EmailPasswordLoginForm() {
   const router = useRouter();
@@ -18,6 +18,19 @@ export function EmailPasswordLoginForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
+    const emailCheck = emailSchema.safeParse(email);
+    if (!emailCheck.success) {
+      setError(emailCheck.error.issues[0]?.message ?? 'Invalid email');
+      setLoading(false);
+      return;
+    }
+
+    if (!password) {
+      setError('Password is required');
+      setLoading(false);
+      return;
+    }
 
     try {
       const result = await signIn('credentials', {

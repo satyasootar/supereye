@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { setUserPassword, userHasPassword } from '@/lib/auth/credentials';
+import { parseJsonBody } from '@/lib/validation/http';
+import { setPasswordSchema } from '@/lib/validation/user';
 
 export async function GET() {
   const authResult = await requireActiveUserSession();
@@ -14,20 +16,13 @@ export async function POST(req: Request) {
   const authResult = await requireActiveUserSession();
   if ('error' in authResult) return authResult.error;
 
-  const body = await req.json();
-  const newPassword =
-    typeof body.newPassword === 'string' ? body.newPassword : '';
-  const currentPassword =
-    typeof body.currentPassword === 'string' ? body.currentPassword : undefined;
-
-  if (!newPassword) {
-    return NextResponse.json({ error: 'New password is required' }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(req, setPasswordSchema);
+  if ('error' in parsed) return parsed.error;
 
   const result = await setUserPassword(
     authResult.session.user.id,
-    newPassword,
-    currentPassword
+    parsed.data.newPassword,
+    parsed.data.currentPassword
   );
 
   if (result.error) {

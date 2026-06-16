@@ -6,8 +6,9 @@ import {
   getWorkspaceForUser,
   updateWorkspace,
 } from '@/lib/workspaces/workspaces';
-import { getPlugin, PLUGIN_IDS } from '@/lib/plugins/registry';
-import type { PluginId } from '@/lib/plugins/types';
+import { parseJsonBody } from '@/lib/validation/http';
+import { updateWorkspaceSchema } from '@/lib/validation/workspace';
+import { uuidSchema } from '@/lib/validation/common';
 
 type RouteParams = { params: Promise<{ workspaceId: string }> };
 
@@ -17,6 +18,11 @@ export async function GET(_req: Request, { params }: RouteParams) {
   const { session } = authResult;
 
   const { workspaceId } = await params;
+  const idResult = uuidSchema.safeParse(workspaceId);
+  if (!idResult.success) {
+    return NextResponse.json({ error: 'Invalid workspace id' }, { status: 400 });
+  }
+
   const workspace = await getWorkspaceForUser(session.user.id, workspaceId);
 
   if (!workspace) {
@@ -32,35 +38,16 @@ export async function PATCH(req: Request, { params }: RouteParams) {
   const { session } = authResult;
 
   const { workspaceId } = await params;
-  const body = await req.json();
-
-  const patch: {
-    name?: string;
-    primaryPluginId?: PluginId;
-    sidebarPluginId?: PluginId | null;
-  } = {};
-
-  if (typeof body.name === 'string') patch.name = body.name;
-
-  if (typeof body.primaryPluginId === 'string') {
-    if (!PLUGIN_IDS.includes(body.primaryPluginId) || !getPlugin(body.primaryPluginId)) {
-      return NextResponse.json({ error: 'Invalid primary plugin' }, { status: 400 });
-    }
-    patch.primaryPluginId = body.primaryPluginId;
+  const idResult = uuidSchema.safeParse(workspaceId);
+  if (!idResult.success) {
+    return NextResponse.json({ error: 'Invalid workspace id' }, { status: 400 });
   }
 
-  if (body.sidebarPluginId === null || typeof body.sidebarPluginId === 'string') {
-    if (
-      body.sidebarPluginId !== null &&
-      (!PLUGIN_IDS.includes(body.sidebarPluginId) || !getPlugin(body.sidebarPluginId))
-    ) {
-      return NextResponse.json({ error: 'Invalid sidebar plugin' }, { status: 400 });
-    }
-    patch.sidebarPluginId = body.sidebarPluginId;
-  }
+  const parsed = await parseJsonBody(req, updateWorkspaceSchema);
+  if ('error' in parsed) return parsed.error;
 
   try {
-    const workspace = await updateWorkspace(session.user.id, workspaceId, patch);
+    const workspace = await updateWorkspace(session.user.id, workspaceId, parsed.data);
     const context = await getWorkspaceContext(session.user.id);
     return NextResponse.json({ workspace, ...context });
   } catch (e: unknown) {

@@ -3,10 +3,9 @@ import { requireActiveUserSession } from '@/lib/security/api-auth';
 import {
   createWorkspace,
   getWorkspaceContext,
-  listWorkspacesForUser,
 } from '@/lib/workspaces/workspaces';
-import { getPlugin, PLUGIN_IDS } from '@/lib/plugins/registry';
-import type { PluginId } from '@/lib/plugins/types';
+import { parseJsonBody } from '@/lib/validation/http';
+import { createWorkspaceSchema } from '@/lib/validation/workspace';
 
 export async function GET() {
   const authResult = await requireActiveUserSession();
@@ -22,29 +21,14 @@ export async function POST(req: Request) {
   if ('error' in authResult) return authResult.error;
   const { session } = authResult;
 
-  const body = await req.json();
-  const primaryPluginId = body.primaryPluginId as string;
-  const sidebarPluginId =
-    body.sidebarPluginId === null || body.sidebarPluginId === undefined
-      ? null
-      : (body.sidebarPluginId as string);
-
-  if (!primaryPluginId || !PLUGIN_IDS.includes(primaryPluginId) || !getPlugin(primaryPluginId)) {
-    return NextResponse.json({ error: 'Invalid primary plugin' }, { status: 400 });
-  }
-
-  if (
-    sidebarPluginId &&
-    (!PLUGIN_IDS.includes(sidebarPluginId) || !getPlugin(sidebarPluginId))
-  ) {
-    return NextResponse.json({ error: 'Invalid sidebar plugin' }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(req, createWorkspaceSchema);
+  if ('error' in parsed) return parsed.error;
 
   try {
     const workspace = await createWorkspace(session.user.id, {
-      name: typeof body.name === 'string' ? body.name : undefined,
-      primaryPluginId: primaryPluginId as PluginId,
-      sidebarPluginId: sidebarPluginId as PluginId | null,
+      name: parsed.data.name,
+      primaryPluginId: parsed.data.primaryPluginId,
+      sidebarPluginId: parsed.data.sidebarPluginId ?? null,
     });
 
     const context = await getWorkspaceContext(session.user.id);

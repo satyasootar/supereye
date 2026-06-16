@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { getUserPreferencesWithContext, upsertUserPreferences } from '@/lib/user/preferences';
+import { parseJsonBody } from '@/lib/validation/http';
+import { preferencesPatchSchema } from '@/lib/validation/user';
 
 export async function GET() {
   const authResult = await requireActiveUserSession();
@@ -16,38 +18,9 @@ export async function PATCH(req: Request) {
   if ('error' in authResult) return authResult.error;
   const { session } = authResult;
 
-  const body = await req.json();
-  const patch: {
-    onboardingCompleted?: boolean;
-    activeWorkspaceId?: string | null;
-    botSettings?: {
-      showTips?: boolean;
-      autoCloseTips?: boolean;
-      autoCloseDelay?: number;
-    };
-  } = {};
+  const parsed = await parseJsonBody(req, preferencesPatchSchema);
+  if ('error' in parsed) return parsed.error;
 
-  if (typeof body.onboardingCompleted === 'boolean') {
-    patch.onboardingCompleted = body.onboardingCompleted;
-  }
-
-  if (body.activeWorkspaceId === null || typeof body.activeWorkspaceId === 'string') {
-    patch.activeWorkspaceId = body.activeWorkspaceId;
-  }
-
-  if (body.botSettings && typeof body.botSettings === 'object') {
-    patch.botSettings = {};
-    if (typeof body.botSettings.showTips === 'boolean') {
-      patch.botSettings.showTips = body.botSettings.showTips;
-    }
-    if (typeof body.botSettings.autoCloseTips === 'boolean') {
-      patch.botSettings.autoCloseTips = body.botSettings.autoCloseTips;
-    }
-    if (typeof body.botSettings.autoCloseDelay === 'number' && body.botSettings.autoCloseDelay > 0) {
-      patch.botSettings.autoCloseDelay = body.botSettings.autoCloseDelay;
-    }
-  }
-
-  const data = await upsertUserPreferences(session.user.id, patch as Parameters<typeof upsertUserPreferences>[1]);
+  const data = await upsertUserPreferences(session.user.id, parsed.data);
   return NextResponse.json(data);
 }

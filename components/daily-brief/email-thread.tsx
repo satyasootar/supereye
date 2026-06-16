@@ -28,16 +28,28 @@ export function EmailThread({ emailId, subject, sender, snippet, threadId, onClo
 
   const handleSendReply = async () => {
     if (!replyText.trim()) return;
+    if (!threadId) {
+      console.error('Missing thread id for reply');
+      return;
+    }
     setIsSending(true);
     try {
       const res = await fetch(`/api/mail/${emailId}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ replyText, threadId, to: sender, subject })
+        body: JSON.stringify({
+          replyText: replyText.trim(),
+          threadId,
+          to: sender,
+          subject: subject || '(No Subject)',
+        }),
       });
       if (res.ok) {
         setReplyText('');
         onClose();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        console.error('Reply failed:', data.error ?? res.statusText);
       }
     } catch (error) {
       console.error('Failed to reply', error);
