@@ -39,6 +39,11 @@ export async function POST(req: Request) {
       syncGithubForUser(userId).catch(console.error)
     );
   }
+  if (connected.includes('drive')) {
+    void import('@/lib/drive/sync').then(({ syncDriveForUser }) =>
+      syncDriveForUser(userId).catch(console.error)
+    );
+  }
 
   const brief = await generateDailyBrief(userId, { force });
   return NextResponse.json({ brief });

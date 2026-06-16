@@ -32,6 +32,12 @@ function buildPrompt(payload: BriefPayload): string {
       `${payload.github.stats.openIssues} open issues across ${payload.github.stats.repoCount} repos`
     );
   }
+  if (connected.has('drive') && payload.drive) {
+    statParts.push(
+      `${payload.drive.stats.recentCount} recent files`,
+      `${payload.drive.stats.starredCount} starred files`
+    );
+  }
 
   if (connected.has('calendar')) {
     const eventLines = payload.todayEvents
@@ -79,6 +85,18 @@ function buildPrompt(payload: BriefPayload): string {
     sections.push(`GitHub — needs attention:\n${githubLines || '(none)'}`);
   }
 
+  if (connected.has('drive') && payload.drive) {
+    const driveLines = payload.drive.attentionItems
+      .slice(0, 6)
+      .map((item) => {
+        const type = item.isFolder ? 'Folder' : 'File';
+        const starred = item.starred ? ' (starred)' : '';
+        return `- [${type}] ${item.name}${starred}`;
+      })
+      .join('\n');
+    sections.push(`Google Drive — recent & starred:\n${driveLines || '(none)'}`);
+  }
+
   const connectedLabels = payload.plugins
     .filter((p) => p.connected)
     .map((p) => p.label)
@@ -97,7 +115,7 @@ ${statParts.length > 0 ? `Stats: ${statParts.join(', ')}.` : ''}
 
 ${sections.join('\n\n')}
 
-Mention join links for imminent meetings when relevant. Mention open PRs or issues when GitHub is connected. Do not invent emails, events, or GitHub items not listed. Do not mention Gmail, Calendar, or GitHub if that integration is not connected.`;
+Mention join links for imminent meetings when relevant. Mention open PRs or issues when GitHub is connected. Mention recently modified or starred Drive files when Drive is connected. Do not invent emails, events, GitHub items, or Drive files not listed. Do not mention Gmail, Calendar, GitHub, or Drive if that integration is not connected.`;
 }
 
 export async function generateDailyBrief(
@@ -168,6 +186,10 @@ export async function generateDailyBrief(
     } else if (connected.has('github') && payload.github) {
       parts.push(
         `GitHub: ${payload.github.stats.openPulls} open PR(s) and ${payload.github.stats.openIssues} open issue(s) across your repos.`
+      );
+    } else if (connected.has('drive') && payload.drive) {
+      parts.push(
+        `Drive: ${payload.drive.stats.recentCount} recently modified file(s) and ${payload.drive.stats.starredCount} starred item(s).`
       );
     } else {
       parts.push('Connect your plugins to get a personalized daily brief.');

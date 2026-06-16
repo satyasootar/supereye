@@ -60,6 +60,7 @@ export type BriefActionItem = {
 export function inferActionSourcePlugin(action: BriefActionItem): PluginId | null {
   if (action.sourcePlugin) return action.sourcePlugin;
   if (action.id.startsWith('github-')) return 'github';
+  if (action.id.startsWith('drive-')) return 'drive';
   if (action.id.startsWith('join-') || action.id.startsWith('prep-')) return 'calendar';
   if (
     action.id.startsWith('urgent-') ||
@@ -121,6 +122,24 @@ export type BriefGithubData = {
   attentionItems: BriefGithubItem[];
 };
 
+export type BriefDriveItem = {
+  id: string;
+  name: string;
+  isFolder: boolean;
+  modifiedTime: string | null;
+  webViewLink: string | null;
+  fileExtension: string | null;
+  starred: boolean;
+};
+
+export type BriefDriveData = {
+  stats: {
+    recentCount: number;
+    starredCount: number;
+  };
+  attentionItems: BriefDriveItem[];
+};
+
 export type BriefPayload = {
   generatedAt: string;
   briefDate: string;
@@ -135,6 +154,7 @@ export type BriefPayload = {
   plugins: ActivePluginStatus[];
   connectedPluginIds: PluginId[];
   github: BriefGithubData | null;
+  drive: BriefDriveData | null;
   stats: {
     unreadInbox: number;
     meetingsToday: number;
@@ -143,5 +163,7 @@ export type BriefPayload = {
     openPulls: number;
     openIssues: number;
     repoCount: number;
+    recentFiles: number;
+    starredFiles: number;
   };
 };

@@ -4,12 +4,14 @@ import { calendarEvents, dailyBriefs, emailEventLinks, emails } from '@/lib/db/s
 import { getTriageSummary } from '@/lib/mail/triage';
 import { getActivePluginStatuses, getConnectedPluginIds } from '@/lib/plugins/integrations';
 import { extractMeetUrlFromLocation } from './extract-links';
+import { fetchBriefDriveData } from './drive-data';
 import { fetchBriefGithubData } from './github-data';
 import { ensureEmailInsightsForUser } from './insights';
 import type {
   BriefActionItem,
   BriefEmailInsight,
   BriefEventItem,
+  BriefDriveItem,
   BriefGithubItem,
   BriefPayload,
   EmailInsightCategory,
@@ -45,7 +47,8 @@ function buildActionItems(
   urgentEmails: BriefEmailInsight[],
   todayEvents: BriefEventItem[],
   otpEmails: BriefEmailInsight[],
-  githubItems: BriefGithubItem[] = []
+  githubItems: BriefGithubItem[] = [],
+  driveItems: BriefDriveItem[] = []
 ): BriefActionItem[] {
   const items: BriefActionItem[] = [];
   const now = Date.now();
@@ -140,6 +143,19 @@ function buildActionItems(
     });
   }
 
+  for (const item of driveItems.slice(0, 3)) {
+    const label = item.isFolder ? 'Open folder' : 'Open file';
+    items.push({
+      id: `drive-${item.id}`,
+      kind: 'read_email',
+      title: `${label}: ${item.name}`,
+      description: item.starred ? 'Starred in Drive' : 'Recently modified',
+      priority: item.starred ? 60 : 55,
+      sourcePlugin: 'drive',
+      href: item.webViewLink ?? undefined,
+    });
+  }
+
   return items.sort((a, b) => b.priority - a.priority).slice(0, 12);
 }
 
@@ -152,6 +168,7 @@ export async function buildBriefPayload(
   const hasEmail = connectedPluginIds.includes('email');
   const hasCalendar = connectedPluginIds.includes('calendar');
   const hasGithub = connectedPluginIds.includes('github');
+  const hasDrive = connectedPluginIds.includes('drive');
 
   if (hasEmail && !options?.skipInsightScan) {
     await ensureEmailInsightsForUser(userId);
@@ -259,6 +276,7 @@ export async function buildBriefPayload(
   }
 
   const github = hasGithub ? await fetchBriefGithubData(userId) : null;
+  const drive = hasDrive ? await fetchBriefDriveData(userId) : null;
 
   const otpEmails = emailsByCategory.otp ?? [];
   const bankEmails = emailsByCategory.bank ?? [];
@@ -267,7 +285,8 @@ export async function buildBriefPayload(
     urgentEmails,
     todayEvents,
     [...otpEmails, ...(emailsByCategory.meeting ?? [])],
-    github?.attentionItems ?? []
+    github?.attentionItems ?? [],
+    drive?.attentionItems ?? []
   );
 
   const hour = new Date().getHours();
@@ -286,6 +305,7 @@ export async function buildBriefPayload(
     plugins,
     connectedPluginIds,
     github,
+    drive,
     stats: {
       unreadInbox: hasEmail ? unreadCount : 0,
       meetingsToday: hasCalendar ? todayEvents.length : 0,
@@ -294,6 +314,8 @@ export async function buildBriefPayload(
       openPulls: github?.stats.openPulls ?? 0,
       openIssues: github?.stats.openIssues ?? 0,
       repoCount: github?.stats.repoCount ?? 0,
+      recentFiles: drive?.stats.recentCount ?? 0,
+      starredFiles: drive?.stats.starredCount ?? 0,
     },
   };
 }

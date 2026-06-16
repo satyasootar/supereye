@@ -22,12 +22,16 @@ import {
   Loader2,
   GitPullRequest,
   CircleDot,
+  HardDrive,
+  Star,
+  Folder,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useSSE } from '@/hooks/use-sse';
 import { useAppStore } from '@/lib/store/app-store';
-import type { BriefActionItem, BriefEmailInsight, BriefEventItem, BriefGithubItem, BriefPayload } from '@/lib/brief/types';
+import type { BriefActionItem, BriefDriveItem, BriefEmailInsight, BriefEventItem, BriefGithubItem, BriefPayload } from '@/lib/brief/types';
 import { inferActionSourcePlugin } from '@/lib/brief/types';
 import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
 import { INSIGHT_CATEGORY_LABELS } from '@/lib/brief/types';
@@ -245,6 +249,45 @@ function GithubItemRow({ item }: { item: BriefGithubItem }) {
   );
 }
 
+function DriveItemRow({ item }: { item: BriefDriveItem }) {
+  const Icon = item.isFolder ? Folder : FileText;
+  const modified = item.modifiedTime
+    ? new Date(item.modifiedTime).toLocaleDateString([], { month: 'short', day: 'numeric' })
+    : null;
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-border-subtle bg-bg-elevated/40 px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          {item.starred && (
+            <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+              Starred
+            </span>
+          )}
+          {item.fileExtension && !item.isFolder && (
+            <span className="rounded-md bg-bg-surface px-1.5 py-0.5 text-[10px] uppercase text-text-muted">
+              {item.fileExtension}
+            </span>
+          )}
+        </div>
+        <p className="mt-1 truncate text-sm font-medium text-text-primary">{item.name}</p>
+        <p className="truncate text-xs text-text-muted">
+          {item.isFolder ? 'Folder' : 'File'}
+          {modified ? ` · modified ${modified}` : ''}
+        </p>
+      </div>
+      {item.webViewLink ? (
+        <Button size="sm" variant="outline" asChild>
+          <a href={item.webViewLink} target="_blank" rel="noopener noreferrer" className="gap-1.5">
+            <Icon className="h-3.5 w-3.5" />
+            Open
+          </a>
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 function Section({
   title,
   icon: Icon,
@@ -337,6 +380,9 @@ export function BriefDashboard() {
         if (connected.includes('github')) {
           syncTasks.push(fetch('/api/github/sync', { method: 'POST' }).then(() => undefined));
         }
+        if (connected.includes('drive')) {
+          syncTasks.push(fetch('/api/drive/sync', { method: 'POST' }).then(() => undefined));
+        }
 
         await Promise.all(syncTasks);
 
@@ -375,6 +421,7 @@ export function BriefDashboard() {
   const hasEmail = connected.has('email');
   const hasCalendar = connected.has('calendar');
   const hasGithub = connected.has('github');
+  const hasDrive = connected.has('drive');
   const loadedActionItems = useMemo(() => brief?.actionItems ?? [], [brief?.actionItems]);
 
   useEffect(() => {
@@ -487,7 +534,7 @@ export function BriefDashboard() {
           {brief && (
             <>
               {/* Stats — only for connected plugins */}
-              {(hasEmail || hasCalendar || hasGithub) && (
+              {(hasEmail || hasCalendar || hasGithub || hasDrive) && (
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                   {hasEmail && (
                     <>
@@ -532,6 +579,22 @@ export function BriefDashboard() {
                       />
                     </>
                   )}
+                  {hasDrive && brief.drive && (
+                    <>
+                      <StatChip
+                        label="Recent files"
+                        value={brief.drive.stats.recentCount}
+                        icon={HardDrive}
+                        accent="bg-sky-500/10 text-sky-400"
+                      />
+                      <StatChip
+                        label="Starred"
+                        value={brief.drive.stats.starredCount}
+                        icon={Star}
+                        accent="bg-amber-500/10 text-amber-400"
+                      />
+                    </>
+                  )}
                 </div>
               )}
 
@@ -544,7 +607,7 @@ export function BriefDashboard() {
                 <p className="mt-2 max-w-3xl text-base leading-relaxed text-text-primary">
                   {brief.narrative ??
                     (connected.size === 0
-                      ? 'Connect Gmail, Calendar, or GitHub in settings, then tap “AI summary” for a personalized plan.'
+                      ? 'Connect Gmail, Calendar, GitHub, or Drive in settings, then tap “AI summary” for a personalized plan.'
                       : 'Tap “AI summary” to generate a personalized plan based on your connected plugins.')}
                 </p>
                 {generateMutation.isError && (
@@ -693,6 +756,18 @@ export function BriefDashboard() {
                         key={`${item.kind}-${item.repoFullName}-${item.number}`}
                         item={item}
                       />
+                    ))}
+                  </Section>
+                )}
+
+                {hasDrive && brief.drive && (
+                  <Section
+                    title="Drive — recent files"
+                    icon={HardDrive}
+                    empty="No recent or starred files in Drive."
+                  >
+                    {brief.drive.attentionItems.map((item) => (
+                      <DriveItemRow key={item.id} item={item} />
                     ))}
                   </Section>
                 )}
