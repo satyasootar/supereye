@@ -1,9 +1,9 @@
 import { randomBytes, scrypt, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
 
-const scryptAsync = promisify(scrypt);
+import { MIN_PASSWORD_LENGTH } from './password-constants';
 
-export const MIN_PASSWORD_LENGTH = 8;
+const scryptAsync = promisify(scrypt);
 const SALT_LENGTH = 16;
 const KEY_LENGTH = 64;
 

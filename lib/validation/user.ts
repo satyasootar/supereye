@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { emailSchema, uuidSchema } from './common';
-import { MIN_PASSWORD_LENGTH } from '@/lib/auth/password';
+import { MIN_PASSWORD_LENGTH } from '@/lib/auth/password-constants';
 
 export const botSettingsSchema = z.object({
   showTips: z.boolean().optional(),

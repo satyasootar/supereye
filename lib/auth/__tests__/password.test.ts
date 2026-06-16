@@ -4,8 +4,8 @@ import {
   validatePassword,
   hashPassword,
   verifyPassword,
-  MIN_PASSWORD_LENGTH,
 } from '../password.ts';
+import { MIN_PASSWORD_LENGTH } from '../password-constants.ts';
 
 describe('auth password', () => {
   it('enforces minimum length', () => {

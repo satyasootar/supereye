@@ -6,13 +6,108 @@ import {
   CheckSquare, Printer, Clock, MoreHorizontal, ChevronUp, ChevronDown, ChevronsRight, MailOpen, X, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { EmailComposer } from './email-composer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+function formatEmailDate(value: unknown): string {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value as string | number);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function buildEmailIframeHtml(body: string, isDark: boolean): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+    :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
+    html, body {
+      background-color: transparent !important;
+      color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      word-wrap: break-word;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    * { box-sizing: border-box; }
+    a { color: #3b82f6 !important; }
+    img { background-color: transparent !important; max-width: 100% !important; height: auto !important; display: block; }
+    table { max-width: 100% !important; }
+  </style></head><body>${body}</body></html>`;
+}
+
+function EmailBodyIframe({ body, isDark }: { body: string; isDark: boolean }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const resize = useCallback(() => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc || !iframeRef.current) return;
+    const height = Math.max(doc.body?.scrollHeight ?? 0, doc.documentElement?.scrollHeight ?? 0);
+    if (height > 0) {
+      iframeRef.current.style.height = `${height}px`;
+    }
+  }, []);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    let observer: ResizeObserver | null = null;
+    const imageCleanups: Array<() => void> = [];
+
+    const handleLoad = () => {
+      resize();
+      const doc = iframe.contentDocument;
+      if (!doc?.body) return;
+
+      doc.querySelectorAll('img').forEach((img) => {
+        const onChange = () => resize();
+        img.addEventListener('load', onChange);
+        img.addEventListener('error', onChange);
+        imageCleanups.push(() => {
+          img.removeEventListener('load', onChange);
+          img.removeEventListener('error', onChange);
+        });
+      });
+
+      observer = new ResizeObserver(() => resize());
+      observer.observe(doc.body);
+    };
+
+    iframe.addEventListener('load', handleLoad);
+    if (iframe.contentDocument?.readyState === 'complete') {
+      handleLoad();
+    }
+
+    return () => {
+      iframe.removeEventListener('load', handleLoad);
+      observer?.disconnect();
+      imageCleanups.forEach((cleanup) => cleanup());
+    };
+  }, [body, resize]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      srcDoc={buildEmailIframeHtml(body, isDark)}
+      className="w-full border-none bg-transparent"
+      style={{ height: 150, minHeight: 80 }}
+      sandbox="allow-same-origin"
+      title="Email message body"
+      scrolling="no"
+    />
+  );
+}
 
 export function EmailReader() {
   const selectedEmailId = useAppStore(state => state.selectedEmailId);
@@ -376,7 +471,7 @@ export function EmailReader() {
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-[12px] text-text-secondary font-medium whitespace-nowrap">
-                      {new Date(email.internalDate).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      {formatEmailDate(email.date ?? email.internalDate)}
                     </span>
                     <div className="flex items-center gap-1">
                       <button onClick={() => setReplyMessageId(email.id)} className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-bg-overlay rounded transition-colors" title="Reply">
@@ -392,29 +487,7 @@ export function EmailReader() {
                 {/* Message Body */}
                 <div className="py-4 text-[14px] leading-[1.6] text-text-primary font-sans">
                   {email.body ? (
-                    <iframe
-                      srcDoc={`<style>
-                                    :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
-                                    body, html { 
-                                      background-color: transparent !important; 
-                                      color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; 
-                                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-                                      line-height: 1.6; 
-                                      word-wrap: break-word; 
-                                      margin: 0; 
-                                      padding: 0; 
-                                      -ms-overflow-style: none;
-                                      scrollbar-width: none;
-                                    }
-                                    body::-webkit-scrollbar, html::-webkit-scrollbar { display: none; }
-                                    * { background-color: transparent !important; color: ${isDark ? '#F2F4F7' : '#1A1D24'} !important; border-color: ${isDark ? '#2A2D35' : '#E2E8F0'} !important; }
-                                    a { color: #3b82f6 !important; }
-                                    img { background-color: transparent !important; max-width: 100%; height: auto; }
-                                  </style>${email.body}`}
-                      className="w-full min-h-[150px] border-none bg-transparent"
-                      sandbox=""
-                      title="Email message body"
-                    />
+                    <EmailBodyIframe body={email.body} isDark={isDark} />
                   ) : (
                     <p className="whitespace-pre-wrap break-words text-text-secondary">{email.snippet}</p>
                   )}
@@ -445,8 +518,8 @@ export function EmailReader() {
                   <div className="pt-2 pb-4">
                     <EmailComposer
                       onClose={() => setReplyMessageId(null)}
-                      defaultTo={email.fromAddress}
-                      emailId={email.googleMessageId}
+                      defaultTo={email.fromAddress ?? email.sender}
+                      emailId={email.googleMessageId ?? email.id}
                       threadId={email.threadId}
                       subject={email.subject}
                     />

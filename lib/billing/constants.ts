@@ -35,6 +35,7 @@ export const DEFAULT_TOKEN_ACTION_COSTS = [
   { actionKey: 'ai_email_draft', displayName: 'AI Email Draft', tokenCost: 120 },
   { actionKey: 'ai_email_summary', displayName: 'AI Email Summary', tokenCost: 40 },
   { actionKey: 'ai_email_triage', displayName: 'AI Email Triage', tokenCost: 25 },
+  { actionKey: 'ai_daily_brief', displayName: 'AI Daily Brief', tokenCost: 80 },
   { actionKey: 'ai_agent_action', displayName: 'AI Agent Action', tokenCost: 80 },
   { actionKey: 'ai_automation', displayName: 'AI Automation Task', tokenCost: 200 },
   { actionKey: 'ai_suggestion', displayName: 'AI Suggestion', tokenCost: 20 },
@@ -53,6 +54,7 @@ export const USAGE_FEATURE_TO_ACTION: Record<string, string> = {
   chat: 'ai_chat',
   chat_summary: 'ai_chat_summary',
   email_triage: 'ai_email_triage',
+  daily_brief: 'ai_daily_brief',
   transcribe: 'ai_transcribe',
   agent_email_send: 'ai_email_draft',
 };

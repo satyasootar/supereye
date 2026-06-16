@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { MIN_PASSWORD_LENGTH } from '@/lib/auth/password';
+import { MIN_PASSWORD_LENGTH } from '@/lib/auth/password-constants';
 
 export function ResetPasswordForm() {
   const router = useRouter();

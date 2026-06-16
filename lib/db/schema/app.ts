@@ -50,6 +50,27 @@ export const emails = pgTable(
     priorityClassifiedAt: timestamp('priority_classified_at', {
       withTimezone: true,
     }),
+    insightCategory: text('insight_category').$type<
+      | 'action_required'
+      | 'meeting'
+      | 'otp'
+      | 'bank'
+      | 'delivery'
+      | 'invoice'
+      | 'social'
+      | 'newsletter'
+      | 'fyi'
+    >(),
+    insightSummary: text('insight_summary'),
+    extractedLinks: jsonb('extracted_links').$type<
+      { type: string; url: string; label?: string }[]
+    >(),
+    extractedOtps: jsonb('extracted_otps').$type<
+      { code: string; label?: string }[]
+    >(),
+    insightClassifiedAt: timestamp('insight_classified_at', {
+      withTimezone: true,
+    }),
     syncedAt: timestamp('synced_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -327,5 +348,29 @@ export const aiUsageEvents = pgTable(
     index('idx_ai_usage_user_id').on(table.userId),
     index('idx_ai_usage_feature').on(table.userId, table.feature),
     index('idx_ai_usage_created_at').on(table.createdAt),
+  ]
+);
+
+// ─── AI Daily Brief cache ───────────────────────────────────────────────
+export const dailyBriefs = pgTable(
+  'daily_briefs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    briefDate: text('brief_date').notNull(), // YYYY-MM-DD in user TZ
+    narrative: text('narrative'),
+    snapshot: jsonb('snapshot').$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique('uq_daily_briefs_user_date').on(table.userId, table.briefDate),
+    index('idx_daily_briefs_user_id').on(table.userId),
   ]
 );

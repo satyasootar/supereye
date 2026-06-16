@@ -14,6 +14,7 @@ export type SSEEventType =
   // Email
   | 'email:updated'
   | 'email:triage'
+  | 'brief:updated'
   // Calendar
   | 'calendar:updated'
   // Notifications
@@ -33,9 +34,10 @@ export type SSEEvent = {
 // This centralizes the "what to refresh when X happens" logic so the
 // SSE hook doesn't need a growing if/else chain.
 export const SSE_INVALIDATION_MAP: Record<SSEEventType, string[][]> = {
-  'email:updated': [['mail-threads'], ['emails', 'threads'], ['emails', 'unread-count']],
-  'email:triage': [['emails', 'threads'], ['emails', 'triage']],
-  'calendar:updated': [['calendar-events'], ['calendar', 'events']],
+  'email:updated': [['mail-threads'], ['emails', 'threads'], ['emails', 'unread-count'], ['brief', 'today']],
+  'email:triage': [['emails', 'threads'], ['emails', 'triage'], ['brief', 'today']],
+  'brief:updated': [['brief', 'today']],
+  'calendar:updated': [['calendar-events'], ['calendar', 'events'], ['brief', 'today']],
   'notification:new': [['notifications']],
   'sync:requested': [['mail-threads'], ['emails', 'threads'], ['emails', 'unread-count'], ['calendar-events'], ['calendar', 'events']],
 };

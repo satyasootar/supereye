@@ -82,15 +82,19 @@ export async function GET(
 
       parsedMessages.push({
         id: m.id,
+        googleMessageId: m.id,
         snippet: m.snippet,
         body: bodyStr,
         subject,
         sender,
+        fromAddress: sender,
         isRead,
         isStarred,
-        isLinkedToEvent: false, // Could hydrate from DB if needed
+        isLinkedToEvent: false,
         date: internalDate,
-        toAddresses
+        internalDate,
+        threadId: m.threadId,
+        toAddresses,
       });
     }
 
