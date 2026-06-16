@@ -73,6 +73,10 @@ describe('validation user', () => {
       preferencesPatchSchema.safeParse({ onboardingCompleted: true }).success,
       true
     );
+    assert.equal(
+      preferencesPatchSchema.safeParse({ keybindingsEnabled: false }).success,
+      true
+    );
     assert.equal(preferencesPatchSchema.safeParse({}).success, false);
   });
 

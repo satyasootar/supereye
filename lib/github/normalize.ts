@@ -1,4 +1,12 @@
-import type { GithubIssue, GithubPullRequest, GithubRepo } from '@/lib/github/types';
+import type {
+  GithubBranch,
+  GithubCommit,
+  GithubIssue,
+  GithubPullRequest,
+  GithubRelease,
+  GithubRepo,
+  GithubWorkflowRun,
+} from '@/lib/github/types';
 
 function parseLabel(label: unknown): string {
   if (typeof label === 'string') return label;
@@ -7,6 +15,21 @@ function parseLabel(label: unknown): string {
     return name ?? '';
   }
   return '';
+}
+
+function parseUser(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return null;
+  const u = raw as { login?: string; avatarUrl?: string; avatar_url?: string };
+  return {
+    login: u.login ?? null,
+    avatar: u.avatarUrl ?? u.avatar_url ?? null,
+  };
+}
+
+function parseDate(raw: unknown): string | null {
+  if (!raw) return null;
+  const d = new Date(String(raw));
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 export function normalizeRepo(raw: Record<string, unknown>): GithubRepo {
@@ -30,16 +53,10 @@ export function normalizeRepo(raw: Record<string, unknown>): GithubRepo {
         ? String(raw.default_branch)
         : null,
     openIssuesCount: Number(raw.openIssuesCount ?? raw.open_issues_count ?? 0),
-    updatedAt: raw.updatedAt
-      ? new Date(String(raw.updatedAt)).toISOString()
-      : raw.updated_at
-        ? new Date(String(raw.updated_at)).toISOString()
-        : null,
-    pushedAt: raw.pushedAt
-      ? new Date(String(raw.pushedAt)).toISOString()
-      : raw.pushed_at
-        ? new Date(String(raw.pushed_at)).toISOString()
-        : null,
+    stargazersCount: Number(raw.stargazersCount ?? raw.stargazers_count ?? 0),
+    forksCount: Number(raw.forksCount ?? raw.forks_count ?? 0),
+    updatedAt: parseDate(raw.updatedAt ?? raw.updated_at),
+    pushedAt: parseDate(raw.pushedAt ?? raw.pushed_at),
   };
 }
 
@@ -48,14 +65,15 @@ export function normalizePullRequest(
   owner: string,
   repo: string
 ): GithubPullRequest {
-  const user =
-    raw.user && typeof raw.user === 'object'
-      ? (raw.user as { login?: string; avatarUrl?: string; avatar_url?: string })
+  const user = parseUser(raw.user);
+  const head =
+    raw.head && typeof raw.head === 'object'
+      ? (raw.head as { ref?: string })
       : null;
-
-  const labels = Array.isArray(raw.labels)
-    ? raw.labels.map(parseLabel).filter(Boolean)
-    : [];
+  const base =
+    raw.base && typeof raw.base === 'object'
+      ? (raw.base as { ref?: string })
+      : null;
 
   return {
     id: Number(raw.id),
@@ -70,18 +88,17 @@ export function normalizePullRequest(
     owner,
     repo,
     authorLogin: user?.login ?? null,
-    authorAvatar: user?.avatarUrl ?? user?.avatar_url ?? null,
-    createdAt: raw.createdAt
-      ? new Date(String(raw.createdAt)).toISOString()
-      : raw.created_at
-        ? new Date(String(raw.created_at)).toISOString()
-        : null,
-    updatedAt: raw.updatedAt
-      ? new Date(String(raw.updatedAt)).toISOString()
-      : raw.updated_at
-        ? new Date(String(raw.updated_at)).toISOString()
-        : null,
-    labels,
+    authorAvatar: user?.avatar ?? null,
+    createdAt: parseDate(raw.createdAt ?? raw.created_at),
+    updatedAt: parseDate(raw.updatedAt ?? raw.updated_at),
+    labels: Array.isArray(raw.labels) ? raw.labels.map(parseLabel).filter(Boolean) : [],
+    additions: raw.additions != null ? Number(raw.additions) : undefined,
+    deletions: raw.deletions != null ? Number(raw.deletions) : undefined,
+    changedFiles: raw.changedFiles != null ? Number(raw.changedFiles) : raw.changed_files != null ? Number(raw.changed_files) : undefined,
+    comments: raw.comments != null ? Number(raw.comments) : undefined,
+    reviewComments: raw.reviewComments != null ? Number(raw.reviewComments) : raw.review_comments != null ? Number(raw.review_comments) : undefined,
+    headRef: head?.ref ?? null,
+    baseRef: base?.ref ?? null,
   };
 }
 
@@ -90,14 +107,7 @@ export function normalizeIssue(
   owner: string,
   repo: string
 ): GithubIssue {
-  const user =
-    raw.user && typeof raw.user === 'object'
-      ? (raw.user as { login?: string; avatarUrl?: string; avatar_url?: string })
-      : null;
-
-  const labels = Array.isArray(raw.labels)
-    ? raw.labels.map(parseLabel).filter(Boolean)
-    : [];
+  const user = parseUser(raw.user);
 
   return {
     id: Number(raw.id),
@@ -110,18 +120,91 @@ export function normalizeIssue(
     owner,
     repo,
     authorLogin: user?.login ?? null,
-    authorAvatar: user?.avatarUrl ?? user?.avatar_url ?? null,
-    createdAt: raw.createdAt
-      ? new Date(String(raw.createdAt)).toISOString()
-      : raw.created_at
-        ? new Date(String(raw.created_at)).toISOString()
-        : null,
-    updatedAt: raw.updatedAt
-      ? new Date(String(raw.updatedAt)).toISOString()
-      : raw.updated_at
-        ? new Date(String(raw.updated_at)).toISOString()
-        : null,
-    labels,
+    authorAvatar: user?.avatar ?? null,
+    createdAt: parseDate(raw.createdAt ?? raw.created_at),
+    updatedAt: parseDate(raw.updatedAt ?? raw.updated_at),
+    labels: Array.isArray(raw.labels) ? raw.labels.map(parseLabel).filter(Boolean) : [],
     comments: Number(raw.comments ?? 0),
   };
+}
+
+export function normalizeCommit(
+  raw: Record<string, unknown>,
+  owner: string,
+  repo: string
+): GithubCommit {
+  const author = parseUser(raw.author);
+  const commit =
+    raw.commit && typeof raw.commit === 'object'
+      ? (raw.commit as { message?: string; author?: { date?: string } })
+      : null;
+
+  return {
+    sha: String(raw.sha ?? ''),
+    message: String(commit?.message ?? raw.message ?? '').split('\n')[0] ?? '',
+    htmlUrl: raw.htmlUrl ? String(raw.htmlUrl) : raw.html_url ? String(raw.html_url) : null,
+    authorLogin: author?.login ?? null,
+    authorAvatar: author?.avatar ?? null,
+    committedAt: parseDate(commit?.author?.date ?? raw.committedAt ?? raw.committed_at),
+    repoFullName: `${owner}/${repo}`,
+    owner,
+    repo,
+  };
+}
+
+export function normalizeRelease(
+  raw: Record<string, unknown>,
+  owner: string,
+  repo: string
+): GithubRelease {
+  return {
+    id: Number(raw.id),
+    tagName: String(raw.tagName ?? raw.tag_name ?? ''),
+    name: raw.name != null ? String(raw.name) : null,
+    body: raw.body != null ? String(raw.body) : null,
+    htmlUrl: raw.htmlUrl ? String(raw.htmlUrl) : raw.html_url ? String(raw.html_url) : null,
+    draft: Boolean(raw.draft),
+    prerelease: Boolean(raw.prerelease),
+    publishedAt: parseDate(raw.publishedAt ?? raw.published_at),
+    repoFullName: `${owner}/${repo}`,
+    owner,
+    repo,
+  };
+}
+
+export function normalizeWorkflowRun(
+  raw: Record<string, unknown>,
+  owner: string,
+  repo: string
+): GithubWorkflowRun {
+  return {
+    id: Number(raw.id),
+    name: String(raw.name ?? raw.displayTitle ?? raw.display_title ?? 'Workflow'),
+    status: raw.status != null ? String(raw.status) : null,
+    conclusion: raw.conclusion != null ? String(raw.conclusion) : null,
+    htmlUrl: raw.htmlUrl ? String(raw.htmlUrl) : raw.html_url ? String(raw.html_url) : null,
+    branch: raw.headBranch ? String(raw.headBranch) : raw.head_branch ? String(raw.head_branch) : null,
+    event: raw.event != null ? String(raw.event) : null,
+    createdAt: parseDate(raw.createdAt ?? raw.created_at),
+    updatedAt: parseDate(raw.updatedAt ?? raw.updated_at),
+    repoFullName: `${owner}/${repo}`,
+    owner,
+    repo,
+  };
+}
+
+export function normalizeBranch(raw: Record<string, unknown>): GithubBranch {
+  const commit =
+    raw.commit && typeof raw.commit === 'object'
+      ? (raw.commit as { sha?: string })
+      : null;
+  return {
+    name: String(raw.name ?? ''),
+    protected: Boolean(raw.protected),
+    sha: commit?.sha ?? null,
+  };
+}
+
+export function isPullRequestIssue(raw: Record<string, unknown>) {
+  return Boolean(raw.pull_request);
 }

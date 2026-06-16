@@ -17,15 +17,19 @@ function KeyboardEngineInner() {
   useAgentKeybindings();
 
   const { isCommandPaletteOpen, isAgentOpen } = useAppStore();
-  const { isCheatSheetOpen, hydrateOverridesFromServer } = useKeyboardStore();
+  const { isCheatSheetOpen, hydrateOverridesFromServer, hydrateKeybindingsPreferenceFromServer } =
+    useKeyboardStore();
 
   useEffect(() => {
     keybindingRegistry.register(DEFAULT_KEYBINDINGS);
 
-    void hydrateOverridesFromServer().then(() => {
+    void Promise.all([
+      hydrateKeybindingsPreferenceFromServer(),
+      hydrateOverridesFromServer(),
+    ]).then(() => {
       keybindingRegistry.setOverrides(useKeyboardStore.getState().overrides);
     });
-  }, [hydrateOverridesFromServer]);
+  }, [hydrateOverridesFromServer, hydrateKeybindingsPreferenceFromServer]);
 
   useEffect(() => {
     const anyModalOpen =

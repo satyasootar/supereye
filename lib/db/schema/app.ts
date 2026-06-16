@@ -324,6 +324,7 @@ export const userPreferences = pgTable('user_preferences', {
     autoCloseTips: false,
     autoCloseDelay: 5000,
   }),
+  keybindingsEnabled: boolean('keybindings_enabled').notNull().default(true),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .defaultNow(),

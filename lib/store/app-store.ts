@@ -10,6 +10,9 @@ import type { PluginId } from '@/lib/plugins/types';
 export type TabId = 'email';
 export type WorkspaceMode = 'email' | 'calendar' | 'github';
 export type GithubView = 'pulls' | 'issues';
+export type GithubSection = 'overview' | 'inbox' | 'repo';
+export type GithubRepoTab = 'pulls' | 'issues' | 'commits' | 'releases' | 'actions';
+export type GithubInboxFilter = 'all' | 'pulls' | 'issues';
 
 export type AgentMessage = {
   id: string;
@@ -70,6 +73,9 @@ interface AppState {
   calendarView: 'Month' | 'Week' | 'Day' | 'Year';
   currentDateStr: string;
   githubView: GithubView;
+  githubSection: GithubSection;
+  githubRepoTab: GithubRepoTab;
+  githubInboxFilter: GithubInboxFilter;
   selectedGithubRepo: string | null;
   selectedGithubItemKey: string | null;
   isAgentOpen: boolean;
@@ -103,8 +109,22 @@ interface AppState {
   setCalendarView: (view: 'Month' | 'Week' | 'Day' | 'Year') => void;
   setCurrentDateStr: (dateStr: string) => void;
   setGithubView: (view: GithubView) => void;
+  setGithubSection: (section: GithubSection) => void;
+  setGithubRepoTab: (tab: GithubRepoTab) => void;
+  setGithubInboxFilter: (filter: GithubInboxFilter) => void;
   setSelectedGithubRepo: (repo: string | null) => void;
   setSelectedGithubItemKey: (key: string | null) => void;
+  openGithubRepo: (repoFullName: string, tab?: GithubRepoTab) => void;
+  openGithubItem: (params: {
+    repoFullName: string;
+    kind: 'pull' | 'issue';
+    number: number;
+  }) => void;
+  focusGithubInboxItem: (params: {
+    repoFullName: string;
+    kind: 'pull' | 'issue';
+    number: number;
+  }) => void;
   setAgentOpen: (open: boolean) => void;
   addAgentMessage: (msg: AgentMessage) => void;
   setAgentMessages: (messages: AgentMessage[]) => void;
@@ -140,6 +160,9 @@ export const useAppStore = create<AppState>()(
       calendarView: 'Month',
       currentDateStr: new Date().toISOString(),
       githubView: 'pulls',
+      githubSection: 'overview',
+      githubRepoTab: 'pulls',
+      githubInboxFilter: 'all',
       selectedGithubRepo: null,
       selectedGithubItemKey: null,
       isAgentOpen: false,
@@ -243,9 +266,59 @@ export const useAppStore = create<AppState>()(
       setLeftSidebarCollapsed: (collapsed) => set({ leftSidebarCollapsed: collapsed }),
       setCalendarView: (view) => set({ calendarView: view }),
       setCurrentDateStr: (dateStr) => set({ currentDateStr: dateStr }),
-      setGithubView: (view) => set({ githubView: view, selectedGithubItemKey: null }),
-      setSelectedGithubRepo: (repo) => set({ selectedGithubRepo: repo, selectedGithubItemKey: null }),
+      setGithubView: (view) =>
+        set({
+          githubView: view,
+          githubRepoTab: view,
+          selectedGithubItemKey: null,
+        }),
+      setGithubSection: (section) =>
+        set({ githubSection: section, selectedGithubItemKey: null }),
+      setGithubRepoTab: (tab) =>
+        set((state) => ({
+          githubRepoTab: tab,
+          ...(tab === 'pulls' || tab === 'issues' ? { githubView: tab } : {}),
+          selectedGithubItemKey: null,
+        })),
+      setGithubInboxFilter: (filter) =>
+        set({ githubInboxFilter: filter, selectedGithubItemKey: null }),
+      setSelectedGithubRepo: (repo) =>
+        set((state) => ({
+          selectedGithubRepo: repo,
+          ...(repo ? { githubSection: 'repo' as const } : {}),
+          selectedGithubItemKey: null,
+        })),
       setSelectedGithubItemKey: (key) => set({ selectedGithubItemKey: key }),
+      openGithubRepo: (repoFullName, tab = 'pulls') =>
+        set({
+          githubSection: 'repo',
+          selectedGithubRepo: repoFullName,
+          githubRepoTab: tab,
+          githubView: tab === 'pulls' || tab === 'issues' ? tab : 'pulls',
+          selectedGithubItemKey: null,
+        }),
+      openGithubItem: ({ repoFullName, kind, number }) => {
+        const [owner, repo] = repoFullName.split('/');
+        const tab = kind === 'pull' ? 'pulls' : 'issues';
+        const key = `${tab}:${owner}/${repo}:${number}`;
+        set({
+          githubSection: 'repo',
+          selectedGithubRepo: repoFullName,
+          githubRepoTab: tab,
+          githubView: tab,
+          selectedGithubItemKey: key,
+        });
+      },
+      focusGithubInboxItem: ({ repoFullName, kind, number }) => {
+        const [owner, repo] = repoFullName.split('/');
+        const tab = kind === 'pull' ? 'pulls' : 'issues';
+        const key = `${tab}:${owner}/${repo}:${number}`;
+        set({
+          githubSection: 'inbox',
+          githubInboxFilter: kind === 'pull' ? 'pulls' : 'issues',
+          selectedGithubItemKey: key,
+        });
+      },
       setAgentOpen: (open) => set({ isAgentOpen: open }),
       addAgentMessage: (msg) => set((state) => ({
         agentMessages: [...state.agentMessages, msg],
@@ -315,6 +388,9 @@ export const useAppStore = create<AppState>()(
         calendarView: state.calendarView,
         currentDateStr: state.currentDateStr,
         githubView: state.githubView,
+        githubSection: state.githubSection,
+        githubRepoTab: state.githubRepoTab,
+        githubInboxFilter: state.githubInboxFilter,
         selectedGithubRepo: state.selectedGithubRepo,
         agentThreadId: state.agentThreadId,
       }),

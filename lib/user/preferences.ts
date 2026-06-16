@@ -23,6 +23,7 @@ export async function getUserPreferences(
       onboardingCompleted: false,
       activeWorkspaceId: null,
       botSettings: DEFAULT_BOT_SETTINGS,
+      keybindingsEnabled: true,
     };
   }
 
@@ -30,6 +31,7 @@ export async function getUserPreferences(
     onboardingCompleted: row.onboardingCompleted,
     activeWorkspaceId: row.activeWorkspaceId,
     botSettings: (row.botSettings as BotSettings) ?? DEFAULT_BOT_SETTINGS,
+    keybindingsEnabled: row.keybindingsEnabled ?? true,
   };
 }
 
@@ -73,6 +75,7 @@ export async function upsertUserPreferences(
       onboardingCompleted: merged.onboardingCompleted,
       activeWorkspaceId: merged.activeWorkspaceId,
       botSettings: merged.botSettings ?? DEFAULT_BOT_SETTINGS,
+      keybindingsEnabled: merged.keybindingsEnabled ?? true,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
@@ -81,6 +84,7 @@ export async function upsertUserPreferences(
         onboardingCompleted: merged.onboardingCompleted,
         activeWorkspaceId: merged.activeWorkspaceId,
         botSettings: merged.botSettings ?? DEFAULT_BOT_SETTINGS,
+        keybindingsEnabled: merged.keybindingsEnabled ?? true,
         updatedAt: new Date(),
       },
     });

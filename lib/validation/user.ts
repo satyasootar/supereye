@@ -13,6 +13,7 @@ export const preferencesPatchSchema = z
     onboardingCompleted: z.boolean().optional(),
     activeWorkspaceId: z.union([uuidSchema, z.null()]).optional(),
     botSettings: botSettingsSchema.optional(),
+    keybindingsEnabled: z.boolean().optional(),
   })
   .refine((body) => Object.keys(body).length > 0, {
     message: 'At least one preference field is required',

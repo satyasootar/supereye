@@ -21,13 +21,24 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const force = body?.force === true;
 
-  // Background sync before generating
-  void import('@/lib/mail/sync').then(({ syncGmailForUser }) =>
-    syncGmailForUser(userId).catch(console.error)
-  );
-  void import('@/lib/calendar/sync').then(({ syncCalendarForUser }) =>
-    syncCalendarForUser(userId).catch(console.error)
-  );
+  const { getConnectedPluginIds } = await import('@/lib/plugins/integrations');
+  const connected = await getConnectedPluginIds(userId);
+
+  if (connected.includes('email')) {
+    void import('@/lib/mail/sync').then(({ syncGmailForUser }) =>
+      syncGmailForUser(userId).catch(console.error)
+    );
+  }
+  if (connected.includes('calendar')) {
+    void import('@/lib/calendar/sync').then(({ syncCalendarForUser }) =>
+      syncCalendarForUser(userId).catch(console.error)
+    );
+  }
+  if (connected.includes('github')) {
+    void import('@/lib/github/sync').then(({ syncGithubForUser }) =>
+      syncGithubForUser(userId).catch(console.error)
+    );
+  }
 
   const brief = await generateDailyBrief(userId, { force });
   return NextResponse.json({ brief });

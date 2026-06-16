@@ -2,13 +2,15 @@ import { and, asc, eq, gte, lte, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { calendarEvents, dailyBriefs, emailEventLinks, emails } from '@/lib/db/schema';
 import { getTriageSummary } from '@/lib/mail/triage';
-import { getActivePluginStatuses } from '@/lib/plugins/integrations';
+import { getActivePluginStatuses, getConnectedPluginIds } from '@/lib/plugins/integrations';
 import { extractMeetUrlFromLocation } from './extract-links';
+import { fetchBriefGithubData } from './github-data';
 import { ensureEmailInsightsForUser } from './insights';
 import type {
   BriefActionItem,
   BriefEmailInsight,
   BriefEventItem,
+  BriefGithubItem,
   BriefPayload,
   EmailInsightCategory,
 } from './types';
@@ -42,7 +44,8 @@ function mapEmailRow(row: typeof emails.$inferSelect): BriefEmailInsight {
 function buildActionItems(
   urgentEmails: BriefEmailInsight[],
   todayEvents: BriefEventItem[],
-  otpEmails: BriefEmailInsight[]
+  otpEmails: BriefEmailInsight[],
+  githubItems: BriefGithubItem[] = []
 ): BriefActionItem[] {
   const items: BriefActionItem[] = [];
   const now = Date.now();
@@ -62,6 +65,7 @@ function buildActionItems(
               ? `Starts in ${mins} min`
               : `Starts at ${new Date(event.startTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`,
         priority: event.isHappeningNow ? 100 : Math.max(40, 90 - mins),
+        sourcePlugin: 'calendar',
         meetUrl: event.meetUrl,
         eventId: event.id,
         href: event.meetUrl,
@@ -73,6 +77,7 @@ function buildActionItems(
         title: `Prepare for ${event.title}`,
         description: `Starts in ${mins} min`,
         priority: Math.max(30, 70 - Math.floor(mins / 3)),
+        sourcePlugin: 'calendar',
         eventId: event.id,
         href: event.htmlLink ?? undefined,
       });
@@ -88,6 +93,7 @@ function buildActionItems(
         title: email.subject || 'Join meeting from email',
         description: email.insightSummary ?? email.sender ?? undefined,
         priority: 85,
+        sourcePlugin: 'email',
         meetUrl: meet.url,
         emailId: email.id,
         href: meet.url,
@@ -99,6 +105,7 @@ function buildActionItems(
         title: email.subject || 'Urgent email',
         description: email.priorityReason ?? email.snippet ?? undefined,
         priority: 80,
+        sourcePlugin: 'email',
         emailId: email.id,
         href: `/workspace?email=${email.id}`,
       });
@@ -114,8 +121,22 @@ function buildActionItems(
       title: `OTP from ${email.sender?.split('<')[0]?.trim() || 'sender'}`,
       description: email.subject ?? undefined,
       priority: 75,
+      sourcePlugin: 'email',
       otpCode: code,
       emailId: email.id,
+    });
+  }
+
+  for (const item of githubItems.slice(0, 4)) {
+    const label = item.kind === 'pull' ? 'Review PR' : 'Triage issue';
+    items.push({
+      id: `github-${item.kind}-${item.repoFullName}-${item.number}`,
+      kind: 'read_email',
+      title: `${label}: ${item.title}`,
+      description: `${item.repoFullName} #${item.number}${item.authorLogin ? ` · @${item.authorLogin}` : ''}`,
+      priority: item.kind === 'pull' ? 70 : 65,
+      sourcePlugin: 'github',
+      href: item.htmlUrl ?? undefined,
     });
   }
 
@@ -126,12 +147,19 @@ export async function buildBriefPayload(
   userId: string,
   options?: { skipInsightScan?: boolean }
 ): Promise<BriefPayload> {
-  if (!options?.skipInsightScan) {
+  const plugins = await getActivePluginStatuses(userId);
+  const connectedPluginIds = await getConnectedPluginIds(userId);
+  const hasEmail = connectedPluginIds.includes('email');
+  const hasCalendar = connectedPluginIds.includes('calendar');
+  const hasGithub = connectedPluginIds.includes('github');
+
+  if (hasEmail && !options?.skipInsightScan) {
     await ensureEmailInsightsForUser(userId);
   }
 
-  const triage = await getTriageSummary(userId);
-  const plugins = await getActivePluginStatuses(userId);
+  const triage = hasEmail
+    ? await getTriageSummary(userId)
+    : { urgent: 0, canWait: 0, pending: 0 };
 
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -141,26 +169,30 @@ export async function buildBriefPayload(
   endUpcoming.setDate(endUpcoming.getDate() + 2);
   endUpcoming.setHours(23, 59, 59, 999);
 
-  const since = new Date();
-  since.setDate(since.getDate() - 3);
+  let mappedEmails: BriefEmailInsight[] = [];
+  let unreadCount = 0;
 
-  const emailRows = await db
-    .select()
-    .from(emails)
-    .where(
-      and(
-        eq(emails.userId, userId),
-        eq(emails.isArchived, false),
-        gte(emails.internalDate, since),
-        sql`(${emails.labelIds} @> '["INBOX"]'::jsonb OR ${emails.labelIds} IS NULL)`
+  if (hasEmail) {
+    const since = new Date();
+    since.setDate(since.getDate() - 3);
+
+    const emailRows = await db
+      .select()
+      .from(emails)
+      .where(
+        and(
+          eq(emails.userId, userId),
+          eq(emails.isArchived, false),
+          gte(emails.internalDate, since),
+          sql`(${emails.labelIds} @> '["INBOX"]'::jsonb OR ${emails.labelIds} IS NULL)`
+        )
       )
-    )
-    .orderBy(sql`${emails.internalDate} DESC`)
-    .limit(50);
+      .orderBy(sql`${emails.internalDate} DESC`)
+      .limit(50);
 
-  const unreadCount = emailRows.filter((e) => !e.isRead).length;
-
-  const mappedEmails = emailRows.map(mapEmailRow);
+    unreadCount = emailRows.filter((e) => !e.isRead).length;
+    mappedEmails = emailRows.map(mapEmailRow);
+  }
 
   const emailsByCategory: Partial<Record<EmailInsightCategory, BriefEmailInsight[]>> = {};
   for (const email of mappedEmails) {
@@ -173,53 +205,60 @@ export async function buildBriefPayload(
     .filter((e) => e.priorityTier === 'urgent')
     .sort((a, b) => (b.receivedAt ?? '').localeCompare(a.receivedAt ?? ''));
 
-  const eventRows = await db
-    .select({
-      event: calendarEvents,
-      linkedEmailId: emails.googleMessageId,
-    })
-    .from(calendarEvents)
-    .leftJoin(emailEventLinks, eq(calendarEvents.id, emailEventLinks.eventId))
-    .leftJoin(emails, eq(emailEventLinks.emailId, emails.id))
-    .where(
-      and(
-        eq(calendarEvents.userId, userId),
-        gte(calendarEvents.startTime, startOfDay),
-        lte(calendarEvents.startTime, endUpcoming)
+  let todayEvents: BriefEventItem[] = [];
+  let upcomingEvents: BriefEventItem[] = [];
+
+  if (hasCalendar) {
+    const eventRows = await db
+      .select({
+        event: calendarEvents,
+        linkedEmailId: emails.googleMessageId,
+      })
+      .from(calendarEvents)
+      .leftJoin(emailEventLinks, eq(calendarEvents.id, emailEventLinks.eventId))
+      .leftJoin(emails, eq(emailEventLinks.emailId, emails.id))
+      .where(
+        and(
+          eq(calendarEvents.userId, userId),
+          gte(calendarEvents.startTime, startOfDay),
+          lte(calendarEvents.startTime, endUpcoming)
+        )
       )
-    )
-    .orderBy(asc(calendarEvents.startTime));
+      .orderBy(asc(calendarEvents.startTime));
 
-  const now = Date.now();
-  const mapEvent = (row: (typeof eventRows)[number]): BriefEventItem => {
-    const start = row.event.startTime!;
-    const end = row.event.endTime;
-    const startMs = start.getTime();
-    const endMs = end?.getTime() ?? startMs + 30 * 60_000;
-    const meetUrl =
-      extractMeetUrlFromLocation(row.event.location) ??
-      extractMeetUrlFromLocation(row.event.description ?? undefined);
+    const now = Date.now();
+    const mapEvent = (row: (typeof eventRows)[number]): BriefEventItem => {
+      const start = row.event.startTime!;
+      const end = row.event.endTime;
+      const startMs = start.getTime();
+      const endMs = end?.getTime() ?? startMs + 30 * 60_000;
+      const meetUrl =
+        extractMeetUrlFromLocation(row.event.location) ??
+        extractMeetUrlFromLocation(row.event.description ?? undefined);
 
-    return {
-      id: row.event.googleEventId,
-      title: row.event.title,
-      startTime: start.toISOString(),
-      endTime: end?.toISOString() ?? null,
-      location: row.event.location,
-      meetUrl,
-      htmlLink: row.event.htmlLink,
-      linkedEmailId: row.linkedEmailId,
-      minutesUntilStart: Math.round((startMs - now) / 60_000),
-      isHappeningNow: now >= startMs && now <= endMs,
+      return {
+        id: row.event.googleEventId,
+        title: row.event.title,
+        startTime: start.toISOString(),
+        endTime: end?.toISOString() ?? null,
+        location: row.event.location,
+        meetUrl,
+        htmlLink: row.event.htmlLink,
+        linkedEmailId: row.linkedEmailId,
+        minutesUntilStart: Math.round((startMs - now) / 60_000),
+        isHappeningNow: now >= startMs && now <= endMs,
+      };
     };
-  };
 
-  const allEvents = eventRows.map(mapEvent);
-  const todayEvents = allEvents.filter((e) => {
-    const d = new Date(e.startTime);
-    return d >= startOfDay && d <= endOfDay;
-  });
-  const upcomingEvents = allEvents.filter((e) => new Date(e.startTime) > endOfDay);
+    const allEvents = eventRows.map(mapEvent);
+    todayEvents = allEvents.filter((e) => {
+      const d = new Date(e.startTime);
+      return d >= startOfDay && d <= endOfDay;
+    });
+    upcomingEvents = allEvents.filter((e) => new Date(e.startTime) > endOfDay);
+  }
+
+  const github = hasGithub ? await fetchBriefGithubData(userId) : null;
 
   const otpEmails = emailsByCategory.otp ?? [];
   const bankEmails = emailsByCategory.bank ?? [];
@@ -227,7 +266,8 @@ export async function buildBriefPayload(
   const actionItems = buildActionItems(
     urgentEmails,
     todayEvents,
-    [...otpEmails, ...(emailsByCategory.meeting ?? [])]
+    [...otpEmails, ...(emailsByCategory.meeting ?? [])],
+    github?.attentionItems ?? []
   );
 
   const hour = new Date().getHours();
@@ -244,11 +284,16 @@ export async function buildBriefPayload(
     todayEvents,
     upcomingEvents,
     plugins,
+    connectedPluginIds,
+    github,
     stats: {
-      unreadInbox: unreadCount,
-      meetingsToday: todayEvents.length,
-      otpsToday: otpEmails.length,
-      bankAlerts: bankEmails.length,
+      unreadInbox: hasEmail ? unreadCount : 0,
+      meetingsToday: hasCalendar ? todayEvents.length : 0,
+      otpsToday: hasEmail ? otpEmails.length : 0,
+      bankAlerts: hasEmail ? bankEmails.length : 0,
+      openPulls: github?.stats.openPulls ?? 0,
+      openIssues: github?.stats.openIssues ?? 0,
+      repoCount: github?.stats.repoCount ?? 0,
     },
   };
 }

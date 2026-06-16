@@ -50,6 +50,7 @@ type KeyboardStore = {
   isCheatSheetOpen: boolean;
   overrides: UserKeyOverrides;
   overridesSynced: boolean;
+  keybindingsEnabled: boolean;
 
   setFocusMode: (mode: FocusMode) => void;
   setActivePanel: (panel: BindingContext) => void;
@@ -64,6 +65,8 @@ type KeyboardStore = {
   setOverrides: (overrides: UserKeyOverrides) => void;
   loadStoredOverrides: () => void;
   hydrateOverridesFromServer: () => Promise<void>;
+  setKeybindingsEnabled: (enabled: boolean) => void;
+  hydrateKeybindingsPreferenceFromServer: () => Promise<void>;
 };
 
 export const useKeyboardStore = create<KeyboardStore>()(
@@ -78,6 +81,7 @@ export const useKeyboardStore = create<KeyboardStore>()(
       isCheatSheetOpen: false,
       overrides: {},
       overridesSynced: false,
+      keybindingsEnabled: true,
 
       setFocusMode: (mode) => set({ focusMode: mode }),
       setActivePanel: (panel) => set({ activePanel: panel }),
@@ -143,10 +147,28 @@ export const useKeyboardStore = create<KeyboardStore>()(
           set({ overrides: loadOverrides(), overridesSynced: false });
         }
       },
+
+      setKeybindingsEnabled: (enabled) => set({ keybindingsEnabled: enabled }),
+
+      hydrateKeybindingsPreferenceFromServer: async () => {
+        try {
+          const res = await fetch('/api/user/preferences');
+          if (!res.ok) return;
+          const data = await res.json();
+          if (typeof data.keybindingsEnabled === 'boolean') {
+            set({ keybindingsEnabled: data.keybindingsEnabled });
+          }
+        } catch {
+          /* keep default enabled */
+        }
+      },
     }),
     {
       name: 'supereye-keyboard-ui',
-      partialize: (s) => ({ overrides: s.overrides }),
+      partialize: (s) => ({
+        overrides: s.overrides,
+        keybindingsEnabled: s.keybindingsEnabled,
+      }),
     }
   )
 );

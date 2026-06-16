@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { handleCorsairError } from '@/lib/corsair-error';
 import { getGithubApi } from '@/lib/github/client';
-import { normalizePullRequest, normalizeIssue, normalizeRepo } from '@/lib/github/normalize';
+import { normalizePullRequest, normalizeIssue, normalizeRepo, isPullRequestIssue } from '@/lib/github/normalize';
 import type { GithubIssue, GithubPullRequest } from '@/lib/github/types';
 
 export async function GET() {
@@ -63,7 +63,7 @@ export async function GET() {
           if (Array.isArray(issueResult)) {
             for (const item of issueResult) {
               const raw = item as Record<string, unknown>;
-              if (raw.pull_request) continue;
+              if (isPullRequestIssue(raw)) continue;
               issues.push(normalizeIssue(raw, owner, name));
             }
           }

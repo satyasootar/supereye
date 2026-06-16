@@ -50,6 +50,7 @@ export type UserWorkspacePreferences = {
   onboardingCompleted: boolean;
   activeWorkspaceId: string | null;
   botSettings?: BotSettings;
+  keybindingsEnabled: boolean;
 };
 
 export type WorkspaceRecord = {

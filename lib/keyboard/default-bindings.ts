@@ -10,7 +10,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'global.cheatSheet',
     sequence: [{ key: '?' }],
-    contexts: ['global', 'workspace', 'email', 'calendar'],
+    contexts: ['global', 'workspace', 'email', 'calendar', 'github'],
     actionId: KEYBOARD_ACTIONS.OPEN_CHEAT_SHEET,
     description: 'Show shortcuts',
     group: 'Essentials',
@@ -18,7 +18,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'global.commandPalette',
     sequence: [modKey('k')],
-    contexts: ['global', 'workspace', 'email', 'calendar'],
+    contexts: ['global', 'workspace', 'email', 'calendar', 'github'],
     actionId: KEYBOARD_ACTIONS.OPEN_COMMAND_PALETTE,
     description: 'Command palette',
     group: 'Essentials',
@@ -27,7 +27,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'global.compose',
     sequence: [{ key: 'c' }],
-    contexts: ['global', 'workspace', 'email', 'calendar'],
+    contexts: ['global', 'workspace', 'email', 'calendar', 'github'],
     actionId: KEYBOARD_ACTIONS.OPEN_COMPOSE,
     description: 'Open compose',
     group: 'Essentials',
@@ -105,7 +105,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'agent.toggle',
     sequence: [modKey('j')],
-    contexts: ['global', 'workspace', 'email', 'calendar', 'modal'],
+    contexts: ['global', 'workspace', 'email', 'calendar', 'github', 'modal'],
     actionId: KEYBOARD_ACTIONS.AGENT_TOGGLE,
     description: 'Toggle AI assistant',
     group: 'AI Assistant',
@@ -114,7 +114,7 @@ export const DEFAULT_KEYBINDINGS: KeybindingDefinition[] = [
   {
     id: 'agent.newChat',
     sequence: [modKey('j', true)],
-    contexts: ['global', 'workspace', 'email', 'calendar', 'modal'],
+    contexts: ['global', 'workspace', 'email', 'calendar', 'github', 'modal'],
     actionId: KEYBOARD_ACTIONS.AGENT_NEW_CHAT,
     description: 'New AI chat',
     group: 'AI Assistant',

@@ -20,6 +20,7 @@ function activeContexts(
   if (modalDepth > 0) ctx.push('modal');
   if (panel === 'email') ctx.push('email');
   if (panel === 'calendar') ctx.push('calendar');
+  if (panel === 'github') ctx.push('github');
   return ctx;
 }
 
@@ -35,6 +36,7 @@ export function useKeyboardEngine() {
     focusMode,
     activePanel,
     modalDepth,
+    keybindingsEnabled,
     setFocusMode,
     setSequenceBuffer,
     clearSequence,
@@ -53,6 +55,8 @@ export function useKeyboardEngine() {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if (!keybindingsEnabled) return;
+
       const target = e.target as Element | null;
       const mode = resolveFocusMode(document.activeElement, modalDepth);
       if (mode !== focusMode) setFocusMode(mode);
@@ -145,6 +149,7 @@ export function useKeyboardEngine() {
     activePanel,
     modalDepth,
     focusMode,
+    keybindingsEnabled,
     setFocusMode,
     setSequenceBuffer,
     clearSequence,

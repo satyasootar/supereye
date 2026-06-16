@@ -20,12 +20,16 @@ import {
   Plus,
   AlertTriangle,
   Loader2,
+  GitPullRequest,
+  CircleDot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useSSE } from '@/hooks/use-sse';
 import { useAppStore } from '@/lib/store/app-store';
-import type { BriefActionItem, BriefEmailInsight, BriefEventItem, BriefPayload } from '@/lib/brief/types';
+import type { BriefActionItem, BriefEmailInsight, BriefEventItem, BriefGithubItem, BriefPayload } from '@/lib/brief/types';
+import { inferActionSourcePlugin } from '@/lib/brief/types';
+import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
 import { INSIGHT_CATEGORY_LABELS } from '@/lib/brief/types';
 
 function StatChip({
@@ -97,6 +101,36 @@ type TodoItem = {
   action?: BriefActionItem;
   isCustom?: boolean;
 };
+
+function TodoSourceIcon({ action, isCustom }: { action?: BriefActionItem; isCustom?: boolean }) {
+  if (isCustom) {
+    return (
+      <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-bg-surface text-text-muted">
+        <Plus className="h-3 w-3" />
+      </div>
+    );
+  }
+
+  const pluginId = action ? inferActionSourcePlugin(action) : null;
+
+  if (pluginId) {
+    return (
+      <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
+        <PluginBrandIcon pluginId={pluginId} size={18} />
+      </div>
+    );
+  }
+
+  if (action?.id.startsWith('ai-')) {
+    return (
+      <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-violet-500/10 text-violet-400">
+        <Sparkles className="h-3 w-3" />
+      </div>
+    );
+  }
+
+  return null;
+}
 
 function EventRow({ event }: { event: BriefEventItem }) {
   const time = new Date(event.startTime).toLocaleTimeString([], {
@@ -176,6 +210,41 @@ function EmailInsightRow({
   );
 }
 
+function GithubItemRow({ item }: { item: BriefGithubItem }) {
+  const Icon = item.kind === 'pull' ? GitPullRequest : CircleDot;
+  const typeLabel = item.kind === 'pull' ? 'PR' : 'Issue';
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-border-subtle bg-bg-elevated/40 px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-md bg-bg-surface px-1.5 py-0.5 text-[10px] text-text-muted">
+            {typeLabel}
+          </span>
+          {item.draft && (
+            <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+              Draft
+            </span>
+          )}
+        </div>
+        <p className="mt-1 truncate text-sm font-medium text-text-primary">{item.title}</p>
+        <p className="truncate text-xs text-text-muted">
+          {item.repoFullName} #{item.number}
+          {item.authorLogin ? ` · @${item.authorLogin}` : ''}
+        </p>
+      </div>
+      {item.htmlUrl ? (
+        <Button size="sm" variant="outline" asChild>
+          <a href={item.htmlUrl} target="_blank" rel="noopener noreferrer" className="gap-1.5">
+            <Icon className="h-3.5 w-3.5" />
+            Open
+          </a>
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 function Section({
   title,
   icon: Icon,
@@ -244,21 +313,45 @@ export function BriefDashboard() {
   useEffect(() => {
     const sync = async () => {
       try {
-        const [mailRes] = await Promise.all([
-          fetch('/api/mail/sync', { method: 'POST' }),
-          fetch('/api/calendar/sync', { method: 'POST' }),
-        ]);
-        if (!mailRes.ok) {
+        const briefRes = await fetch('/api/brief/today');
+        const briefJson = briefRes.ok
+          ? ((await briefRes.json()) as { brief?: BriefPayload })
+          : null;
+        const connected = briefJson?.brief?.connectedPluginIds ?? [];
+
+        if (connected.length === 0) return;
+
+        let mailRes: Response | null = null;
+        const syncTasks: Promise<void>[] = [];
+
+        if (connected.includes('email')) {
+          syncTasks.push(
+            fetch('/api/mail/sync', { method: 'POST' }).then((res) => {
+              mailRes = res;
+            })
+          );
+        }
+        if (connected.includes('calendar')) {
+          syncTasks.push(fetch('/api/calendar/sync', { method: 'POST' }).then(() => undefined));
+        }
+        if (connected.includes('github')) {
+          syncTasks.push(fetch('/api/github/sync', { method: 'POST' }).then(() => undefined));
+        }
+
+        await Promise.all(syncTasks);
+
+        if (mailRes && !mailRes.ok) {
           const err = await mailRes.json().catch(() => ({}));
           setSyncError(
             typeof err.error === 'string'
               ? err.error
               : 'Mail sync failed. Try refreshing or reconnect Gmail in settings.'
           );
-        } else {
-          setSyncError(null);
-          await queryClient.invalidateQueries({ queryKey: ['brief', 'today'] });
+          return;
         }
+
+        setSyncError(null);
+        await queryClient.invalidateQueries({ queryKey: ['brief', 'today'] });
       } catch {
         setSyncError('Could not reach sync services. Check your connection and try again.');
       }
@@ -275,6 +368,13 @@ export function BriefDashboard() {
   );
 
   const brief = data?.brief;
+  const connected = useMemo(
+    () => new Set(brief?.connectedPluginIds ?? []),
+    [brief?.connectedPluginIds]
+  );
+  const hasEmail = connected.has('email');
+  const hasCalendar = connected.has('calendar');
+  const hasGithub = connected.has('github');
   const loadedActionItems = useMemo(() => brief?.actionItems ?? [], [brief?.actionItems]);
 
   useEffect(() => {
@@ -386,28 +486,54 @@ export function BriefDashboard() {
 
           {brief && (
             <>
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <StatChip label="Unread" value={brief.stats.unreadInbox} icon={Mail} />
-                <StatChip
-                  label="Meetings"
-                  value={brief.stats.meetingsToday}
-                  icon={Calendar}
-                  accent="bg-violet-500/10 text-violet-400"
-                />
-                <StatChip
-                  label="OTP codes"
-                  value={brief.stats.otpsToday}
-                  icon={KeyRound}
-                  accent="bg-amber-500/10 text-amber-400"
-                />
-                <StatChip
-                  label="Urgent"
-                  value={brief.triage.urgent}
-                  icon={AlertTriangle}
-                  accent="bg-red-500/10 text-red-400"
-                />
-              </div>
+              {/* Stats — only for connected plugins */}
+              {(hasEmail || hasCalendar || hasGithub) && (
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  {hasEmail && (
+                    <>
+                      <StatChip label="Unread" value={brief.stats.unreadInbox} icon={Mail} />
+                      <StatChip
+                        label="Urgent"
+                        value={brief.triage.urgent}
+                        icon={AlertTriangle}
+                        accent="bg-red-500/10 text-red-400"
+                      />
+                    </>
+                  )}
+                  {hasCalendar && (
+                    <StatChip
+                      label="Meetings"
+                      value={brief.stats.meetingsToday}
+                      icon={Calendar}
+                      accent="bg-violet-500/10 text-violet-400"
+                    />
+                  )}
+                  {hasEmail && (
+                    <StatChip
+                      label="OTP codes"
+                      value={brief.stats.otpsToday}
+                      icon={KeyRound}
+                      accent="bg-amber-500/10 text-amber-400"
+                    />
+                  )}
+                  {hasGithub && brief.github && (
+                    <>
+                      <StatChip
+                        label="Open PRs"
+                        value={brief.github.stats.openPulls}
+                        icon={GitPullRequest}
+                        accent="bg-emerald-500/10 text-emerald-400"
+                      />
+                      <StatChip
+                        label="Open issues"
+                        value={brief.github.stats.openIssues}
+                        icon={CircleDot}
+                        accent="bg-accent-blue/10 text-accent-blue"
+                      />
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* AI narrative */}
               <div className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-bg-surface/80 to-cyan-500/10 p-6">
@@ -417,7 +543,9 @@ export function BriefDashboard() {
                 </p>
                 <p className="mt-2 max-w-3xl text-base leading-relaxed text-text-primary">
                   {brief.narrative ??
-                    'Tap “AI summary” to generate a personalized plan for your day based on mail and calendar.'}
+                    (connected.size === 0
+                      ? 'Connect Gmail, Calendar, or GitHub in settings, then tap “AI summary” for a personalized plan.'
+                      : 'Tap “AI summary” to generate a personalized plan based on your connected plugins.')}
                 </p>
                 {generateMutation.isError && (
                   <p className="mt-2 text-sm text-destructive">
@@ -468,13 +596,14 @@ export function BriefDashboard() {
                           <button
                             type="button"
                             onClick={() => toggleTodo(item.id)}
-                            className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                            className="flex min-w-0 flex-1 items-start gap-2.5 text-left"
                           >
                             {item.completed ? (
                               <CircleCheckBig className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                             ) : (
                               <Circle className="mt-0.5 h-4 w-4 shrink-0 text-text-muted" />
                             )}
+                            <TodoSourceIcon action={item.action} isCustom={item.isCustom} />
                             <div className="min-w-0">
                               <p
                                 className={cn(
@@ -504,9 +633,21 @@ export function BriefDashboard() {
                           ) : item.action?.kind === 'copy_otp' && item.action.otpCode ? (
                             <CopyOtpButton code={item.action.otpCode} />
                           ) : item.action?.href ? (
-                            <Button size="sm" variant="outline" asChild>
-                              <Link href={item.action.href}>Open</Link>
-                            </Button>
+                            item.action.href.startsWith('http') ? (
+                              <Button size="sm" variant="outline" asChild>
+                                <a
+                                  href={item.action.href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  Open
+                                </a>
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="outline" asChild>
+                                <Link href={item.action.href}>Open</Link>
+                              </Button>
+                            )
                           ) : null}
                         </div>
                       </div>
@@ -515,66 +656,91 @@ export function BriefDashboard() {
                 )}
               </section>
 
-              {/* Main grid */}
+              {/* Main grid — plugin-aware sections */}
               <div className="grid gap-5 lg:grid-cols-2">
-                <Section
-                  title="Today's schedule"
-                  icon={Calendar}
-                  empty="No events today. Your calendar is clear."
-                >
-                  {brief.todayEvents.map((e) => (
-                    <EventRow key={e.id} event={e} />
-                  ))}
-                </Section>
+                {hasCalendar && (
+                  <Section
+                    title="Today's schedule"
+                    icon={Calendar}
+                    empty="No events today. Your calendar is clear."
+                  >
+                    {brief.todayEvents.map((e) => (
+                      <EventRow key={e.id} event={e} />
+                    ))}
+                  </Section>
+                )}
 
-                <Section
-                  title="Urgent mail"
-                  icon={AlertTriangle}
-                  empty="No urgent emails. You're caught up."
-                >
-                  {brief.urgentEmails.map((e) => (
-                    <EmailInsightRow key={e.id} email={e} onOpen={openEmail} />
-                  ))}
-                </Section>
+                {hasEmail && (
+                  <Section
+                    title="Urgent mail"
+                    icon={AlertTriangle}
+                    empty="No urgent emails. You're caught up."
+                  >
+                    {brief.urgentEmails.map((e) => (
+                      <EmailInsightRow key={e.id} email={e} onOpen={openEmail} />
+                    ))}
+                  </Section>
+                )}
 
-                <Section
-                  title="Verification codes"
-                  icon={KeyRound}
-                  empty="No OTP emails in your inbox."
-                >
-                  {(brief.emailsByCategory.otp ?? []).map((e) => (
-                    <div
-                      key={e.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-border-subtle bg-bg-elevated/40 px-4 py-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{e.subject}</p>
-                        <p className="truncate text-xs text-text-muted">{e.sender}</p>
+                {hasGithub && brief.github && (
+                  <Section
+                    title="GitHub — needs attention"
+                    icon={GitPullRequest}
+                    empty="No open pull requests or issues need attention."
+                  >
+                    {brief.github.attentionItems.map((item) => (
+                      <GithubItemRow
+                        key={`${item.kind}-${item.repoFullName}-${item.number}`}
+                        item={item}
+                      />
+                    ))}
+                  </Section>
+                )}
+
+                {hasEmail && (
+                  <Section
+                    title="Verification codes"
+                    icon={KeyRound}
+                    empty="No OTP emails in your inbox."
+                  >
+                    {(brief.emailsByCategory.otp ?? []).map((e) => (
+                      <div
+                        key={e.id}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-border-subtle bg-bg-elevated/40 px-4 py-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{e.subject}</p>
+                          <p className="truncate text-xs text-text-muted">{e.sender}</p>
+                        </div>
+                        {e.otps[0] && <CopyOtpButton code={e.otps[0].code} />}
                       </div>
-                      {e.otps[0] && <CopyOtpButton code={e.otps[0].code} />}
-                    </div>
-                  ))}
-                </Section>
+                    ))}
+                  </Section>
+                )}
 
-                <Section
-                  title="Bank & finance"
-                  icon={Landmark}
-                  empty="No bank or payment alerts."
-                >
-                  {(brief.emailsByCategory.bank ?? []).map((e) => (
-                    <EmailInsightRow key={e.id} email={e} onOpen={openEmail} />
-                  ))}
-                </Section>
+                {hasEmail && (
+                  <Section
+                    title="Bank & finance"
+                    icon={Landmark}
+                    empty="No bank or payment alerts."
+                  >
+                    {(brief.emailsByCategory.bank ?? []).map((e) => (
+                      <EmailInsightRow key={e.id} email={e} onOpen={openEmail} />
+                    ))}
+                  </Section>
+                )}
 
-                <Section
-                  title="Meetings in mail"
-                  icon={Video}
-                  empty="No meeting invites in inbox."
-                >
-                  {(brief.emailsByCategory.meeting ?? []).map((e) => (
-                    <EmailInsightRow key={e.id} email={e} onOpen={openEmail} />
-                  ))}
-                </Section>
+                {hasEmail && (
+                  <Section
+                    title="Meetings in mail"
+                    icon={Video}
+                    empty="No meeting invites in inbox."
+                  >
+                    {(brief.emailsByCategory.meeting ?? []).map((e) => (
+                      <EmailInsightRow key={e.id} email={e} onOpen={openEmail} />
+                    ))}
+                  </Section>
+                )}
 
                 <Section title="Connected plugins" icon={Sparkles}>
                   <div className="flex flex-wrap gap-2">

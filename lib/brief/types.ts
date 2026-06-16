@@ -1,4 +1,4 @@
-import type { ActivePluginStatus } from '@/lib/plugins/types';
+import type { ActivePluginStatus, PluginId } from '@/lib/plugins/types';
 
 export type EmailInsightCategory =
   | 'action_required'
@@ -48,12 +48,30 @@ export type BriefActionItem = {
   title: string;
   description?: string;
   priority: number;
+  sourcePlugin?: PluginId | null;
   href?: string;
   emailId?: string;
   eventId?: string;
   meetUrl?: string;
   otpCode?: string;
 };
+
+/** Infer plugin source for action items missing `sourcePlugin` (e.g. cached briefs). */
+export function inferActionSourcePlugin(action: BriefActionItem): PluginId | null {
+  if (action.sourcePlugin) return action.sourcePlugin;
+  if (action.id.startsWith('github-')) return 'github';
+  if (action.id.startsWith('join-') || action.id.startsWith('prep-')) return 'calendar';
+  if (
+    action.id.startsWith('urgent-') ||
+    action.id.startsWith('otp-') ||
+    action.id.startsWith('email-meet-')
+  ) {
+    return 'email';
+  }
+  if (action.eventId && !action.emailId) return 'calendar';
+  if (action.emailId) return 'email';
+  return null;
+}
 
 export type BriefEmailInsight = {
   id: string;
@@ -82,6 +100,27 @@ export type BriefEventItem = {
   isHappeningNow: boolean;
 };
 
+export type BriefGithubItem = {
+  kind: 'pull' | 'issue';
+  number: number;
+  title: string;
+  repoFullName: string;
+  authorLogin: string | null;
+  updatedAt: string | null;
+  htmlUrl: string | null;
+  labels: string[];
+  draft?: boolean;
+};
+
+export type BriefGithubData = {
+  stats: {
+    repoCount: number;
+    openPulls: number;
+    openIssues: number;
+  };
+  attentionItems: BriefGithubItem[];
+};
+
 export type BriefPayload = {
   generatedAt: string;
   briefDate: string;
@@ -94,10 +133,15 @@ export type BriefPayload = {
   todayEvents: BriefEventItem[];
   upcomingEvents: BriefEventItem[];
   plugins: ActivePluginStatus[];
+  connectedPluginIds: PluginId[];
+  github: BriefGithubData | null;
   stats: {
     unreadInbox: number;
     meetingsToday: number;
     otpsToday: number;
     bankAlerts: number;
+    openPulls: number;
+    openIssues: number;
+    repoCount: number;
   };
 };
