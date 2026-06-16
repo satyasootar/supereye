@@ -334,7 +334,7 @@ function UrgentEmailCard({
           ) : null}
         </div>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -370,7 +370,7 @@ function CompactEmailRow({
       ) : (
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-text-muted" />
       )}
-    </button>
+    </div>
   );
 }
 
@@ -644,21 +644,21 @@ export function BriefDashboard() {
           {brief && (
             <div className="space-y-4">
               {/* Hero band: greeting + stats + AI narrative */}
-              <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
-                <div>
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <h2 className="font-heading text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
-                      {brief.greeting}
-                    </h2>
-                    <span className="text-xs text-text-muted">
-                      {brief.generatedAt
-                        ? `Updated ${new Date(brief.generatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-                        : 'Loading…'}
-                    </span>
-                  </div>
+              <div>
+                <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <h2 className="font-heading text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
+                    {brief.greeting}
+                  </h2>
+                  <span className="text-xs text-text-muted">
+                    {brief.generatedAt
+                      ? `Updated ${new Date(brief.generatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+                      : 'Loading…'}
+                  </span>
+                </div>
 
+                <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
                   {/* AI narrative */}
-                  <div className="relative mt-3 overflow-hidden rounded-xl border border-violet-500/20 bg-gradient-to-r from-violet-500/8 via-bg-surface/60 to-cyan-500/8 px-4 py-3">
+                  <div className="relative overflow-hidden rounded-xl border border-violet-500/20 bg-gradient-to-r from-violet-500/8 via-bg-surface/60 to-cyan-500/8 px-4 py-3">
                     <div className="flex gap-3">
                       <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-500/15">
                         <Sparkles className="h-3.5 w-3.5 text-violet-400" />
@@ -681,11 +681,10 @@ export function BriefDashboard() {
                       </div>
                     </div>
                   </div>
-                </div>
 
                 {/* Stats strip */}
                 {(hasEmail || hasCalendar || hasGithub || hasDrive) && (
-                  <div className="flex flex-wrap content-start gap-1.5 lg:max-w-xs lg:justify-end">
+                  <div className="flex flex-wrap content-start gap-2 lg:justify-end xl:max-w-md">
                     {hasEmail && (
                       <>
                         <StatPill label="Unread" value={brief.stats.unreadInbox} icon={Mail} />
@@ -737,12 +736,15 @@ export function BriefDashboard() {
                     )}
                   </div>
                 )}
+                </div>
               </div>
 
-              {/* Main 3-column layout */}
-              <div className="grid gap-3 lg:grid-cols-12">
-                {/* Column 1: Action items */}
-                <div className="rounded-xl border border-border-subtle bg-bg-surface/40 p-3 lg:col-span-3">
+              {/* Main content layout */}
+              <div className="space-y-3">
+                {/* Top Row: Focus + Email */}
+                <div className="grid gap-3 lg:grid-cols-12">
+                  {/* Column 1: Action items */}
+                  <div className="rounded-xl border border-border-subtle bg-bg-surface/40 p-3 lg:col-span-5 flex flex-col">
                   <PanelHeader
                     title="Focus"
                     icon={CircleCheckBig}
@@ -768,7 +770,7 @@ export function BriefDashboard() {
                   {todoItems.length === 0 ? (
                     <EmptyState message="No tasks yet. Add one above or generate an AI summary." />
                   ) : (
-                    <div className="max-h-[420px] space-y-1 overflow-y-auto pr-0.5">
+                    <div className="flex-1 min-h-0 space-y-1 overflow-y-auto overflow-x-hidden pr-0.5">
                       {todoItems.map((item) => (
                         <div
                           key={item.id}
@@ -841,95 +843,8 @@ export function BriefDashboard() {
                   )}
                 </div>
 
-                {/* Column 2: Schedule + integrations */}
-                <div className="space-y-3 lg:col-span-4">
-                  {hasCalendar && (
-                    <div className="rounded-xl border border-border-subtle bg-bg-surface/40 p-3">
-                      <PanelHeader
-                        title="Schedule"
-                        icon={Calendar}
-                        accent="bg-violet-500/10 text-violet-400"
-                        trailing={
-                          brief.todayEvents.length > 0 ? (
-                            <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-400">
-                              {brief.todayEvents.length} today
-                            </span>
-                          ) : null
-                        }
-                      />
-                      {brief.todayEvents.length === 0 ? (
-                        <EmptyState message="No events today. Your calendar is clear." />
-                      ) : (
-                        <div className="max-h-[280px] overflow-y-auto pr-0.5">
-                          {brief.todayEvents.map((e, i) => (
-                            <EventTimelineItem
-                              key={e.id}
-                              event={e}
-                              isLast={i === brief.todayEvents.length - 1}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {hasGithub && brief.github && (
-                    <div className="rounded-xl border border-border-subtle bg-bg-surface/40 p-3">
-                      <PanelHeader
-                        title="GitHub"
-                        icon={GitPullRequest}
-                        accent="bg-emerald-500/10 text-emerald-400"
-                        trailing={
-                          <span className="text-[10px] text-text-muted">
-                            {brief.github.stats.openPulls} PRs · {brief.github.stats.openIssues} issues
-                          </span>
-                        }
-                      />
-                      {brief.github.attentionItems.length === 0 ? (
-                        <EmptyState message="Nothing needs attention on GitHub." />
-                      ) : (
-                        <div className="space-y-1">
-                          {brief.github.attentionItems.slice(0, 4).map((item) => (
-                            <GithubCompactCard
-                              key={`${item.kind}-${item.repoFullName}-${item.number}`}
-                              item={item}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {hasDrive && brief.drive && (
-                    <div className="rounded-xl border border-border-subtle bg-bg-surface/40 p-3">
-                      <PanelHeader
-                        title="Drive"
-                        icon={HardDrive}
-                        accent="bg-sky-500/10 text-sky-400"
-                        trailing={
-                          brief.drive.stats.starredCount > 0 ? (
-                            <span className="flex items-center gap-1 text-[10px] text-amber-400">
-                              <Star className="h-3 w-3" />
-                              {brief.drive.stats.starredCount} starred
-                            </span>
-                          ) : null
-                        }
-                      />
-                      {brief.drive.attentionItems.length === 0 ? (
-                        <EmptyState message="No recent files in Drive." />
-                      ) : (
-                        <div className="space-y-1">
-                          {brief.drive.attentionItems.slice(0, 4).map((item) => (
-                            <DriveCompactCard key={item.id} item={item} />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
                 {/* Column 3: Inbox priorities + tabbed mail */}
-                <div className="space-y-3 lg:col-span-5">
+                <div className="space-y-3 lg:col-span-7">
                   {hasEmail && (
                     <>
                       <div className="rounded-xl border border-border-subtle bg-bg-surface/40 p-3">
@@ -1029,6 +944,96 @@ export function BriefDashboard() {
                     </>
                   )}
                 </div>
+                </div>
+
+                {/* Bottom Row: Schedule, GitHub, Drive */}
+                {/* Column 2: Schedule + integrations */}
+                <div className="grid gap-3 lg:grid-cols-3">
+                  {hasCalendar && (
+                    <div className="rounded-xl border border-border-subtle bg-bg-surface/40 p-3">
+                      <PanelHeader
+                        title="Schedule"
+                        icon={Calendar}
+                        accent="bg-violet-500/10 text-violet-400"
+                        trailing={
+                          brief.todayEvents.length > 0 ? (
+                            <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-400">
+                              {brief.todayEvents.length} today
+                            </span>
+                          ) : null
+                        }
+                      />
+                      {brief.todayEvents.length === 0 ? (
+                        <EmptyState message="No events today. Your calendar is clear." />
+                      ) : (
+                        <div className="max-h-[280px] overflow-y-auto pr-0.5">
+                          {brief.todayEvents.map((e, i) => (
+                            <EventTimelineItem
+                              key={e.id}
+                              event={e}
+                              isLast={i === brief.todayEvents.length - 1}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {hasGithub && brief.github && (
+                    <div className="rounded-xl border border-border-subtle bg-bg-surface/40 p-3">
+                      <PanelHeader
+                        title="GitHub"
+                        icon={GitPullRequest}
+                        accent="bg-emerald-500/10 text-emerald-400"
+                        trailing={
+                          <span className="text-[10px] text-text-muted">
+                            {brief.github.stats.openPulls} PRs · {brief.github.stats.openIssues} issues
+                          </span>
+                        }
+                      />
+                      {brief.github.attentionItems.length === 0 ? (
+                        <EmptyState message="Nothing needs attention on GitHub." />
+                      ) : (
+                        <div className="space-y-1">
+                          {brief.github.attentionItems.slice(0, 4).map((item) => (
+                            <GithubCompactCard
+                              key={`${item.kind}-${item.repoFullName}-${item.number}`}
+                              item={item}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {hasDrive && brief.drive && (
+                    <div className="rounded-xl border border-border-subtle bg-bg-surface/40 p-3">
+                      <PanelHeader
+                        title="Drive"
+                        icon={HardDrive}
+                        accent="bg-sky-500/10 text-sky-400"
+                        trailing={
+                          brief.drive.stats.starredCount > 0 ? (
+                            <span className="flex items-center gap-1 text-[10px] text-amber-400">
+                              <Star className="h-3 w-3" />
+                              {brief.drive.stats.starredCount} starred
+                            </span>
+                          ) : null
+                        }
+                      />
+                      {brief.drive.attentionItems.length === 0 ? (
+                        <EmptyState message="No recent files in Drive." />
+                      ) : (
+                        <div className="space-y-1">
+                          {brief.drive.attentionItems.slice(0, 4).map((item) => (
+                            <DriveCompactCard key={item.id} item={item} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
               </div>
 
               {/* Connected plugins strip */}

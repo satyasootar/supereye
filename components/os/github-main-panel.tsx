@@ -38,7 +38,7 @@ export function GithubMainPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
-  const { repos, isLoading: reposLoading } = useGithubRepos();
+  const { repos, isLoading: reposLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = useGithubRepos();
 
   const syncMutation = useMutation({
     mutationFn: async () => {
@@ -115,17 +115,30 @@ export function GithubMainPanel() {
           </div>
 
           {githubSection === 'repo' && (
-            <select
-              value={activeRepo ?? ''}
-              onChange={(e) => setSelectedGithubRepo(e.target.value || null)}
-              className="max-w-[200px] truncate rounded-md border border-border-default bg-bg-elevated py-1.5 pl-2.5 pr-7 text-[12px] font-medium text-text-primary"
-            >
-              {repos.map((r) => (
-                <option key={r.id} value={r.fullName}>
-                  {r.fullName}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <select
+                value={activeRepo ?? ''}
+                onChange={(e) => setSelectedGithubRepo(e.target.value || null)}
+                className="max-w-[200px] truncate rounded-md border border-border-default bg-bg-elevated py-1.5 pl-2.5 pr-7 text-[12px] font-medium text-text-primary"
+              >
+                {repos.map((r) => (
+                  <option key={r.id} value={r.fullName}>
+                    {r.fullName}
+                  </option>
+                ))}
+              </select>
+              {hasNextPage && (
+                <button
+                  type="button"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="rounded-md border border-border-default px-2 py-1 text-[11px] font-medium text-text-muted hover:bg-bg-overlay hover:text-text-primary disabled:opacity-50"
+                  title="Load more repositories"
+                >
+                  {isFetchingNextPage ? 'Loading...' : 'Load more'}
+                </button>
+              )}
+            </div>
           )}
         </div>
 
