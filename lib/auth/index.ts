@@ -116,6 +116,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       if (path === '/' || path.startsWith('/login')) return true;
+      if (
+        path === '/forgot-password' ||
+        path === '/reset-password' ||
+        path.startsWith('/forgot-password/') ||
+        path.startsWith('/reset-password/')
+      ) {
+        return true;
+      }
+      if (
+        path === '/about' ||
+        path === '/privacy' ||
+        path === '/terms' ||
+        path.startsWith('/about/') ||
+        path.startsWith('/privacy/') ||
+        path.startsWith('/terms/')
+      ) {
+        return true;
+      }
 
       return isLoggedIn;
     },

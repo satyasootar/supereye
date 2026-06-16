@@ -47,3 +47,19 @@ export const keybindingsPatchSchema = z.union([
 export const keybindingsDeleteSchema = z.object({
   bindingId: z.string().trim().min(1).max(128),
 });
+
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(20).max(256),
+  newPassword: z
+    .string()
+    .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`)
+    .max(128, 'Password is too long'),
+});
+
+export const resetPasswordTokenQuerySchema = z.object({
+  token: z.string().trim().min(20).max(256),
+});

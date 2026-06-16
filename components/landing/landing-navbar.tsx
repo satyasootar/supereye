@@ -28,9 +28,10 @@ export function LandingNavbar() {
   const isLoggedIn = mounted && status === "authenticated" && !!session?.user;
 
   const navItems = [
-    { name: "Features", link: "#features" },
-    { name: "Pricing", link: "#pricing" },
-    { name: "FAQ", link: "#faq" },
+    { name: "Features", link: "/#features" },
+    { name: "Pricing", link: "/#pricing" },
+    { name: "About", link: "/about" },
+    { name: "FAQ", link: "/#faq" },
   ];
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);

@@ -85,3 +85,30 @@ export async function setUserPassword(
 
   return {};
 }
+
+/** Set password without current password (e.g. after email reset). */
+export async function resetUserPassword(
+  userId: string,
+  newPassword: string
+): Promise<{ error?: string }> {
+  const validationError = validatePassword(newPassword);
+  if (validationError) return { error: validationError };
+
+  const [user] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user?.email) {
+    return { error: 'Account not found' };
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+  await db
+    .update(users)
+    .set({ passwordHash, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+
+  return {};
+}

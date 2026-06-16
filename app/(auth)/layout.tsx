@@ -1,3 +1,12 @@
+import { createPageMetadata } from '@/lib/site/metadata';
+
+export const metadata = createPageMetadata({
+  title: 'Sign in',
+  description: 'Sign in to Supereye with Google or email and password.',
+  path: '/login',
+  noIndex: true,
+});
+
 /**
  * Auth layout — centered, minimal design.
  * No sidebar or navbar — just the auth form against a gradient background.

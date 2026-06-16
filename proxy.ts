@@ -14,6 +14,6 @@ export const config = {
      * - /_next (Next.js internals, HMR, assets)
      * - metadata files and other file-extension assets
      */
-    '/((?!api|_next|favicon.ico|sitemap.xml|robots.txt|.*\\..*).*)',
+    '/((?!api|_next|favicon.ico|sitemap.xml|robots.txt|llms.txt|llms-full.txt|.*\\..*).*)',
   ],
 };

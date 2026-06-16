@@ -49,7 +49,11 @@ export async function PATCH(req: Request, context: RouteContext) {
     return NextResponse.json({ ok: true });
   }
 
-  const updated = await updateUserAdmin(id, body, authResult.admin.id);
+  const updated = await updateUserAdmin(
+    id,
+    body as { role?: 'super_admin' | 'user' | 'enterprise_user'; name?: string },
+    authResult.admin.id
+  );
   return NextResponse.json({ user: updated });
 }
 

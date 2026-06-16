@@ -35,7 +35,7 @@ const FAQ_ITEMS: FaqItem[] = [
   },
   {
     question: 'What is your security and privacy policy?',
-    answer: 'We take security seriously. All email scanning and AI processing is done client-side or through private, SOC-2 compliant endpoints. Your raw credentials and email contents are never stored on our servers.',
+    answer: 'We take security seriously. See our full Privacy Policy at /privacy for how we handle account data, integrations, and AI features.',
   },
 ];
 

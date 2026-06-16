@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { signIn } from '@/lib/auth';
 import { Eye } from 'lucide-react';
 import { EmailPasswordLoginForm } from '@/components/auth/email-password-login-form';
@@ -80,8 +81,16 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground/60">
-        Built with Corsair · Self-hosted · Your data, your control
+      <p className="text-center text-xs text-muted-foreground/60">
+        By signing in, you agree to our{' '}
+        <Link href="/terms" className="underline underline-offset-2 hover:text-muted-foreground">
+          Terms
+        </Link>{' '}
+        and{' '}
+        <Link href="/privacy" className="underline underline-offset-2 hover:text-muted-foreground">
+          Privacy Policy
+        </Link>
+        .
       </p>
     </div>
   );

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { getUserPreferencesWithContext, upsertUserPreferences } from '@/lib/user/preferences';
+import type { UserWorkspacePreferences } from '@/lib/plugins/types';
 import { parseJsonBody } from '@/lib/validation/http';
 import { preferencesPatchSchema } from '@/lib/validation/user';
 
@@ -21,6 +22,9 @@ export async function PATCH(req: Request) {
   const parsed = await parseJsonBody(req, preferencesPatchSchema);
   if ('error' in parsed) return parsed.error;
 
-  const data = await upsertUserPreferences(session.user.id, parsed.data);
+  const data = await upsertUserPreferences(
+    session.user.id,
+    parsed.data as Partial<UserWorkspacePreferences>
+  );
   return NextResponse.json(data);
 }

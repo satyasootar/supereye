@@ -4,19 +4,20 @@ import { LandingSection } from './landing-section';
 
 const FOOTER_LINKS = {
   Product: [
-    { label: 'Features', href: '#features' },
-    { label: 'Pricing', href: '#pricing' },
+    { label: 'Features', href: '/#features' },
+    { label: 'Pricing', href: '/#pricing' },
+    { label: 'About', href: '/about' },
     { label: 'Dashboard', href: '/workspace' },
   ],
   Company: [
-    { label: 'Contact', href: '#contact' },
-    { label: 'Privacy', href: '#' },
-    { label: 'Terms', href: '#' },
+    { label: 'Contact', href: 'mailto:legal@supereye.app' },
+    { label: 'Privacy', href: '/privacy' },
+    { label: 'Terms', href: '/terms' },
   ],
   Resources: [
-    { label: 'Documentation', href: '#' },
-    { label: 'Keyboard shortcuts', href: '#' },
-    { label: 'Changelog', href: '#' },
+    { label: 'LLM summary', href: '/llms.txt' },
+    { label: 'Sitemap', href: '/sitemap.xml' },
+    { label: 'Sign in', href: '/login' },
   ],
 };
 
