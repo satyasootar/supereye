@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useGithubRepoBundle } from '@/hooks/use-github-repos';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store/app-store';
 import type { GithubRepoBundle, GithubRepoTab } from '@/lib/github/types';
@@ -59,20 +59,7 @@ export function GithubRepoPanel({
 
   const [owner, repo] = selectedGithubRepo?.split('/') ?? ['', ''];
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['github', 'repo', owner, repo],
-    queryFn: async () => {
-      const res = await fetch(
-        `/api/github/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`
-      );
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? 'Failed to load repository');
-      }
-      return res.json() as Promise<GithubRepoBundle>;
-    },
-    enabled: !!owner && !!repo,
-  });
+  const { data, isLoading } = useGithubRepoBundle(owner, repo, !!owner && !!repo);
 
   const tabItems = useMemo(() => {
     if (!data) return [];

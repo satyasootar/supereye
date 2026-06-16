@@ -1,6 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useCachedQuery } from '@/hooks/use-cached-query';
+import { useDriveFolder } from '@/hooks/use-github-repos';
 import { ChevronRight, FolderOpen } from 'lucide-react';
 import type { DriveBrowseResult, DriveItem } from '@/lib/drive/types';
 import { DriveItemRow } from './drive-shared';
@@ -20,7 +21,7 @@ export function DriveBrowsePanel({ searchQuery = '' }: { searchQuery?: string })
   const { selectedDriveFolderId, openDriveFolder } = useAppStore();
   const folderId = selectedDriveFolderId ?? 'root';
 
-  const { data: searchData, isLoading: searchLoading } = useQuery({
+  const { data: searchData, isLoading: searchLoading } = useCachedQuery({
     queryKey: ['drive', 'search', searchQuery],
     queryFn: async () => {
       const res = await fetch(`/api/drive/search?q=${encodeURIComponent(searchQuery)}`);
@@ -31,20 +32,10 @@ export function DriveBrowsePanel({ searchQuery = '' }: { searchQuery?: string })
       return res.json() as Promise<{ items: DriveBrowseResult['items'] }>;
     },
     enabled: searchQuery.trim().length > 0,
+    clientStaleMs: 2 * 60_000,
   });
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['drive', 'files', folderId],
-    queryFn: async () => {
-      const res = await fetch(`/api/drive/files?folderId=${encodeURIComponent(folderId)}`);
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? 'Failed to load folder');
-      }
-      return res.json() as Promise<DriveBrowseResult>;
-    },
-    enabled: searchQuery.trim().length === 0,
-  });
+  const { data, isLoading } = useDriveFolder(folderId, searchQuery.trim().length === 0);
 
   const isSearch = searchQuery.trim().length > 0;
   const items = isSearch ? (searchData?.items ?? []) : (data?.items ?? []);

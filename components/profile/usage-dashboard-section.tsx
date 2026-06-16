@@ -325,7 +325,7 @@ export function UsageDashboardSection() {
           title="Token activity (7 days)"
           description="Daily token consumption across all AI features."
         >
-          {data.tokens.last7Days.length === 0 ? (
+          {data.tokens.last7Days.every((day) => day.totalTokens === 0) ? (
             <p className="text-[13px] text-text-muted">No activity in the last 7 days.</p>
           ) : (
             <ChartContainer

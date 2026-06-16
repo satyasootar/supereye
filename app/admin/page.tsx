@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 import { AdminPageHeader, AdminPanel } from '@/components/admin/admin-shell';
 import { StatCard } from '@/components/admin/stat-card';
-import { SimpleBarChart, SimpleLineChart } from '@/components/admin/simple-bar-chart';
+import { SimpleBarChart, SimpleLineChart, toDayChartData } from '@/components/admin/simple-bar-chart';
+import { AdminTokenUsageCharts } from '@/components/admin/token-usage-charts';
 import { formatCurrency, formatTokens } from '@/lib/billing/format';
 
 type OverviewResponse = {
@@ -40,7 +41,10 @@ type OverviewResponse = {
     revenueGrowth: { day: string; value: number }[];
     planDistribution: { label: string; value: number }[];
     tokenConsumption: { day: string; value: number }[];
+    llmTokenUsage: { day: string; value: number }[];
+    billingCredits: { day: string; value: number }[];
     dailyAiUsage: { day: string; value: number }[];
+    tokenByFeature: { label: string; value: number; requests?: number }[];
   };
 };
 
@@ -99,32 +103,32 @@ export default function AdminOverviewPage() {
         />
       </div>
 
+      <div className="mt-6">
+        <AdminTokenUsageCharts charts={charts} />
+      </div>
+
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <AdminPanel title="User Growth (30 days)">
           <SimpleLineChart
-            data={charts.userGrowth.map((d) => ({
-              label: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-              value: d.value,
-            }))}
+            data={toDayChartData(charts.userGrowth)}
+            showWhenZero={false}
+            emptyMessage="No new users in the last 30 days."
           />
         </AdminPanel>
         <AdminPanel title="Revenue Growth (30 days)">
           <SimpleLineChart
-            data={charts.revenueGrowth.map((d) => ({
-              label: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            data={toDayChartData(charts.revenueGrowth).map((d) => ({
+              ...d,
               value: d.value / 100,
             }))}
+            showWhenZero={false}
+            emptyMessage="No paid revenue in the last 30 days."
           />
         </AdminPanel>
         <AdminPanel title="Plan Distribution">
-          <SimpleBarChart data={charts.planDistribution} />
-        </AdminPanel>
-        <AdminPanel title="Daily AI Usage">
-          <SimpleLineChart
-            data={charts.dailyAiUsage.map((d) => ({
-              label: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-              value: d.value,
-            }))}
+          <SimpleBarChart
+            data={charts.planDistribution}
+            emptyMessage="No active subscriptions yet."
           />
         </AdminPanel>
       </div>

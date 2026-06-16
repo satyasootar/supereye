@@ -17,6 +17,11 @@ import {
   enterpriseAccounts,
 } from '@/lib/db/schema';
 import { resetPeriodTokens, adjustTokens } from './tokens';
+import {
+  ANALYTICS_WINDOW_DAYS,
+  fillDailySeries,
+  normalizeDayKey,
+} from './chart-series';
 
 export async function listPlans(includeInactive = false) {
   if (includeInactive) {
@@ -391,27 +396,30 @@ export async function createEnterpriseAccount(params: {
 
 export async function getAnalyticsCharts() {
   const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - ANALYTICS_WINDOW_DAYS);
+
+  const dayExpr = (column: unknown) =>
+    sql<string>`to_char(date_trunc('day', ${column}), 'YYYY-MM-DD')`;
 
   const userGrowth = await db
     .select({
-      day: sql<string>`date_trunc('day', ${users.createdAt})::date`,
+      day: dayExpr(users.createdAt),
       count: count(),
     })
     .from(users)
     .where(gte(users.createdAt, thirtyDaysAgo))
-    .groupBy(sql`date_trunc('day', ${users.createdAt})::date`)
-    .orderBy(sql`date_trunc('day', ${users.createdAt})::date`);
+    .groupBy(sql`date_trunc('day', ${users.createdAt})`)
+    .orderBy(sql`date_trunc('day', ${users.createdAt})`);
 
   const revenueGrowth = await db
     .select({
-      day: sql<string>`date_trunc('day', ${invoices.issuedAt})::date`,
+      day: dayExpr(invoices.issuedAt),
       total: sum(invoices.amountCents),
     })
     .from(invoices)
     .where(and(eq(invoices.status, 'paid'), gte(invoices.issuedAt, thirtyDaysAgo)))
-    .groupBy(sql`date_trunc('day', ${invoices.issuedAt})::date`)
-    .orderBy(sql`date_trunc('day', ${invoices.issuedAt})::date`);
+    .groupBy(sql`date_trunc('day', ${invoices.issuedAt})`)
+    .orderBy(sql`date_trunc('day', ${invoices.issuedAt})`);
 
   const planDistribution = await db
     .select({
@@ -423,41 +431,82 @@ export async function getAnalyticsCharts() {
     .where(eq(subscriptions.status, 'active'))
     .groupBy(plans.name);
 
-  const tokenConsumption = await db
+  const billingTokenRows = await db
     .select({
-      day: sql<string>`date_trunc('day', ${tokenLedger.createdAt})::date`,
+      day: dayExpr(tokenLedger.createdAt),
       total: sum(tokenLedger.tokensRemoved),
     })
     .from(tokenLedger)
     .where(and(eq(tokenLedger.action, 'ai_usage'), gte(tokenLedger.createdAt, thirtyDaysAgo)))
-    .groupBy(sql`date_trunc('day', ${tokenLedger.createdAt})::date`)
-    .orderBy(sql`date_trunc('day', ${tokenLedger.createdAt})::date`);
+    .groupBy(sql`date_trunc('day', ${tokenLedger.createdAt})`)
+    .orderBy(sql`date_trunc('day', ${tokenLedger.createdAt})`);
+
+  const llmTokenRows = await db
+    .select({
+      day: dayExpr(aiUsageEvents.createdAt),
+      total: sum(aiUsageEvents.totalTokens),
+    })
+    .from(aiUsageEvents)
+    .where(gte(aiUsageEvents.createdAt, thirtyDaysAgo))
+    .groupBy(sql`date_trunc('day', ${aiUsageEvents.createdAt})`)
+    .orderBy(sql`date_trunc('day', ${aiUsageEvents.createdAt})`);
 
   const dailyAiUsage = await db
     .select({
-      day: sql<string>`date_trunc('day', ${aiUsageEvents.createdAt})::date`,
+      day: dayExpr(aiUsageEvents.createdAt),
       count: count(),
     })
     .from(aiUsageEvents)
     .where(gte(aiUsageEvents.createdAt, thirtyDaysAgo))
-    .groupBy(sql`date_trunc('day', ${aiUsageEvents.createdAt})::date`)
-    .orderBy(sql`date_trunc('day', ${aiUsageEvents.createdAt})::date`);
+    .groupBy(sql`date_trunc('day', ${aiUsageEvents.createdAt})`)
+    .orderBy(sql`date_trunc('day', ${aiUsageEvents.createdAt})`);
+
+  const tokenByFeature = await db
+    .select({
+      feature: aiUsageEvents.feature,
+      total: sum(aiUsageEvents.totalTokens),
+      count: count(),
+    })
+    .from(aiUsageEvents)
+    .where(gte(aiUsageEvents.createdAt, thirtyDaysAgo))
+    .groupBy(aiUsageEvents.feature)
+    .orderBy(sql`sum(${aiUsageEvents.totalTokens}) desc`);
+
+  const mapSeries = (rows: { day: string; total?: unknown; count?: unknown }[], valueKey: 'total' | 'count') =>
+    fillDailySeries(
+      rows.map((row) => ({
+        day: normalizeDayKey(row.day),
+        value: Number(valueKey === 'total' ? (row.total ?? 0) : (row.count ?? 0)),
+      }))
+    );
+
+  const llmTokenUsage = mapSeries(llmTokenRows, 'total');
+  const billingCredits = mapSeries(billingTokenRows, 'total');
 
   return {
-    userGrowth: userGrowth.map((r) => ({ day: String(r.day), value: r.count })),
-    revenueGrowth: revenueGrowth.map((r) => ({
-      day: String(r.day),
-      value: Number(r.total ?? 0),
+    userGrowth: fillDailySeries(
+      userGrowth.map((row) => ({ day: normalizeDayKey(row.day), value: row.count }))
+    ),
+    revenueGrowth: fillDailySeries(
+      revenueGrowth.map((row) => ({
+        day: normalizeDayKey(row.day),
+        value: Number(row.total ?? 0),
+      }))
+    ),
+    planDistribution: planDistribution.map((row) => ({
+      label: row.planName,
+      value: row.count,
     })),
-    planDistribution: planDistribution.map((r) => ({
-      label: r.planName,
-      value: r.count,
+    /** LLM tokens consumed (matches overview stat). */
+    tokenConsumption: llmTokenUsage,
+    llmTokenUsage,
+    billingCredits,
+    dailyAiUsage: mapSeries(dailyAiUsage, 'count'),
+    tokenByFeature: tokenByFeature.map((row) => ({
+      label: row.feature,
+      value: Number(row.total ?? 0),
+      requests: row.count,
     })),
-    tokenConsumption: tokenConsumption.map((r) => ({
-      day: String(r.day),
-      value: Number(r.total ?? 0),
-    })),
-    dailyAiUsage: dailyAiUsage.map((r) => ({ day: String(r.day), value: r.count })),
   };
 }
 

@@ -3,7 +3,9 @@ import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { db } from '@/lib/db';
 import { emails, emailEventLinks } from '@/lib/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
+import { triggerBackgroundSyncIfStale } from '@/lib/cache/background-sync';
 import { mapEmailRowToMessage } from '@/lib/mail/priority';
+import { syncGmailForUser } from '@/lib/mail/sync';
 import { parseQuery } from '@/lib/validation/http';
 import { mailThreadsQuerySchema } from '@/lib/validation/mail';
 
@@ -11,6 +13,10 @@ export async function GET(req: Request) {
   const authResult = await requireActiveUserSession();
   if ('error' in authResult) return authResult.error;
   const { session } = authResult;
+
+  triggerBackgroundSyncIfStale(session.user.id, 'gmail', () =>
+    syncGmailForUser(session.user.id)
+  );
 
   const parsed = parseQuery(req.url, mailThreadsQuerySchema);
   if ('error' in parsed) return parsed.error;

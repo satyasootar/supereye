@@ -120,6 +120,13 @@
       "when": 1781950000000,
       "tag": "0017_keybindings_enabled",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1782000000000,
+      "tag": "0018_integration_cache",
+      "breakpoints": true
     }
   ]
 }

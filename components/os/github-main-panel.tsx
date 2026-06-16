@@ -2,7 +2,8 @@
 
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store/app-store';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useGithubRepos } from '@/hooks/use-github-repos';
 import { useState, useRef } from 'react';
 import {
   LayoutDashboard,
@@ -12,7 +13,7 @@ import {
   Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { GithubRepo, GithubSection } from '@/lib/github/types';
+import type { GithubSection } from '@/lib/github/types';
 import { GithubOverviewPanel } from './github-overview-panel';
 import { GithubInboxPanel } from './github-inbox-panel';
 import { GithubRepoPanel } from './github-repo-panel';
@@ -37,19 +38,7 @@ export function GithubMainPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
-  const { data: reposData, isLoading: reposLoading } = useQuery({
-    queryKey: ['github', 'repos'],
-    queryFn: async () => {
-      const res = await fetch('/api/github/repos');
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? 'Failed to load repositories');
-      }
-      return res.json() as Promise<{ repos: GithubRepo[] }>;
-    },
-  });
-
-  const repos = reposData?.repos ?? [];
+  const { repos, isLoading: reposLoading } = useGithubRepos();
 
   const syncMutation = useMutation({
     mutationFn: async () => {

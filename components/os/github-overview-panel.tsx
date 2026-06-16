@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useGithubOverview } from '@/hooks/use-github-repos';
 import { GitPullRequest, CircleDot, GitCommit, Inbox } from 'lucide-react';
 import { useAppStore } from '@/lib/store/app-store';
 import type { GithubOverview } from '@/lib/github/types';
@@ -15,17 +15,7 @@ import {
 export function GithubOverviewPanel() {
   const { openGithubRepo, openGithubItem, setGithubSection } = useAppStore();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['github', 'overview'],
-    queryFn: async () => {
-      const res = await fetch('/api/github/overview');
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? 'Failed to load overview');
-      }
-      return res.json() as Promise<GithubOverview>;
-    },
-  });
+  const { data, isLoading } = useGithubOverview();
 
   if (isLoading || !data) {
     return (

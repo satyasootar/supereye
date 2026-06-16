@@ -9,9 +9,11 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // With SSE-driven invalidation, we don't need aggressive polling
-            staleTime: 60 * 1000, // 1 minute
+            // Zustand + SSE invalidation handle freshness; avoid redundant refetches.
+            staleTime: 5 * 60 * 1000,
+            gcTime: 30 * 60 * 1000,
             refetchOnWindowFocus: false,
+            refetchOnReconnect: true,
           },
         },
       })

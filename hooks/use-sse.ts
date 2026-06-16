@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { invalidateClientCacheNamespaces } from '@/lib/store/data-cache-store';
 import { SSE_INVALIDATION_MAP } from '@/lib/sse/events';
 import type { SSEEventType } from '@/lib/sse/events';
 
@@ -42,7 +43,8 @@ export function useSSE() {
           // Invalidate all query keys mapped to this event type
           const queryKeys = SSE_INVALIDATION_MAP[eventType];
           if (queryKeys) {
-            for (const key of queryKeys) {
+            invalidateClientCacheNamespaces(queryKeys.cacheNamespaces);
+            for (const key of queryKeys.queryKeys) {
               console.log(`[SSE] Invalidating query key:`, key);
               queryClient.invalidateQueries({ queryKey: key });
             }

@@ -1,12 +1,8 @@
 /**
  * Typed SSE Event Registry.
- * 
+ *
  * All SSE event types must be declared here. This gives compile-time
  * safety when emitting or listening for events across the codebase.
- * 
- * When adding a new integration (e.g., Slack, Linear, AI), add its
- * event types here and TypeScript will flag every listener that needs
- * updating.
  */
 
 // ─── Event Types ────────────────────────────────────────────────────────
@@ -33,17 +29,64 @@ export type SSEEvent = {
   timestamp: string;
 };
 
+export type SSEInvalidationTarget = {
+  queryKeys: string[][];
+  cacheNamespaces: string[];
+};
+
 // ─── Event-to-QueryKey Mapping ──────────────────────────────────────────
-// Maps SSE event types to the React Query keys that should be invalidated.
-// This centralizes the "what to refresh when X happens" logic so the
-// SSE hook doesn't need a growing if/else chain.
-export const SSE_INVALIDATION_MAP: Record<SSEEventType, string[][]> = {
-  'email:updated': [['mail-threads'], ['emails', 'threads'], ['emails', 'unread-count'], ['brief', 'today']],
-  'email:triage': [['emails', 'threads'], ['emails', 'triage'], ['brief', 'today']],
-  'brief:updated': [['brief', 'today']],
-  'calendar:updated': [['calendar-events'], ['calendar', 'events'], ['brief', 'today']],
-  'github:updated': [['github', 'repos'], ['github', 'activity'], ['github', 'pulls'], ['github', 'issues']],
-  'drive:updated': [['drive', 'files'], ['drive', 'recent'], ['drive', 'search']],
-  'notification:new': [['notifications']],
-  'sync:requested': [['mail-threads'], ['emails', 'threads'], ['emails', 'unread-count'], ['calendar-events'], ['calendar', 'events']],
+export const SSE_INVALIDATION_MAP: Record<SSEEventType, SSEInvalidationTarget> = {
+  'email:updated': {
+    queryKeys: [
+      ['mail-threads'],
+      ['emails', 'threads'],
+      ['emails', 'unread-count'],
+      ['brief', 'today'],
+    ],
+    cacheNamespaces: ['emails', 'mail-threads', 'brief'],
+  },
+  'email:triage': {
+    queryKeys: [['emails', 'threads'], ['emails', 'triage'], ['brief', 'today']],
+    cacheNamespaces: ['emails', 'brief'],
+  },
+  'brief:updated': {
+    queryKeys: [['brief', 'today']],
+    cacheNamespaces: ['brief'],
+  },
+  'calendar:updated': {
+    queryKeys: [['calendar-events'], ['calendar', 'events'], ['brief', 'today']],
+    cacheNamespaces: ['calendar', 'brief'],
+  },
+  'github:updated': {
+    queryKeys: [
+      ['github', 'repos'],
+      ['github', 'overview'],
+      ['github', 'inbox'],
+      ['github', 'repo'],
+      ['github', 'activity'],
+      ['github', 'pulls'],
+      ['github', 'issues'],
+    ],
+    cacheNamespaces: ['github'],
+  },
+  'drive:updated': {
+    queryKeys: [['drive', 'files'], ['drive', 'recent'], ['drive', 'search']],
+    cacheNamespaces: ['drive'],
+  },
+  'notification:new': {
+    queryKeys: [['notifications']],
+    cacheNamespaces: ['notifications'],
+  },
+  'sync:requested': {
+    queryKeys: [
+      ['mail-threads'],
+      ['emails', 'threads'],
+      ['emails', 'unread-count'],
+      ['calendar-events'],
+      ['calendar', 'events'],
+      ['github'],
+      ['drive'],
+    ],
+    cacheNamespaces: ['emails', 'mail-threads', 'calendar', 'github', 'drive'],
+  },
 };

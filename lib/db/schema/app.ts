@@ -205,6 +205,23 @@ export const syncState = pgTable(
   ]
 );
 
+// ─── Integration payload cache (Drive, GitHub, etc.) ────────────────────
+export const integrationCache = pgTable(
+  'integration_cache',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    cacheKey: text('cache_key').notNull(),
+    payload: jsonb('payload').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    unique('uq_integration_cache_user_key').on(table.userId, table.cacheKey),
+    index('idx_integration_cache_user_id').on(table.userId),
+  ]
+);
+
 // ─── Scheduled Emails ───────────────────────────────────────────────────
 export const scheduledEmails = pgTable(
   'scheduled_emails',

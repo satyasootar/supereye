@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store/app-store';
-import { useQuery } from '@tanstack/react-query';
+import { useDriveRecent } from '@/hooks/use-github-repos';
 import { Clock, FolderOpen, RefreshCw } from 'lucide-react';
 import type { DriveSection } from '@/lib/drive/types';
 import type { DriveRecentOverview } from '@/lib/drive/types';
@@ -27,14 +27,7 @@ export function DriveSidebar({
 
   const isCollapsed = variant === 'default' && leftSidebarCollapsed;
 
-  const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['drive', 'recent'],
-    queryFn: async () => {
-      const res = await fetch('/api/drive/recent');
-      if (!res.ok) throw new Error('Failed to load Drive');
-      return res.json() as Promise<DriveRecentOverview>;
-    },
-  });
+  const { data, isLoading, refetch, isFetching } = useDriveRecent();
 
   const quickItems = (data?.recent ?? []).slice(0, 8);
 

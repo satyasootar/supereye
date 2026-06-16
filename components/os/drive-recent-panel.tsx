@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useDriveRecent } from '@/hooks/use-github-repos';
 import { Clock, Star } from 'lucide-react';
 import type { DriveItem, DriveRecentOverview } from '@/lib/drive/types';
 import { DriveItemRow } from './drive-shared';
@@ -19,17 +19,7 @@ function openDriveItem(item: DriveItem, openDriveFolder: (id: string) => void) {
 export function DriveRecentPanel() {
   const { openDriveFolder } = useAppStore();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['drive', 'recent'],
-    queryFn: async () => {
-      const res = await fetch('/api/drive/recent');
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? 'Failed to load Drive');
-      }
-      return res.json() as Promise<DriveRecentOverview>;
-    },
-  });
+  const { data, isLoading } = useDriveRecent();
 
   if (isLoading || !data) {
     return (

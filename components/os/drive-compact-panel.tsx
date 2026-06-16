@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store/app-store';
-import { useQuery } from '@tanstack/react-query';
+import { useDriveRecent } from '@/hooks/use-github-repos';
 import { FolderOpen, RefreshCw } from 'lucide-react';
 import type { DriveRecentOverview } from '@/lib/drive/types';
 import { DriveItemRow } from './drive-shared';
@@ -10,17 +10,7 @@ import { DriveItemRow } from './drive-shared';
 export function DriveCompactPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const { openDriveFolder, setDriveSection } = useAppStore();
 
-  const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['drive', 'recent'],
-    queryFn: async () => {
-      const res = await fetch('/api/drive/recent');
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? 'Failed to load Drive');
-      }
-      return res.json() as Promise<DriveRecentOverview>;
-    },
-  });
+  const { data, isLoading, refetch, isFetching } = useDriveRecent();
 
   const items = (data?.recent ?? []).slice(0, 10);
 

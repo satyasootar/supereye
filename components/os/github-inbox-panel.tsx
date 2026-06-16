@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useGithubInbox } from '@/hooks/use-github-repos';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store/app-store';
 import type { GithubInboxItem } from '@/lib/github/types';
@@ -84,19 +84,7 @@ export function GithubInboxPanel({
     setSelectedGithubItemKey,
   } = useAppStore();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['github', 'inbox', githubInboxFilter],
-    queryFn: async () => {
-      const res = await fetch(
-        `/api/github/inbox?filter=${encodeURIComponent(githubInboxFilter)}`
-      );
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? 'Failed to load inbox');
-      }
-      return res.json() as Promise<{ items: GithubInboxItem[] }>;
-    },
-  });
+  const { data, isLoading } = useGithubInbox(githubInboxFilter);
 
   const items = data?.items ?? [];
 

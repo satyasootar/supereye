@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store/app-store';
-import { useQuery } from '@tanstack/react-query';
+import { useGithubRepos } from '@/hooks/use-github-repos';
 import {
   LayoutDashboard,
   Inbox,
@@ -10,8 +10,8 @@ import {
   RefreshCw,
   Search,
 } from 'lucide-react';
-import { useState } from 'react';
-import type { GithubRepo, GithubSection } from '@/lib/github/types';
+import { useCallback, useRef, useState } from 'react';
+import type { GithubSection } from '@/lib/github/types';
 
 const NAV: { id: GithubSection; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -33,18 +33,26 @@ export function GithubSidebar({
   } = useAppStore();
 
   const [repoSearch, setRepoSearch] = useState('');
+  const listRef = useRef<HTMLDivElement>(null);
   const isCollapsed = variant === 'default' && leftSidebarCollapsed;
 
-  const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['github', 'repos'],
-    queryFn: async () => {
-      const res = await fetch('/api/github/repos');
-      if (!res.ok) throw new Error('Failed to load repos');
-      return res.json() as Promise<{ repos: GithubRepo[] }>;
-    },
-  });
+  const {
+    repos,
+    isLoading,
+    refetch,
+    isFetching,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useGithubRepos();
 
-  const repos = data?.repos ?? [];
+  const handleRepoListScroll = useCallback(() => {
+    const el = listRef.current;
+    if (!el || !hasNextPage || isFetchingNextPage) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 48) {
+      void fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
   const filteredRepos = repoSearch.trim()
     ? repos.filter(
         (r) =>
@@ -141,34 +149,50 @@ export function GithubSidebar({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar px-2 pb-2">
+      <div
+        ref={listRef}
+        onScroll={handleRepoListScroll}
+        className="min-h-0 flex-1 overflow-y-auto custom-scrollbar px-2 pb-2"
+      >
         {isLoading ? (
           <p className="px-2 py-4 text-[12px] text-text-muted">Loading repos…</p>
         ) : filteredRepos.length === 0 ? (
           <p className="px-2 py-4 text-[12px] text-text-muted">No repositories</p>
         ) : (
-          filteredRepos.map((repo) => {
-            const active = selectedGithubRepo === repo.fullName;
-            return (
+          <>
+            {filteredRepos.map((repo) => {
+              const active = selectedGithubRepo === repo.fullName;
+              return (
+                <button
+                  key={repo.id}
+                  type="button"
+                  onClick={() => openGithubRepo(repo.fullName)}
+                  className={cn(
+                    'mb-0.5 flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition-colors',
+                    active && githubSection === 'repo'
+                      ? 'bg-bg-highlight text-text-primary'
+                      : 'text-text-secondary hover:bg-bg-overlay hover:text-text-primary'
+                  )}
+                >
+                  <FolderGit2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-text-muted" />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-medium">{repo.name}</p>
+                    <p className="truncate text-[11px] text-text-muted">{repo.owner}</p>
+                  </div>
+                </button>
+              );
+            })}
+            {hasNextPage && !repoSearch.trim() && (
               <button
-                key={repo.id}
                 type="button"
-                onClick={() => openGithubRepo(repo.fullName)}
-                className={cn(
-                  'mb-0.5 flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition-colors',
-                  active && githubSection === 'repo'
-                    ? 'bg-bg-highlight text-text-primary'
-                    : 'text-text-secondary hover:bg-bg-overlay hover:text-text-primary'
-                )}
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="mt-1 w-full rounded-md px-2 py-2 text-center text-[11px] font-medium text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary disabled:opacity-50"
               >
-                <FolderGit2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-text-muted" />
-                <div className="min-w-0">
-                  <p className="truncate text-[13px] font-medium">{repo.name}</p>
-                  <p className="truncate text-[11px] text-text-muted">{repo.owner}</p>
-                </div>
+                {isFetchingNextPage ? 'Loading more…' : 'Load more repositories'}
               </button>
-            );
-          })
+            )}
+          </>
         )}
       </div>
     </div>

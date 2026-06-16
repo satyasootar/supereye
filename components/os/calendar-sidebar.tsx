@@ -17,7 +17,7 @@ const miniCalDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 import { useAppStore } from '@/lib/store/app-store';
 
-import { useQuery } from '@tanstack/react-query';
+import { useCalendarEvents } from '@/hooks/use-github-repos';
 import { isCalendarEventUpcoming } from '@/lib/calendar/event-utils';
 
 export function CalendarSidebar({ 
@@ -92,15 +92,7 @@ export function CalendarSidebar({
     return dates;
   }, [viewedMonth, viewedYear]);
 
-  const { data: events, isLoading } = useQuery({
-    queryKey: ['calendar', 'events'],
-    queryFn: async () => {
-      const res = await fetch('/api/calendar/events');
-      if (!res.ok) throw new Error('Failed to fetch calendar events');
-      const json = await res.json();
-      return json.events as any[];
-    }
-  });
+  const { data: events, isLoading } = useCalendarEvents();
 
   const formatDateKey = (date: Date) => {
     const y = date.getFullYear();

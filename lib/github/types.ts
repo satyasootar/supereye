@@ -1,3 +1,12 @@
+export const GITHUB_REPOS_PAGE_SIZE = 20;
+
+export type GithubReposPage = {
+  repos: GithubRepo[];
+  page: number;
+  perPage: number;
+  hasMore: boolean;
+};
+
 export type GithubRepo = {
   id: number;
   name: string;
