@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { corsair } from '@/lib/corsair';
-import { processOAuthCallback } from 'corsair/oauth';
+import { processSupereyeOAuthCallback } from '@/lib/corsair/oauth-callback';
 import { redirect } from 'next/navigation';
 import { getUserPreferences } from '@/lib/user/preferences';
 import { syncWorkspacesFromPlugins } from '@/lib/workspaces/workspaces';
@@ -19,7 +18,7 @@ export async function GET(req: NextRequest) {
   let successUrl = '/workspace/onboarding?connected=1';
 
   try {
-    const result = await processOAuthCallback(corsair, {
+    const result = await processSupereyeOAuthCallback({
       code,
       state,
       redirectUri,

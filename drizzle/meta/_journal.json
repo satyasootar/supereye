@@ -127,6 +127,13 @@
       "when": 1782000000000,
       "tag": "0018_integration_cache",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1782050000000,
+      "tag": "0019_user_preferences_bot_settings",
+      "breakpoints": true
     }
   ]
 }
