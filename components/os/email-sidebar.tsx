@@ -24,13 +24,16 @@ const basePrimaryNav = [
 ];
 
 import { useAppStore } from '@/lib/store/app-store';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWorkspaceLayout } from '@/hooks/use-workspace-layout';
 import { CalendarSidebar } from './calendar-sidebar';
 import { GithubSidebar } from './github-sidebar';
 import { DriveSidebar } from './drive-sidebar';
 import { WorkspaceSwitcher } from './workspace-switcher';
 import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
+import { TOUR_TARGETS } from '@/lib/tour/targets';
+import { useTourStore } from '@/lib/store/tour-store';
+import { USER_PREFERENCES_KEY } from '@/hooks/use-workspaces';
 
 export function EmailSidebar() {
   const router = useRouter();
@@ -51,6 +54,20 @@ export function EmailSidebar() {
   const [mounted, setMounted] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const queryClient = useQueryClient();
+  const startTour = useTourStore((s) => s.startTour);
+
+  const handleRestartTour = async () => {
+    setIsMenuOpen(false);
+    await fetch('/api/user/preferences', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ botSettings: { workspaceTourCompleted: false } }),
+    });
+    await queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_KEY });
+    startTour();
+  };
 
   const handleSwitchPlugin = () => {
     if (!activeWorkspace || activeWorkspace.pluginIds.length < 2) return;
@@ -446,6 +463,7 @@ export function EmailSidebar() {
             {activeWorkspace && activeWorkspace.pluginIds.length >= 2 && (
               <button
                 type="button"
+                data-tour={TOUR_TARGETS.pluginSwitch}
                 onClick={handleSwitchPlugin}
                 className="flex w-9 items-center justify-center rounded-md border border-border-subtle bg-bg-highlight/60 text-text-muted transition-colors hover:bg-bg-highlight hover:text-text-primary self-stretch shrink-0 cursor-pointer"
                 title="Switch Active Plugin"
@@ -456,6 +474,7 @@ export function EmailSidebar() {
           </div>
           <Link
             href="/workspace/brief"
+            data-tour={TOUR_TARGETS.brief}
             className={cn(
               'flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors',
               isBriefPage
@@ -485,7 +504,7 @@ export function EmailSidebar() {
           </Link>
         </div>
       )}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden" data-tour={TOUR_TARGETS.pluginNav}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={isSidebarCollapsed ? 'collapsed' : 'expanded'}
@@ -511,9 +530,12 @@ export function EmailSidebar() {
             transition={{ duration: 0.15 }}
             className="border-t border-border-subtle py-4 px-1 bg-bg-surface/30 flex flex-col items-center gap-4 flex-shrink-0"
           >
-            <NotificationBell align="start" side="right" />
+            <div data-tour={TOUR_TARGETS.notifications}>
+              <NotificationBell align="start" side="right" />
+            </div>
             <button
               type="button"
+              data-tour={TOUR_TARGETS.profile}
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               data-menu-trigger="profile"
               className={cn(
@@ -541,6 +563,7 @@ export function EmailSidebar() {
           >
             <button
               type="button"
+              data-tour={TOUR_TARGETS.profile}
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               data-menu-trigger="profile"
               className={cn(
@@ -562,7 +585,9 @@ export function EmailSidebar() {
               </div>
             </button>
             <div className="flex items-center gap-1">
-              <NotificationBell align="start" side="right" />
+              <div data-tour={TOUR_TARGETS.notifications}>
+                <NotificationBell align="start" side="right" />
+              </div>
               <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 data-menu-trigger="profile"
@@ -614,6 +639,15 @@ export function EmailSidebar() {
             >
               <User className="h-3.5 w-3.5 text-text-muted" />
               View Profile
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void handleRestartTour()}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-text-secondary hover:bg-bg-overlay hover:text-text-primary transition-colors cursor-pointer"
+            >
+              <HelpCircle className="h-3.5 w-3.5 text-text-muted" />
+              App tour
             </button>
             
             <div className="h-px bg-border-subtle/40 my-1" />

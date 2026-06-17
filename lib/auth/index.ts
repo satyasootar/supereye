@@ -74,7 +74,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         await ensureUserHasSubscription(user.id);
 
         if (isDemoAccountEmail(user.email)) {
-          await upsertUserPreferences(user.id, { onboardingCompleted: false });
+          await upsertUserPreferences(user.id, {
+            onboardingCompleted: false,
+            botSettings: { workspaceTourCompleted: false },
+          });
         }
       }
     },

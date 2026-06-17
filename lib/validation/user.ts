@@ -6,6 +6,7 @@ export const botSettingsSchema = z.object({
   showTips: z.boolean().optional(),
   autoCloseTips: z.boolean().optional(),
   autoCloseDelay: z.number().int().min(1000).max(60_000).optional(),
+  workspaceTourCompleted: z.boolean().optional(),
 });
 
 export const preferencesPatchSchema = z

@@ -77,6 +77,12 @@ describe('validation user', () => {
       preferencesPatchSchema.safeParse({ keybindingsEnabled: false }).success,
       true
     );
+    assert.equal(
+      preferencesPatchSchema.safeParse({
+        botSettings: { workspaceTourCompleted: true },
+      }).success,
+      true
+    );
     assert.equal(preferencesPatchSchema.safeParse({}).success, false);
   });
 
@@ -126,6 +132,17 @@ describe('validation mail', () => {
     const parsed = mailThreadsQuerySchema.parse({ offset: '5', category: 'INBOX' });
     assert.equal(parsed.offset, 5);
     assert.equal(parsed.category, 'INBOX');
+  });
+
+  it('accepts extended mail categories', () => {
+    for (const category of ['SENT', 'TRASH', 'STARRED', 'ARCHIVE', 'ALL'] as const) {
+      const parsed = mailThreadsQuerySchema.parse({ category });
+      assert.equal(parsed.category, category);
+    }
+  });
+
+  it('rejects unknown mail categories', () => {
+    assert.equal(mailThreadsQuerySchema.safeParse({ category: 'DRAFT' }).success, false);
   });
 });
 

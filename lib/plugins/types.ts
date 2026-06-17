@@ -37,13 +37,16 @@ export type WorkspaceLayout = {
 export type BotSettings = {
   showTips: boolean;
   autoCloseTips: boolean;
-  autoCloseDelay: number; // milliseconds, default 5000
+  autoCloseDelay: number;
+  /** Interactive workspace product tour completed */
+  workspaceTourCompleted?: boolean;
 };
 
 export const DEFAULT_BOT_SETTINGS: BotSettings = {
   showTips: true,
   autoCloseTips: false,
   autoCloseDelay: 5000,
+  workspaceTourCompleted: false,
 };
 
 export type UserWorkspacePreferences = {

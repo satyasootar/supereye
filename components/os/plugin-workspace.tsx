@@ -29,6 +29,7 @@ import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { CreateEventModal } from './create-event-modal';
 import Link from 'next/link';
 import type { PluginId } from '@/lib/plugins/types';
+import { TOUR_TARGETS } from '@/lib/tour/targets';
 
 const springTransition = {
   type: 'spring' as const,
@@ -125,6 +126,7 @@ function SecondaryPanel({
   return (
     <motion.div
       key={pluginId}
+      data-tour={TOUR_TARGETS.secondaryPanel}
       className="relative h-full flex-shrink-0 overflow-hidden border-l border-border-subtle bg-bg-surface"
       initial={{ width: 0, opacity: 0 }}
       animate={{ width: expanded ? width : 48, opacity: 1 }}
@@ -284,7 +286,7 @@ export function PluginWorkspace() {
       <div className="flex h-full w-full overflow-hidden bg-bg-app">
         <div className="flex h-full flex-1 overflow-hidden">
           {/* Main Panel Content with Slide Transition */}
-          <div className="relative h-full flex-1 overflow-hidden">
+          <div className="relative h-full flex-1 overflow-hidden" data-tour={TOUR_TARGETS.mainPanel}>
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={primary}

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import type { BotSettings } from '@/lib/plugins/types';
 import { DEFAULT_BOT_SETTINGS } from '@/lib/plugins/types';
+import { TOUR_TARGETS } from '@/lib/tour/targets';
 
 type Emotion = 
   | 'neutral' 
@@ -511,6 +512,7 @@ export function AiBot({
 
   return (
     <div 
+      data-tour={openAgentOnClick ? TOUR_TARGETS.eye : undefined}
       className={cn(
         'select-none transition-transform duration-300',
         disableClick ? 'cursor-default' : 'cursor-pointer hover:scale-105',

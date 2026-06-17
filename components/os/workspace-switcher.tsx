@@ -6,6 +6,7 @@ import { useAppStore } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
 import { ChevronDown, LayoutGrid, Plus } from 'lucide-react';
 import { getPlugin } from '@/lib/plugins/registry';
+import { TOUR_TARGETS } from '@/lib/tour/targets';
 import {
   Popover,
   PopoverContent,
@@ -68,6 +69,7 @@ export function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }
       <PopoverTrigger asChild>
         <button
           type="button"
+          data-tour={TOUR_TARGETS.workspaceSwitcher}
           className="flex w-full items-center justify-between gap-2 rounded-md border border-border-subtle bg-bg-highlight/60 px-2.5 py-2 text-left transition-colors hover:bg-bg-highlight"
         >
           <div className="min-w-0">

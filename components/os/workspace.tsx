@@ -10,6 +10,7 @@ import { useSSE } from '@/hooks/use-sse';
 import { GlobalComposer } from './global-composer';
 import { AiBot } from './ai-bot';
 import { AgentOverlay } from './agent-overlay';
+import { AppTourProvider } from '@/components/tour/app-tour-provider';
 
 export function Workspace() {
   useSSE();
@@ -49,7 +50,7 @@ export function Workspace() {
   // Single Pane View
   if (activeTabs.length === 1) {
     return (
-      <>
+      <AppTourProvider>
         <div className="flex h-full min-h-0 w-full overflow-hidden bg-base">
           <EmailSidebar />
           <div className="flex h-full min-h-0 min-w-0 flex-1">
@@ -59,7 +60,7 @@ export function Workspace() {
         <GlobalComposer />
         <AiBot />
         <AgentOverlay />
-      </>
+      </AppTourProvider>
     );
   }
 
@@ -68,6 +69,7 @@ export function Workspace() {
   const rightTab = activeTabs[1];
 
   return (
+    <AppTourProvider>
     <div 
       ref={containerRef}
       className="flex h-full min-h-0 w-full overflow-hidden"
@@ -104,5 +106,6 @@ export function Workspace() {
       <AiBot />
       <AgentOverlay />
     </div>
+    </AppTourProvider>
   );
 }

@@ -101,7 +101,7 @@ export function OnboardingPageClient() {
       await queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_KEY });
       await queryClient.invalidateQueries({ queryKey: ACTIVE_PLUGINS_KEY });
       await queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-      router.push('/workspace');
+      router.push('/workspace?tour=1');
       router.refresh();
     } finally {
       setFinishing(false);
