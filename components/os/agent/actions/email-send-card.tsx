@@ -6,6 +6,8 @@ import type { AgentAction } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
 import { Check, Loader2, Wifi } from 'lucide-react';
 
+const spring = { type: 'spring' as const, stiffness: 220, damping: 26 };
+
 const PHASES = [
   { key: 'connecting', label: 'Connecting to Gmail', icon: Wifi },
   { key: 'sending', label: 'Sending message', icon: Loader2 },
@@ -25,7 +27,7 @@ export function EmailSendCard({
 
   useEffect(() => {
     if (canReveal) {
-      const t = setTimeout(() => setVisible(true), 200);
+      const t = setTimeout(() => setVisible(true), 400);
       return () => clearTimeout(t);
     }
     setVisible(false);
@@ -41,7 +43,8 @@ export function EmailSendCard({
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-2"
+      transition={spring}
+      className="space-y-0 rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-sm"
     >
       {PHASES.map((step, i) => {
         const isActive = i === currentIndex && action.status === 'running';
@@ -53,22 +56,20 @@ export function EmailSendCard({
         return (
           <motion.div
             key={step.key}
-            initial={{ opacity: 0, x: -8 }}
+            initial={{ opacity: 0, x: -6 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.08 }}
-            className={cn(
-              'flex items-center gap-3 rounded-lg border px-3 py-2.5',
-              isDone && !isError
-                ? 'border-accent-blue/25 bg-accent-blue/8'
-                : isError && i === currentIndex
-                  ? 'border-destructive/30 bg-destructive/8'
-                  : 'border-border-default bg-bg-elevated/60'
-            )}
+            transition={{ ...spring, delay: i * 0.18 }}
+            className="flex items-center gap-3 py-1.5"
           >
+            {/* Vertical timeline accent */}
             <div
               className={cn(
                 'flex h-7 w-7 items-center justify-center rounded-md',
-                isDone && !isError ? 'bg-accent-blue/20 text-accent-blue' : 'bg-bg-surface text-text-muted'
+                isDone && !isError
+                  ? 'text-accent-blue'
+                  : isError && i === currentIndex
+                    ? 'text-destructive'
+                    : 'text-text-muted'
               )}
             >
               {isActive ? (
@@ -79,6 +80,19 @@ export function EmailSendCard({
                 <Icon className="h-3.5 w-3.5" />
               )}
             </div>
+
+            {/* Left accent line */}
+            <div
+              className={cn(
+                'w-[2px] self-stretch rounded-full',
+                isDone && !isError
+                  ? 'bg-accent-blue'
+                  : isActive
+                    ? 'bg-accent-blue/50'
+                    : 'bg-border-subtle'
+              )}
+            />
+
             <span
               className={cn(
                 'text-[13px] font-medium',

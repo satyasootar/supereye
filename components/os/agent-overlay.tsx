@@ -51,7 +51,7 @@ export function AgentOverlay() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.25 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
         >
           <div className="absolute inset-0 bg-black/15 backdrop-blur-[10px]" aria-hidden />
 
@@ -71,8 +71,8 @@ export function AgentOverlay() {
               <div className="flex-1 overflow-y-auto px-6 pt-8 pb-36 pointer-events-auto custom-scrollbar">
                 <div className="mx-auto flex max-w-[700px] flex-col gap-4">
                   <ContextBanner />
-                  <FloatingSuggestions />
                   <ConversationStream />
+                  <FloatingSuggestions />
                 </div>
               </div>
               <BottomInput />

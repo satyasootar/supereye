@@ -33,7 +33,9 @@ export function getGithubApi(userId: string): GithubApi {
   const tenant = getTenant(userId) as { github?: { api: GithubApi } };
 
   if (!tenant.github?.api) {
-    throw new Error('GitHub is not connected for this account');
+    throw new Error(
+      'GitHub is not connected. Connect it in Settings → Integrations using a GitHub Personal Access Token (PAT).'
+    );
   }
 
   return tenant.github.api;

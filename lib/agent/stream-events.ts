@@ -68,8 +68,12 @@ export class AgentActionEmitter {
 
   constructor(private emit: (event: AgentStreamEvent) => void) {}
 
+  private nextId(prefix = 'action') {
+    return `${prefix}-${Date.now()}-${this.counter++}-${Math.random().toString(36).slice(2, 7)}`;
+  }
+
   start(action: Omit<AgentAction, 'id'> & { id?: string }): string {
-    const id = action.id ?? `action-${this.counter++}`;
+    const id = action.id ?? this.nextId();
     this.emit({
       type: 'action',
       action: { ...action, id },

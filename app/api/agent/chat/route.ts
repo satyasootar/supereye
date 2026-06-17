@@ -20,6 +20,7 @@ import { logAndConsumeAiUsage, checkAiAccess } from '@/lib/billing/usage';
 import { tokenErrorResponse } from '@/lib/billing/errors';
 import { parseJsonBody, formatZodError } from '@/lib/validation/http';
 import { agentChatSchema } from '@/lib/validation/agent';
+import { getConnectedPluginIds } from '@/lib/plugins/integrations';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
@@ -127,10 +128,13 @@ export async function POST(req: Request) {
         const agentTools = createCorsairAgentTools(userId, steps, {
           timeZone: context?.timeZone,
           actions,
+          interactiveMode: context?.interactiveMode,
         });
         steps.completeRunning(`Corsair tools ready (${Object.keys(agentTools).length})`);
 
         steps.push('Analyzing your request', 'running');
+
+        const connectedPlugins = await getConnectedPluginIds(userId);
 
         const result = streamText({
           model,
@@ -146,6 +150,8 @@ export async function POST(req: Request) {
             timeZone: context?.timeZone,
             nowLocal: context?.nowLocal,
             todayDate: context?.todayDate,
+            interactiveMode: context?.interactiveMode,
+            connectedPlugins,
           }),
           messages,
           experimental_onToolCallStart: ({ toolCall }) => {

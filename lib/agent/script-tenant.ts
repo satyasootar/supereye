@@ -9,6 +9,11 @@ import {
   type CreateCalendarEventInput,
 } from '@/lib/agent/calendar-actions';
 import { sendEmailForUser, sendEmailFromRawParams } from '@/lib/agent/mail-actions';
+import {
+  listGithubPullRequestsForUser,
+  listGithubReposForUser,
+  listGithubIssuesForUser,
+} from '@/lib/agent/github-actions';
 
 type RawCreateParams = {
   calendarId?: string;
@@ -78,5 +83,17 @@ export function getScriptHelpers(userId: string, defaultTimeZone?: string) {
       deleteCalendarEventForUser(userId, googleEventId),
     clearCalendarSchedule: (params?: { date?: string; timeZone?: string }) =>
       clearCalendarScheduleForUser(userId, { ...params, timeZone: params?.timeZone ?? tz }),
+    listGithubPullRequests: (params?: {
+      repo?: string;
+      state?: 'open' | 'closed' | 'all';
+      limit?: number;
+    }) => listGithubPullRequestsForUser(userId, params),
+    listGithubRepos: (params?: { limit?: number }) =>
+      listGithubReposForUser(userId, params),
+    listGithubIssues: (params?: {
+      repo?: string;
+      state?: 'open' | 'closed' | 'all';
+      limit?: number;
+    }) => listGithubIssuesForUser(userId, params),
   };
 }

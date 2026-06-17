@@ -7,6 +7,7 @@ import { useAgentContext } from '@/hooks/use-agent-context';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { ActionStream } from './action-stream';
+import { EmailReviewPanel } from './email-review-panel';
 import { AgentAvatar } from './agent-avatar';
 
 function getGreeting(): string {
@@ -26,6 +27,12 @@ function StreamingCursor() {
   );
 }
 
+const springEntrance = {
+  type: 'spring' as const,
+  stiffness: 220,
+  damping: 28,
+};
+
 function MessageRow({
   msg,
 }: {
@@ -35,30 +42,21 @@ function MessageRow({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
+      transition={springEntrance}
       className={cn('flex gap-3', isUser && 'flex-row-reverse')}
     >
-      {!isUser && <AgentAvatar size={28} working={!!msg.isStreaming} className="mt-1 shrink-0" />}
+      {!isUser && <AgentAvatar size={28} working={!!msg.isStreaming} className="mt-0.5 shrink-0" />}
 
-      <div
-        className={cn(
-          'max-w-[min(640px,85%)] rounded-xl border px-5 py-4 backdrop-blur-xl',
-          isUser
-            ? 'border-border-default bg-bg-surface/80'
-            : 'border-border-default bg-bg-elevated/60'
-        )}
-      >
-        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-          {isUser ? 'You' : 'Assistant'}
-        </p>
-
-        {isUser ? (
+      {isUser ? (
+        <div className="max-w-[min(640px,85%)] rounded-lg bg-bg-surface/50 px-4 py-3">
           <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-text-primary">
             {msg.content}
           </p>
-        ) : (
+        </div>
+      ) : (
+        <div className="max-w-[min(640px,85%)] pb-4 border-b border-border-subtle/40">
           <div className="text-[15px] leading-relaxed text-text-primary [&>ul]:mb-3 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:mb-3 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-2.5 [&>p:last-child]:mb-0 [&>strong]:font-semibold [&>strong]:text-text-primary">
             {msg.content ? (
               <ReactMarkdown>{msg.content}</ReactMarkdown>
@@ -67,14 +65,14 @@ function MessageRow({
             ) : null}
             {msg.isStreaming && <StreamingCursor />}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </motion.div>
   );
 }
 
 export function ConversationStream() {
-  const { agentMessages, agentActions, isAgentExecuting } = useAppStore();
+  const { agentMessages, agentActions, isAgentExecuting, agentPendingReview } = useAppStore();
   const { userName } = useAgentContext();
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastContent = agentMessages[agentMessages.length - 1]?.content ?? '';
@@ -103,19 +101,16 @@ export function ConversationStream() {
   const showGreeting = agentMessages.length === 0 && !isAgentExecuting;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {showGreeting && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
+          transition={springEntrance}
           className="flex gap-3"
         >
-          <AgentAvatar size={28} className="mt-1 shrink-0" />
-          <div className="max-w-[640px] rounded-xl border border-border-default bg-bg-elevated/60 px-5 py-4 backdrop-blur-xl">
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-              Assistant
-            </p>
+          <AgentAvatar size={28} className="mt-0.5 shrink-0" />
+          <div className="pb-4 border-b border-border-subtle/40">
             <p className="text-[15px] leading-relaxed text-text-primary">
               {getGreeting()} {userName}.
               <br />
@@ -130,6 +125,8 @@ export function ConversationStream() {
       ))}
 
       {showActions && <ActionStream />}
+
+      {agentPendingReview && <EmailReviewPanel />}
 
       {streamingMessage && <MessageRow msg={streamingMessage} />}
 

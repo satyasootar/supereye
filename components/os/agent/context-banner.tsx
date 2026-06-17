@@ -12,15 +12,13 @@ export function ContextBanner() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="flex items-center gap-2 text-xs font-medium text-text-muted"
+      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      className="flex items-center gap-2 text-[11px] font-medium text-text-muted"
     >
-      <span className="flex items-center gap-2 rounded-lg border border-border-default bg-bg-elevated/60 px-3 py-1.5 backdrop-blur-md">
-        <Icon className="h-3.5 w-3.5 text-accent-blue" />
-        <span>Viewing · {ctx.contextLabel}</span>
-      </span>
+      <Icon className="h-3.5 w-3.5 text-accent-blue" />
+      <span>Viewing · {ctx.contextLabel}</span>
     </motion.div>
   );
 }

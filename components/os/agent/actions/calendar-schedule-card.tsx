@@ -6,6 +6,8 @@ import type { AgentAction } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
 import { Calendar, Check, UserPlus } from 'lucide-react';
 
+const spring = { type: 'spring' as const, stiffness: 220, damping: 26 };
+
 const PHASE_ORDER = [
   'opening',
   'select_date',
@@ -17,6 +19,17 @@ const PHASE_ORDER = [
 ] as const;
 
 type CalPhase = (typeof PHASE_ORDER)[number];
+
+const PHASE_LABELS: Record<CalPhase | 'preview', string> = {
+  opening: 'Opening calendar…',
+  select_date: 'Selecting date…',
+  select_time: 'Choosing time slot…',
+  fill_title: 'Adding event title…',
+  add_attendees: 'Inviting attendees…',
+  saving: 'Saving to Google Calendar…',
+  saved: 'Event confirmed',
+  preview: 'Review event',
+};
 
 function parseDateParts(dateStr?: string) {
   if (!dateStr) return null;
@@ -40,12 +53,19 @@ function formatTime12(time?: string) {
 export function CalendarScheduleCard({ action }: { action: AgentAction }) {
   const date = action.payload?.date;
   const parts = parseDateParts(date);
+  const isPreview =
+    action.payload?.phase === 'preview' || action.payload?.phase === 'awaiting_review';
   const [phase, setPhase] = useState<CalPhase>('opening');
 
-  const isRunning = action.status === 'running';
-  const isDone = action.status === 'done';
+  const isRunning = action.status === 'running' && !isPreview;
+  const isDone = action.status === 'done' && !isPreview;
 
   useEffect(() => {
+    if (isPreview) {
+      setPhase('add_attendees');
+      return;
+    }
+
     if (!isRunning) {
       setPhase(isDone ? 'saved' : 'opening');
       return;
@@ -60,13 +80,13 @@ export function CalendarScheduleCard({ action }: { action: AgentAction }) {
       } else {
         clearInterval(interval);
       }
-    }, 550);
+    }, 900);
     return () => clearInterval(interval);
-  }, [isRunning, isDone, action.id]);
+  }, [isRunning, isDone, action.id, isPreview]);
 
   useEffect(() => {
-    if (action.payload?.phase === 'saved' || isDone) setPhase('saved');
-  }, [action.payload?.phase, isDone]);
+    if (action.payload?.phase === 'saved' || (isDone && !isPreview)) setPhase('saved');
+  }, [action.payload?.phase, isDone, isPreview]);
 
   const miniDays = useMemo(() => {
     if (!parts) return [];
@@ -85,39 +105,41 @@ export function CalendarScheduleCard({ action }: { action: AgentAction }) {
     ? new Date(parts.year, parts.month, 1).toLocaleString('en-IN', { month: 'long', year: 'numeric' })
     : 'Calendar';
 
+  const phaseIdx = isPreview ? PHASE_ORDER.length - 2 : PHASE_ORDER.indexOf(phase);
+  const showDate = isPreview || phaseIdx >= 1;
+  const showTime = isPreview || phaseIdx >= 2;
+  const showTitle = isPreview || phaseIdx >= 3;
+  const showAttendees = isPreview || phaseIdx >= 4;
+
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="overflow-hidden rounded-xl border border-border-default bg-bg-elevated/70 backdrop-blur-md"
+      transition={spring}
+      className="space-y-3 rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-sm"
     >
-      <div className="flex items-center gap-2 border-b border-border-subtle px-4 py-2.5">
-        <Calendar className="h-3.5 w-3.5 text-accent-blue" />
-        <span className="text-[12px] font-semibold text-text-primary">Scheduling event</span>
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Calendar className="h-3.5 w-3.5 text-text-muted" />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+          {isPreview ? 'Calendar event preview' : 'Scheduling event'}
+        </span>
+        <motion.span
+          key={isPreview ? 'preview' : phase}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="ml-1 text-[11px] text-text-muted"
+        >
+          · {isPreview ? PHASE_LABELS.preview : PHASE_LABELS[phase]}
+        </motion.span>
       </div>
 
-      <div className="grid gap-3 p-4 sm:grid-cols-[1fr_140px]">
+      <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
         <div className="space-y-3">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={phase}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-[12px] text-text-muted"
-            >
-              {phase === 'opening' && 'Opening calendar…'}
-              {phase === 'select_date' && 'Selecting date…'}
-              {phase === 'select_time' && 'Choosing time slot…'}
-              {phase === 'fill_title' && 'Adding event title…'}
-              {phase === 'add_attendees' && 'Inviting attendees…'}
-              {phase === 'saving' && 'Saving to Google Calendar…'}
-              {phase === 'saved' && 'Event confirmed'}
-            </motion.div>
-          </AnimatePresence>
-
-          <div className="rounded-lg border border-border-subtle bg-bg-surface/40 p-3">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+          {/* Mini calendar */}
+          <div className="rounded-lg bg-bg-surface p-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
               {monthLabel}
             </p>
             <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-text-muted">
@@ -130,71 +152,87 @@ export function CalendarScheduleCard({ action }: { action: AgentAction }) {
                 <div
                   key={i}
                   className={cn(
-                    'flex h-6 items-center justify-center rounded text-[10px]',
+                    'relative flex h-6 items-center justify-center rounded text-[10px]',
                     !cell.day && 'opacity-0',
-                    cell.active
-                      ? 'bg-accent-blue font-semibold text-white shadow-sm'
-                      : 'text-text-muted'
+                    cell.active ? 'font-semibold text-text-inverse' : 'text-text-muted'
                   )}
                 >
-                  {cell.day}
+                  {/* Animated highlight for active day */}
+                  {cell.active && showDate && (
+                    <motion.span
+                      className="absolute inset-0 rounded bg-accent-blue"
+                      initial={isPreview ? { scale: 1 } : { scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={
+                        isPreview
+                          ? { duration: 0 }
+                          : { type: 'spring', stiffness: 280, damping: 22, delay: 0.4 }
+                      }
+                    />
+                  )}
+                  <span className="relative z-10">{cell.day}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <motion.div
-            animate={{
-              borderColor:
-                phase === 'select_time' || phase === 'fill_title' || phase === 'saved'
-                  ? 'rgba(115,255,140,0.45)'
-                  : 'rgba(255,255,255,0.08)',
-            }}
-            className="rounded-lg border px-3 py-2"
-          >
-            <p className="text-[10px] uppercase tracking-wide text-text-muted">Time</p>
-            <p className="text-[14px] font-semibold text-text-primary">
-              {formatTime12(action.payload?.startTime)}
-              {action.payload?.endTime ? ` – ${formatTime12(action.payload?.endTime)}` : ''}
-            </p>
-          </motion.div>
+          {/* Time slot — slides in */}
+          {showTime && (
+            <motion.div
+              initial={{ opacity: 0, x: -16, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 24 }}
+              className="rounded-lg bg-bg-surface px-3 py-2"
+            >
+              <p className="text-[10px] uppercase tracking-wide text-text-muted">Time</p>
+              <p className="text-[14px] font-semibold text-text-primary">
+                {formatTime12(action.payload?.startTime)}
+                {action.payload?.endTime ? ` – ${formatTime12(action.payload?.endTime)}` : ''}
+              </p>
+            </motion.div>
+          )}
         </div>
 
         <div className="space-y-2">
-          <motion.div
-            className="rounded-lg border border-border-subtle bg-bg-surface/50 p-2.5"
-            animate={{ opacity: phase === 'fill_title' || phase === 'saved' ? 1 : 0.45 }}
-          >
-            <p className="text-[10px] uppercase text-text-muted">Title</p>
-            <p className="line-clamp-2 text-[12px] font-medium text-text-primary">
-              {action.payload?.summary || 'New event'}
-            </p>
-          </motion.div>
-
-          {(action.payload?.attendees?.length ?? 0) > 0 && (
+          {/* Title */}
+          {showTitle && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{
-                opacity: phase === 'add_attendees' || phase === 'saving' || phase === 'saved' ? 1 : 0.3,
-              }}
-              className="space-y-1"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...spring, delay: 0.1 }}
+              className="rounded-lg bg-bg-surface p-2.5"
             >
-              {action.payload!.attendees!.map((email) => (
-                <div
+              <p className="text-[10px] uppercase text-text-muted">Title</p>
+              <p className="line-clamp-2 text-[12px] font-medium text-text-primary">
+                {action.payload?.summary || 'New event'}
+              </p>
+            </motion.div>
+          )}
+
+          {/* Attendees */}
+          {showAttendees && (action.payload?.attendees?.length ?? 0) > 0 && (
+            <div className="space-y-1">
+              {action.payload!.attendees!.map((email, i) => (
+                <motion.div
                   key={email}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...spring, delay: 0.15 + i * 0.05 }}
                   className="flex items-center gap-1.5 rounded-md bg-accent-blue/10 px-2 py-1 text-[10px] text-text-secondary"
                 >
                   <UserPlus className="h-3 w-3 text-accent-blue" />
                   <span className="truncate">{email}</span>
-                </div>
+                </motion.div>
               ))}
-            </motion.div>
+            </div>
           )}
 
-          {phase === 'saved' && (
+          {/* Saved — not shown during preview */}
+          {phase === 'saved' && !isPreview && (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+              initial={{ scale: 0, rotate: -45, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               className="flex items-center gap-1.5 text-[11px] font-medium text-accent-blue"
             >
               <Check className="h-3.5 w-3.5" />

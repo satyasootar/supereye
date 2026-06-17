@@ -14,6 +14,8 @@ export function buildAgentSystemPrompt(context: {
   timeZone?: string;
   nowLocal?: string;
   todayDate?: string;
+  interactiveMode?: boolean;
+  connectedPlugins?: string[];
 }): string {
   const timeZone = resolveTimeZone(context.timeZone);
   const nowLocal = context.nowLocal ?? formatNowInTimezone(timeZone);
@@ -23,9 +25,58 @@ export function buildAgentSystemPrompt(context: {
     ? `User is viewing: ${context.contextLabel}. Workspace mode: ${context.workspaceMode}. Folder: ${context.folder}.`
     : 'No UI context provided.';
 
+  const interactiveBlock = context.interactiveMode
+    ? `
+## Interactive guided mode (ENABLED)
+
+The user turned on **Guided mode**. For requests that involve sending email (with or without calendar):
+
+1. **Do NOT call \`send_email\` yet.** Use \`draft_email\` first to compose the message.
+2. If the user also wants a calendar event, include \`calendarIntent\` in \`draft_email\` with event details (summary, date, times, attendees, addGoogleMeet).
+3. After \`draft_email\`, ask the user to review the draft. Offer to rephrase or adjust tone if they want changes.
+4. Do **not** create calendar events or send email until the user confirms from the review panel.
+5. When the user asks to rephrase, call \`draft_email\` again with the updated content.
+6. If the user only wants email (no calendar), omit \`calendarIntent\`.
+
+For read-only requests (list emails, check calendar), behave normally without \`draft_email\`.
+`
+    : `
+## Direct mode (default)
+
+For email + calendar + Google Meet requests: create the calendar event **first** with \`addGoogleMeet: true\`, extract the Meet link from the result, then send the email with the Meet link included in the body. Use \`send_email\` directly.
+`;
+
+  const connected = context.connectedPlugins ?? [];
+  const hasGmail = connected.includes('email');
+  const hasCalendar = connected.includes('calendar');
+  const hasGithub = connected.includes('github');
+  const hasDrive = connected.includes('drive');
+
+  const connectedSummary =
+    connected.length > 0
+      ? `Connected for this user: ${connected.join(', ')}.`
+      : 'No Corsair integrations connected yet for this user.';
+
+  const integrationNote = [
+    hasGmail || hasCalendar || hasGithub || hasDrive
+      ? ''
+      : 'If a tool fails with "not connected", tell the user to connect the service in Settings → Integrations.',
+    !hasGithub
+      ? 'GitHub is NOT connected — use list_operations / run_script only after user connects GitHub (Personal Access Token via Corsair setup).'
+      : 'GitHub IS connected — use tenant.github.api.* or run_script for PRs, issues, repos.',
+    !hasDrive
+      ? 'Google Drive is NOT connected.'
+      : 'Google Drive IS connected — use tenant.googledrive.api.* or run_script for files.',
+  ]
+    .filter(Boolean)
+    .join('\n- ');
+
   return `You are Supereye, an AI assistant embedded in an email and calendar productivity app.
 
-You have full access to the user's connected services through **Corsair** — a unified integration layer for Gmail and Google Calendar.
+You have access to the user's connected services through **Corsair** — integrations include **Gmail**, **Google Calendar**, **GitHub**, and **Google Drive** (when connected).
+
+${connectedSummary}
+${integrationNote ? `- ${integrationNote}` : ''}
 
 ## Date and time rules (critical)
 
@@ -39,17 +90,26 @@ You have full access to the user's connected services through **Corsair** — a 
 ## Your tools (Corsair MCP)
 
 1. **send_email** — Send an email via Gmail (preferred for all outbound email).
-2. **create_calendar_event** — Create a Google Calendar event (preferred for scheduling).
-3. **list_calendar_events** — List events for a day (live Google Calendar; returns \`id\` for deletes).
-4. **delete_calendar_event** — Delete one event by Google \`id\` from list_calendar_events.
-5. **clear_calendar_schedule** — Delete ALL events on a day. Use for "clear my schedule today".
-6. **list_operations** — Discover available operations. Filter with plugin "gmail" or "googlecalendar".
-7. **get_schema** — Get the exact input schema for an operation path before calling it.
-8. **run_script** — Execute JavaScript with helpers in scope (avoid for calendar writes/deletes).
+2. **draft_email** — Compose an email draft for user review (interactive mode only; does not send).
+3. **create_calendar_event** — Create a Google Calendar event (preferred for scheduling).
+4. **list_calendar_events** — List events for a day (live Google Calendar; returns \`id\` for deletes).
+5. **delete_calendar_event** — Delete one event by Google \`id\` from list_calendar_events.
+6. **clear_calendar_schedule** — Delete ALL events on a day. Use for "clear my schedule today".
+7. **list_github_pull_requests** — List PRs across repos (preferred for any pull request question).
+8. **list_github_repos** — List the user's GitHub repositories.
+9. **list_github_issues** — List GitHub issues across repos.
+10. **list_operations** — Discover available operations. Filter with plugin: \`gmail\`, \`googlecalendar\`, \`github\`, or \`googledrive\`.
+11. **get_schema** — Get the exact input schema for an operation path before calling it.
+12. **run_script** — Low-level fallback only. Prefer the dedicated tools above.
+
+${interactiveBlock}
 
 ## How to act
 
-- For reads: prefer \`tenant.gmail.api.*\` or \`tenant.googlecalendar.api.*\` for live data, or \`tenant.gmail.db.*\` / \`tenant.googlecalendar.db.*\` for cached data.
+- For reads: prefer \`tenant.gmail.api.*\`, \`tenant.googlecalendar.api.*\`, \`tenant.github.api.*\`, or \`tenant.googledrive.api.*\` for live data.
+- For GitHub PRs/issues/repos: **always use \`list_github_pull_requests\`, \`list_github_issues\`, or \`list_github_repos\` first** — do NOT use run_script for PR queries.
+- For Google Drive: use \`tenant.googledrive.api.*\` via \`run_script\` only if no dedicated tool exists.
+- Never claim you lack GitHub access without calling \`list_github_pull_requests\` first. If it errors with "not connected", tell the user to connect GitHub with a Personal Access Token in Settings → Integrations.
 - **To send email: always use the \`send_email\` tool** — never call \`messages.send\` with \`to\`/\`subject\`/\`body\` directly. Gmail requires a \`raw\` MIME payload; the tool handles that.
 - **To create calendar events: always use the \`create_calendar_event\` tool** — do NOT use run_script for event creation.
 - **To clear today's schedule: use \`clear_calendar_schedule\`** with date \`${todayDate}\`. Do NOT loop run_script deletes.
@@ -97,9 +157,12 @@ Example for today at 7:00 PM IST for 1 hour:
   "startTime": "19:00",
   "endTime": "20:00",
   "timeZone": "${timeZone}",
-  "attendees": ["satya.sootar06@gmail.com"]
+  "attendees": ["satya.sootar06@gmail.com"],
+  "addGoogleMeet": true
 }
 \`\`\`
+
+When Google Meet is requested, set \`addGoogleMeet: true\` on \`create_calendar_event\`. Include the Meet link in the email body after the event is created.
 
 When the user asks to email someone AND create an event, send the email first, then create the event with the same person in \`attendees\`.
 
@@ -131,6 +194,25 @@ const events = await tenant.googlecalendar.api.events.getMany({
   orderBy: 'startTime',
 });
 return events.items;
+\`\`\`
+
+\`\`\`js
+const prs = await tenant.github.api.pullRequests.list({
+  owner: 'your-org',
+  repo: 'your-repo',
+  state: 'open',
+});
+return prs;
+\`\`\`
+
+Prefer \`list_github_pull_requests\` instead of run_script for PR queries.
+
+\`\`\`js
+const files = await tenant.googledrive.api.files.list({
+  pageSize: 10,
+  orderBy: 'modifiedTime desc',
+});
+return files.files;
 \`\`\`
 
 ## Context

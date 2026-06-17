@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AgentAction } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
-import { Mail } from 'lucide-react';
+import { Mail, Send } from 'lucide-react';
 
-function useLiveTyping(text: string, active: boolean, speed = 18) {
+const spring = { type: 'spring' as const, stiffness: 220, damping: 26 };
+
+function useLiveTyping(text: string, active: boolean, speed = 32) {
   const [visible, setVisible] = useState('');
   const [done, setDone] = useState(false);
 
@@ -33,6 +35,16 @@ function useLiveTyping(text: string, active: boolean, speed = 18) {
   return { visible, done };
 }
 
+function BlinkCursor() {
+  return (
+    <motion.span
+      className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-accent-blue"
+      animate={{ opacity: [1, 0, 1] }}
+      transition={{ duration: 0.7, repeat: Infinity }}
+    />
+  );
+}
+
 export function EmailDraftCard({
   action,
   onDraftComplete,
@@ -44,45 +56,51 @@ export function EmailDraftCard({
   const toLabel = Array.isArray(to) ? to.join(', ') : to ?? '';
   const subject = action.payload?.subject ?? '';
   const body = action.payload?.body ?? '';
-  const isRunning = action.status === 'running';
+  const isAwaitingReview = action.payload?.phase === 'awaiting_review';
+  const isRunning = action.status === 'running' && !isAwaitingReview;
   const [showPreview, setShowPreview] = useState(false);
 
   const { visible: typedSubject, done: subjectDone } = useLiveTyping(
     subject,
     isRunning && !showPreview,
-    24
+    42
   );
   const { visible: typedBody, done: bodyDone } = useLiveTyping(
     body,
     isRunning && subjectDone && !showPreview,
-    14
+    28
   );
 
+  const composingDone = subjectDone && bodyDone;
+
   useEffect(() => {
-    if (bodyDone && action.groupId) {
+    if (bodyDone && action.groupId && !isAwaitingReview) {
       const timer = setTimeout(() => {
         setShowPreview(true);
         onDraftComplete?.(action.groupId!);
-      }, 400);
+      }, 700);
       return () => clearTimeout(timer);
     }
-  }, [bodyDone, action.groupId, onDraftComplete]);
+  }, [bodyDone, action.groupId, onDraftComplete, isAwaitingReview]);
 
   useEffect(() => {
-    if (action.status === 'done') setShowPreview(true);
-  }, [action.status]);
+    if (action.status === 'done' && !isAwaitingReview) setShowPreview(true);
+    if (isAwaitingReview) setShowPreview(true);
+  }, [action.status, isAwaitingReview]);
 
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="overflow-hidden rounded-xl border border-border-default bg-bg-elevated/70 backdrop-blur-md"
+      transition={spring}
+      className="space-y-2 rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-sm"
     >
-      <div className="flex items-center gap-2 border-b border-border-subtle px-4 py-2.5">
-        <Mail className="h-3.5 w-3.5 text-accent-blue" />
-        <span className="text-[12px] font-semibold text-text-primary">
-          {showPreview ? 'Email ready' : 'Drafting email'}
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Mail className="h-3.5 w-3.5 text-text-muted" />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+          {isAwaitingReview ? 'Review draft' : showPreview ? 'Email ready' : 'Composing email'}
         </span>
       </div>
 
@@ -92,53 +110,85 @@ export function EmailDraftCard({
             key="composer"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -6 }}
-            className="space-y-3 px-4 py-3 font-mono text-[12px]"
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.35 }}
+            className="space-y-2"
           >
-            <div className="text-text-muted">
-              To:{' '}
-              <span className="text-text-secondary">{toLabel || '···'}</span>
+            {/* To field */}
+            <div className="flex items-baseline gap-2 rounded-md bg-bg-surface px-2.5 py-1.5 text-[12px]">
+              <span className="text-text-muted font-mono">To</span>
+              <span className="text-text-primary font-medium">{toLabel || '···'}</span>
             </div>
-            <div className="text-text-muted">
-              Subject:{' '}
-              <span className="text-text-primary">
+
+            {/* Subject field */}
+            <div className="flex items-baseline gap-2 rounded-md bg-bg-surface px-2.5 py-1.5 text-[12px]">
+              <span className="text-text-muted font-mono">Subject</span>
+              <span className="text-text-primary font-medium">
                 {typedSubject}
                 {isRunning && !subjectDone && <BlinkCursor />}
               </span>
             </div>
-            <div className="min-h-[72px] whitespace-pre-wrap rounded-lg border border-border-subtle/80 bg-bg-surface/50 p-3 text-[13px] leading-relaxed text-text-primary">
+
+            {/* Divider */}
+            <div className="border-b border-border-subtle/30" />
+
+            {/* Body */}
+            <div className="min-h-[64px] whitespace-pre-wrap rounded-md bg-bg-surface px-2.5 py-2 pt-1 text-[13px] leading-relaxed text-text-primary">
               {typedBody}
               {isRunning && subjectDone && !bodyDone && <BlinkCursor />}
             </div>
+
+            {/* Send button — illuminates when writing completes */}
+            <motion.div
+              className="flex justify-end pt-1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <motion.span
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-colors',
+                  composingDone && !isRunning
+                    ? 'bg-accent-blue text-text-inverse'
+                    : composingDone
+                      ? 'bg-accent-blue text-text-inverse'
+                      : 'bg-bg-surface text-text-muted'
+                )}
+                animate={{
+                  opacity: composingDone ? 1 : 0.35,
+                }}
+                transition={{ type: 'spring', stiffness: 220, damping: 24 }}
+              >
+                <Send className="h-3 w-3" />
+                Send
+              </motion.span>
+            </motion.div>
           </motion.div>
         ) : (
           <motion.div
             key="preview"
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="px-4 py-3"
+            transition={spring}
+            className="space-y-2"
           >
-            <div className="rounded-lg border border-accent-blue/20 bg-accent-blue/5 p-3">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">To</p>
-              <p className="text-[13px] text-text-primary">{toLabel}</p>
-              <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-text-muted">Subject</p>
-              <p className="text-[13px] font-medium text-text-primary">{subject}</p>
-              <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-text-muted">Message</p>
-              <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-text-secondary">{body}</p>
+            <div className="space-y-1.5 rounded-md bg-bg-surface p-2.5">
+              <div className="flex items-baseline gap-2 text-[12px]">
+                <span className="text-text-muted font-mono">To</span>
+                <span className="text-text-primary">{toLabel}</span>
+              </div>
+              <div className="flex items-baseline gap-2 text-[12px]">
+                <span className="text-text-muted font-mono">Subject</span>
+                <span className="text-text-primary font-medium">{subject}</span>
+              </div>
+              <div className="border-b border-border-subtle/30" />
+              <p className="whitespace-pre-wrap pt-1 text-[13px] leading-relaxed text-text-secondary">
+                {body}
+              </p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
-  );
-}
-
-function BlinkCursor() {
-  return (
-    <motion.span
-      className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-accent-blue"
-      animate={{ opacity: [1, 0, 1] }}
-      transition={{ duration: 0.7, repeat: Infinity }}
-    />
   );
 }

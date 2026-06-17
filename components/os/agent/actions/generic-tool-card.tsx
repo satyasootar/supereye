@@ -11,17 +11,18 @@ export function GenericToolCard({ action }: { action: AgentAction }) {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center gap-3 rounded-xl border border-border-default bg-bg-elevated/50 px-4 py-3"
+      transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+      className="flex items-center gap-3"
     >
       <div
         className={cn(
-          'flex h-8 w-8 items-center justify-center rounded-lg bg-bg-surface',
-          isRunning && 'text-accent-blue'
+          'flex h-7 w-7 items-center justify-center rounded-md',
+          isRunning ? 'text-accent-blue' : 'text-text-muted'
         )}
       >
-        <Sparkles className={cn('h-4 w-4', isRunning && 'animate-pulse')} />
+        <Sparkles className={cn('h-3.5 w-3.5', isRunning && 'animate-pulse')} />
       </div>
       <div>
         <p className={cn('text-[13px] font-medium text-text-primary', isRunning && 'agent-shimmer-text')}>

@@ -15,6 +15,8 @@ export type CreateGoogleEventInput = {
   attendees?: { email: string }[];
   colorId?: string;
   addGoogleMeet?: boolean;
+  /** Google Calendar attendee notifications. Use 'none' when sending a separate email. */
+  sendUpdates?: 'all' | 'externalOnly' | 'none';
 };
 
 export async function createGoogleCalendarEvent(
@@ -41,7 +43,9 @@ export async function createGoogleCalendarEvent(
   if (input.addGoogleMeet) {
     params.set('conferenceDataVersion', '1');
   }
-  if (input.attendees?.length) {
+  if (input.sendUpdates) {
+    params.set('sendUpdates', input.sendUpdates);
+  } else if (input.attendees?.length) {
     params.set('sendUpdates', 'all');
   }
 

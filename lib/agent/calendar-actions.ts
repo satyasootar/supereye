@@ -12,6 +12,8 @@ export type CreateCalendarEventInput = EventTimeInput & {
   location?: string;
   attendees?: string[];
   addGoogleMeet?: boolean;
+  /** When false (default for agent), attendees are added but Google won't email them. */
+  notifyAttendees?: boolean;
 };
 
 type CalendarEventPayload = {
@@ -80,6 +82,7 @@ export async function createCalendarEventForUser(
     end: event.end,
     attendees: event.attendees,
     addGoogleMeet: input.addGoogleMeet,
+    sendUpdates: input.notifyAttendees ? 'all' : 'none',
   });
 
   assertCreatedEvent(created, 'Calendar event creation');

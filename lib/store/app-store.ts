@@ -33,7 +33,29 @@ export type AgentActionType =
   | 'email_draft'
   | 'email_send'
   | 'calendar_schedule'
+  | 'github_action'
+  | 'drive_action'
   | 'generic';
+
+export type AgentCalendarIntent = {
+  summary: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  attendees?: string[];
+  addGoogleMeet?: boolean;
+  timeZone?: string;
+  description?: string;
+};
+
+export type AgentPendingEmailReview = {
+  actionId: string;
+  groupId: string;
+  to: string[];
+  subject: string;
+  body: string;
+  calendarIntent?: AgentCalendarIntent;
+};
 
 export type AgentAction = {
   id: string;
@@ -46,6 +68,7 @@ export type AgentAction = {
     subject?: string;
     body?: string;
     phase?: string;
+    calendarIntent?: AgentCalendarIntent;
     date?: string;
     startTime?: string;
     endTime?: string;
@@ -54,6 +77,24 @@ export type AgentAction = {
     timeZone?: string;
     toolName?: string;
     message?: string;
+    // GitHub fields
+    repoName?: string;
+    branch?: string;
+    prNumber?: number;
+    issueNumber?: number;
+    commitMessage?: string;
+    prTitle?: string;
+    issueTitle?: string;
+    prStatus?: 'open' | 'closed' | 'merged';
+    issueStatus?: 'open' | 'closed';
+    // Drive fields
+    fileName?: string;
+    fileType?: string;
+    folderId?: string;
+    folderName?: string;
+    driveAction?: 'upload' | 'create' | 'share' | 'browse';
+    files?: Array<{ name: string; type: string; size?: number }>;
+    progress?: number;
   };
 };
 
@@ -88,6 +129,8 @@ interface AppState {
   agentSteps: AgentStep[];
   agentActions: AgentAction[];
   isAgentExecuting: boolean;
+  agentInteractiveMode: boolean;
+  agentPendingReview: AgentPendingEmailReview | null;
   openTab: (tabId: TabId, multiSelect?: boolean) => void;
   closeTab: (tabId: TabId) => void;
   setSplitRatio: (ratio: number) => void;
@@ -145,6 +188,9 @@ interface AppState {
   addAgentAction: (action: AgentAction) => void;
   updateAgentAction: (id: string, patch: Partial<AgentAction>) => void;
   setAgentExecuting: (executing: boolean) => void;
+  setAgentInteractiveMode: (enabled: boolean) => void;
+  setAgentPendingReview: (review: AgentPendingEmailReview | null) => void;
+  updateAgentPendingReview: (patch: Partial<AgentPendingEmailReview>) => void;
   setAgentThreadId: (threadId: string | null) => void;
   startNewAgentThread: () => void;
   resetAgentSession: () => void;
@@ -183,6 +229,8 @@ export const useAppStore = create<AppState>()(
       agentSteps: [],
       agentActions: [],
       isAgentExecuting: false,
+      agentInteractiveMode: false,
+      agentPendingReview: null,
       openTab: (tabId, multiSelect = false) => set((state) => {
         if (multiSelect) {
           // Cannot have more than 2 tabs open
@@ -368,9 +416,15 @@ export const useAppStore = create<AppState>()(
         ),
       })),
       setAgentActions: (actions) => set({ agentActions: actions }),
-      addAgentAction: (action) => set((state) => ({
-        agentActions: [...state.agentActions, action],
-      })),
+      addAgentAction: (action) => set((state) => {
+        const existing = state.agentActions.findIndex((a) => a.id === action.id);
+        if (existing >= 0) {
+          const agentActions = [...state.agentActions];
+          agentActions[existing] = action;
+          return { agentActions };
+        }
+        return { agentActions: [...state.agentActions, action] };
+      }),
       updateAgentAction: (id, patch) => set((state) => ({
         agentActions: state.agentActions.map((a) =>
           a.id === id
@@ -385,6 +439,13 @@ export const useAppStore = create<AppState>()(
         ),
       })),
       setAgentExecuting: (executing) => set({ isAgentExecuting: executing }),
+      setAgentInteractiveMode: (enabled) => set({ agentInteractiveMode: enabled }),
+      setAgentPendingReview: (review) => set({ agentPendingReview: review }),
+      updateAgentPendingReview: (patch) => set((state) => ({
+        agentPendingReview: state.agentPendingReview
+          ? { ...state.agentPendingReview, ...patch }
+          : null,
+      })),
       setAgentThreadId: (threadId) => set({ agentThreadId: threadId }),
       startNewAgentThread: () => set({
         agentThreadId: null,
@@ -392,6 +453,7 @@ export const useAppStore = create<AppState>()(
         agentSteps: [],
         agentActions: [],
         isAgentExecuting: false,
+        agentPendingReview: null,
       }),
       resetAgentSession: () => set({
         agentMessages: [],
@@ -399,6 +461,7 @@ export const useAppStore = create<AppState>()(
         agentSteps: [],
         agentActions: [],
         isAgentExecuting: false,
+        agentPendingReview: null,
       }),
     }),
     {
@@ -422,6 +485,7 @@ export const useAppStore = create<AppState>()(
         driveSection: state.driveSection,
         selectedDriveFolderId: state.selectedDriveFolderId,
         agentThreadId: state.agentThreadId,
+        agentInteractiveMode: state.agentInteractiveMode,
       }),
     }
   )

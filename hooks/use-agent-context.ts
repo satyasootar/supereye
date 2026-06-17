@@ -16,6 +16,7 @@ export type AgentContext = {
   todayDate: string;
   selectedEmail: { id: string; subject: string } | null;
   contextLabel: string;
+  interactiveMode: boolean;
 };
 
 function getBrowserTimeZone(): string {
@@ -61,6 +62,7 @@ export function useAgentContext(): AgentContext {
     workspaceMode,
     calendarView,
     currentDateStr,
+    agentInteractiveMode,
   } = useAppStore();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
@@ -100,5 +102,6 @@ export function useAgentContext(): AgentContext {
       ? { id: selectedEmailId, subject: selectedSubject ?? 'Loading...' }
       : null,
     contextLabel,
+    interactiveMode: agentInteractiveMode,
   };
 }

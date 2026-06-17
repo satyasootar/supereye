@@ -2,17 +2,19 @@
 
 import { useState, FormEvent, KeyboardEvent, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Mic, ArrowUp, Loader2 } from 'lucide-react';
+import { Mic, ArrowUp, Loader2, Wand2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useAgentChat } from '@/hooks/use-agent-chat';
 import { useVoiceInput } from '@/hooks/use-voice-input';
 import { InlineVoiceBar } from './inline-voice-bar';
 import { ThreadHistoryPopover } from './thread-history-popover';
+import { AGENT_SAMPLE_GROUPS, fillAgentInput } from '@/lib/agent/sample-prompts';
 import { cn } from '@/lib/utils';
 
 export function BottomInput() {
   const [input, setInput] = useState('');
-  const { isAgentExecuting } = useAppStore();
+  const { isAgentExecuting, agentInteractiveMode, setAgentInteractiveMode, agentMessages } =
+    useAppStore();
   const { sendMessage } = useAgentChat();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -42,8 +44,16 @@ export function BottomInput() {
 
   useEffect(() => {
     const onFocusInput = () => textareaRef.current?.focus();
+    const onFillInput = (e: Event) => {
+      const text = (e as CustomEvent<{ text: string }>).detail?.text;
+      if (typeof text === 'string') setInput(text);
+    };
     window.addEventListener('agent:focus-input', onFocusInput);
-    return () => window.removeEventListener('agent:focus-input', onFocusInput);
+    window.addEventListener('agent:fill-input', onFillInput);
+    return () => {
+      window.removeEventListener('agent:focus-input', onFocusInput);
+      window.removeEventListener('agent:fill-input', onFillInput);
+    };
   }, []);
 
   const handleVoiceStart = () => {
@@ -77,6 +87,8 @@ export function BottomInput() {
   };
 
   const showVoiceBar = isListening || isProcessing;
+  const showInputSamples = !input.trim() && agentMessages.length === 0 && !showVoiceBar;
+  const quickSamples = AGENT_SAMPLE_GROUPS.map((g) => g.samples[0]);
   const placeholder = isProcessing
     ? 'Processing your voice…'
     : isListening
@@ -100,6 +112,25 @@ export function BottomInput() {
           showVoiceBar && 'border-accent-blue/35 ring-1 ring-accent-blue/15'
         )}
       >
+        {showInputSamples && (
+          <div className="flex flex-wrap gap-1.5 border-b border-border-subtle/60 px-3 py-2">
+            {quickSamples.map((sample) => (
+              <button
+                key={sample.id}
+                type="button"
+                disabled={isAgentExecuting}
+                onClick={() => fillAgentInput(sample.prompt)}
+                className={cn(
+                  'rounded-md border border-border-subtle bg-bg-surface px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors',
+                  'hover:border-accent-blue/30 hover:text-text-primary disabled:opacity-40'
+                )}
+              >
+                {sample.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="flex items-end gap-2 p-2">
           <div className="flex shrink-0 items-center pb-1 pl-1">
             {!showVoiceBar && <ThreadHistoryPopover />}
@@ -127,7 +158,26 @@ export function BottomInput() {
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5 pb-1 pr-1">
+          <div className="flex shrink-0 items-center gap-1 pb-1 pr-1">
+            <button
+              type="button"
+              onClick={() => setAgentInteractiveMode(!agentInteractiveMode)}
+              disabled={isAgentExecuting}
+              title="Guided mode: review and edit emails before sending"
+              className={cn(
+                'flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold transition-all',
+                agentInteractiveMode
+                  ? 'border-accent-blue/40 bg-accent-blue/10 text-accent-blue'
+                  : 'border-border-subtle bg-bg-surface text-text-muted hover:border-border-default hover:text-text-primary',
+                'disabled:opacity-40'
+              )}
+              aria-pressed={agentInteractiveMode}
+              aria-label="Toggle guided mode"
+            >
+              <Wand2 className="h-3.5 w-3.5" />
+              Guided
+            </button>
+
             {isSupported && !showVoiceBar && (
               <button
                 type="button"

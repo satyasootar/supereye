@@ -95,7 +95,7 @@ export const NavBody = ({ children, className, scrolled = false }: NavBodyProps)
       animate={{
         backdropFilter: scrolled ? "blur(12px)" : "blur(8px)",
         boxShadow: scrolled ? navShadow : "none",
-        width: scrolled ? "40%" : "100%",
+        width: scrolled ? "68%" : "100%",
         y: scrolled ? 4 : 0,
       }}
       transition={{

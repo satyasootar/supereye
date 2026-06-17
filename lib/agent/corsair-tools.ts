@@ -1,5 +1,6 @@
 import { tool, type ToolSet } from 'ai';
 import { z } from 'zod';
+import { extractMeetLink } from '@/lib/calendar/meet';
 import { buildCorsairToolDefs, type CorsairToolDef } from '@corsair-dev/mcp';
 import { corsair } from '@/lib/corsair';
 import {
@@ -10,6 +11,12 @@ import {
   extractToolFailure,
 } from '@/lib/agent/calendar-actions';
 import { sendEmailForUser, normalizeEmailAddress } from '@/lib/agent/mail-actions';
+import { inferCalendarIntentFromDraft } from '@/lib/agent/infer-calendar-intent';
+import {
+  listGithubPullRequestsForUser,
+  listGithubReposForUser,
+  listGithubIssuesForUser,
+} from '@/lib/agent/github-actions';
 import { createScriptTenant, getScriptHelpers } from '@/lib/agent/script-tenant';
 import { DEFAULT_TIMEZONE, resolveTimeZone, getTodayInTimezone } from '@/lib/agent/datetime';
 import type { AgentStepEmitter } from '@/lib/agent/stream-events';
@@ -21,7 +28,11 @@ const TOOL_STEP_LABELS: Record<string, string> = {
   run_script: 'Executing Corsair action',
   corsair_setup: 'Checking integration setup',
   create_calendar_event: 'Creating calendar event',
+  draft_email: 'Drafting email',
   send_email: 'Sending email',
+  list_github_pull_requests: 'Loading GitHub pull requests',
+  list_github_repos: 'Loading GitHub repositories',
+  list_github_issues: 'Loading GitHub issues',
   list_calendar_events: 'Loading calendar',
   delete_calendar_event: 'Removing event',
   clear_calendar_schedule: 'Clearing schedule',
@@ -79,15 +90,25 @@ function wrapHandler(
 
       if (def.name === 'run_script' && typeof args.code === 'string') {
         const tenant = createScriptTenant(userId, defaultTimeZone);
-        const { createCalendarEvent, sendEmail } = getScriptHelpers(userId, defaultTimeZone);
+        const { createCalendarEvent, sendEmail, listGithubPullRequests } = getScriptHelpers(
+          userId,
+          defaultTimeZone
+        );
         const fn = new Function(
           'corsair',
           'tenant',
           'createCalendarEvent',
           'sendEmail',
+          'listGithubPullRequests',
           `return (async () => { ${args.code} })()`
         );
-        const output = await fn(corsair, tenant, createCalendarEvent, sendEmail);
+        const output = await fn(
+          corsair,
+          tenant,
+          createCalendarEvent,
+          sendEmail,
+          listGithubPullRequests
+        );
         result = {
           content: [
             { type: 'text' as const, text: JSON.stringify(output ?? null, null, 2) },
@@ -131,9 +152,21 @@ function createWriteTools(
   userId: string,
   defaultTimeZone: string,
   steps?: AgentStepEmitter,
-  actions?: AgentActionEmitter
+  actions?: AgentActionEmitter,
+  options?: { interactiveMode?: boolean }
 ): ToolSet {
-  return {
+  const calendarIntentSchema = z.object({
+    summary: z.string(),
+    date: z.string(),
+    startTime: z.string(),
+    endTime: z.string(),
+    attendees: z.array(z.string()).optional(),
+    addGoogleMeet: z.boolean().optional(),
+    timeZone: z.string().optional(),
+    description: z.string().optional(),
+  });
+
+  const tools: ToolSet = {
     create_calendar_event: tool({
       description:
         'Create a Google Calendar event. Use date + startTime + endTime in the user local timezone. Returns success only when Google confirms creation.',
@@ -211,11 +244,13 @@ function createWriteTools(
             });
           }
           steps?.completeRunning(`Created "${event.summary}"`);
+          const meetLink = extractMeetLink(event);
           return {
             success: true,
             id: event.id,
             summary: event.summary,
             htmlLink: event.htmlLink,
+            meetLink,
             start: event.start,
             end: event.end,
             timeZone: tz,
@@ -259,7 +294,7 @@ function createWriteTools(
             },
           });
 
-          await sleep(1200);
+          await sleep(2000);
 
           const sendId = actions?.start({
             type: 'email_send',
@@ -269,7 +304,7 @@ function createWriteTools(
             payload: { phase: 'connecting', to: recipients },
           });
 
-          await sleep(500);
+          await sleep(800);
           if (sendId && actions) {
             actions.update(sendId, {
               title: 'Sending message',
@@ -300,6 +335,132 @@ function createWriteTools(
           return result;
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : 'Failed to send email';
+          if (stepId) steps?.update(stepId, { status: 'error', label: msg });
+          throw new Error(msg);
+        }
+      },
+    }),
+    list_github_pull_requests: tool({
+      description:
+        'List GitHub pull requests for the connected user. Use for any PR status, review, or summary request. Works across all repos unless repo is specified.',
+      inputSchema: z.object({
+        repo: z
+          .string()
+          .optional()
+          .describe('Optional filter: owner/repo e.g. octocat/Hello-World'),
+        state: z.enum(['open', 'closed', 'all']).optional().describe('Default: open'),
+        limit: z.number().int().min(1).max(50).optional().describe('Max PRs to return. Default 25'),
+      }),
+      execute: async (input) => {
+        const stepId = steps?.subStep('Loading GitHub pull requests');
+        const actionId = actions?.start({
+          type: 'github_action',
+          status: 'running',
+          title: 'Loading pull requests',
+          groupId: `gh-pr-${Date.now()}`,
+          payload: { toolName: 'list_github_pull_requests' },
+        });
+
+        try {
+          const result = await listGithubPullRequestsForUser(userId, input);
+          const top = result.pullRequests[0];
+          if (actionId && actions) {
+            actions.complete(actionId, {
+              title: `Found ${result.count} pull request(s)`,
+              payload: top
+                ? {
+                    toolName: 'list_github_pull_requests',
+                    repoName: top.repo,
+                    prNumber: top.number,
+                    prTitle: top.title,
+                    prStatus: top.status,
+                    branch: top.branch ?? undefined,
+                  }
+                : { toolName: 'list_github_pull_requests' },
+            });
+          }
+          steps?.completeRunning(`Found ${result.count} PR(s)`);
+          return result;
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : 'Failed to load pull requests';
+          if (actionId && actions) actions.fail(actionId, msg);
+          if (stepId) steps?.update(stepId, { status: 'error', label: msg });
+          throw new Error(msg);
+        }
+      },
+    }),
+    list_github_repos: tool({
+      description: 'List GitHub repositories for the connected user.',
+      inputSchema: z.object({
+        limit: z.number().int().min(1).max(50).optional().describe('Default 20'),
+      }),
+      execute: async (input) => {
+        const stepId = steps?.subStep('Loading GitHub repositories');
+        const actionId = actions?.start({
+          type: 'github_action',
+          status: 'running',
+          title: 'Loading repositories',
+          groupId: `gh-repos-${Date.now()}`,
+          payload: { toolName: 'list_github_repos' },
+        });
+
+        try {
+          const result = await listGithubReposForUser(userId, input);
+          if (actionId && actions) {
+            actions.complete(actionId, {
+              title: `Found ${result.count} repo(s)`,
+              payload: { toolName: 'list_github_repos' },
+            });
+          }
+          steps?.completeRunning(`Found ${result.count} repo(s)`);
+          return result;
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : 'Failed to load repositories';
+          if (actionId && actions) actions.fail(actionId, msg);
+          if (stepId) steps?.update(stepId, { status: 'error', label: msg });
+          throw new Error(msg);
+        }
+      },
+    }),
+    list_github_issues: tool({
+      description: 'List GitHub issues for the connected user.',
+      inputSchema: z.object({
+        repo: z.string().optional().describe('Optional owner/repo filter'),
+        state: z.enum(['open', 'closed', 'all']).optional().describe('Default: open'),
+        limit: z.number().int().min(1).max(50).optional(),
+      }),
+      execute: async (input) => {
+        const stepId = steps?.subStep('Loading GitHub issues');
+        const actionId = actions?.start({
+          type: 'github_action',
+          status: 'running',
+          title: 'Loading issues',
+          groupId: `gh-issues-${Date.now()}`,
+          payload: { toolName: 'list_github_issues' },
+        });
+
+        try {
+          const result = await listGithubIssuesForUser(userId, input);
+          const top = result.issues[0];
+          if (actionId && actions) {
+            actions.complete(actionId, {
+              title: `Found ${result.count} issue(s)`,
+              payload: top
+                ? {
+                    toolName: 'list_github_issues',
+                    repoName: top.repo,
+                    issueNumber: top.number,
+                    issueTitle: top.title,
+                    issueStatus: top.state === 'closed' ? 'closed' : 'open',
+                  }
+                : { toolName: 'list_github_issues' },
+            });
+          }
+          steps?.completeRunning(`Found ${result.count} issue(s)`);
+          return result;
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : 'Failed to load issues';
+          if (actionId && actions) actions.fail(actionId, msg);
           if (stepId) steps?.update(stepId, { status: 'error', label: msg });
           throw new Error(msg);
         }
@@ -393,6 +554,114 @@ function createWriteTools(
       },
     }),
   };
+
+  if (options?.interactiveMode) {
+    tools.draft_email = tool({
+      description:
+        'Compose an email draft for user review in guided mode. Does NOT send. Include calendarIntent when user also wants a calendar event.',
+      inputSchema: z.object({
+        to: z.union([z.string(), z.array(z.string())]),
+        subject: z.string(),
+        body: z.string(),
+        calendarIntent: calendarIntentSchema.optional(),
+      }),
+      execute: async (input) => {
+        const stepId = steps?.subStep('Drafting email for review');
+        const groupId = `email-${Date.now()}`;
+        const recipients = Array.isArray(input.to)
+          ? input.to.map(normalizeEmailAddress)
+          : [normalizeEmailAddress(input.to)];
+
+        const resolvedCalendar = inferCalendarIntentFromDraft(
+          {
+            subject: input.subject,
+            body: input.body,
+            to: recipients,
+            calendarIntent: input.calendarIntent,
+          },
+          defaultTimeZone
+        );
+
+        const draftId = actions?.start({
+          type: 'email_draft',
+          status: 'running',
+          title: 'Composing email',
+          groupId,
+          payload: {
+            phase: 'drafting',
+            to: recipients,
+            subject: input.subject,
+            body: input.body,
+            calendarIntent: resolvedCalendar,
+          },
+        });
+
+        let calActionId: string | undefined;
+        if (resolvedCalendar) {
+          calActionId = actions?.start({
+            type: 'calendar_schedule',
+            status: 'running',
+            title: 'Previewing event',
+            groupId,
+            payload: {
+              phase: 'preview',
+              date: resolvedCalendar.date,
+              startTime: resolvedCalendar.startTime,
+              endTime: resolvedCalendar.endTime,
+              summary: resolvedCalendar.summary,
+              attendees: resolvedCalendar.attendees ?? recipients,
+              timeZone: resolvedCalendar.timeZone ?? defaultTimeZone,
+            },
+          });
+        }
+
+        await sleep(2000);
+
+        if (draftId && actions) {
+          actions.complete(draftId, {
+            title: 'Awaiting your review',
+            payload: {
+              phase: 'awaiting_review',
+              to: recipients,
+              subject: input.subject,
+              body: input.body,
+              calendarIntent: resolvedCalendar,
+            },
+          });
+        }
+
+        if (calActionId && actions && resolvedCalendar) {
+          actions.complete(calActionId, {
+            title: 'Event ready to schedule',
+            payload: {
+              phase: 'awaiting_review',
+              date: resolvedCalendar.date,
+              startTime: resolvedCalendar.startTime,
+              endTime: resolvedCalendar.endTime,
+              summary: resolvedCalendar.summary,
+              attendees: resolvedCalendar.attendees ?? recipients,
+              timeZone: resolvedCalendar.timeZone ?? defaultTimeZone,
+            },
+          });
+        }
+
+        steps?.completeRunning('Draft ready for review');
+        return {
+          success: true,
+          awaitingConfirmation: true,
+          groupId,
+          draft: {
+            to: recipients,
+            subject: input.subject,
+            body: input.body,
+          },
+          calendarIntent: resolvedCalendar ?? null,
+        };
+      },
+    });
+  }
+
+  return tools;
 }
 
 /**
@@ -402,7 +671,7 @@ function createWriteTools(
 export function createCorsairAgentTools(
   userId: string,
   steps?: AgentStepEmitter,
-  options?: { timeZone?: string; actions?: AgentActionEmitter }
+  options?: { timeZone?: string; actions?: AgentActionEmitter; interactiveMode?: boolean }
 ): ToolSet {
   const defaultTimeZone = resolveTimeZone(options?.timeZone ?? DEFAULT_TIMEZONE);
   const defs = buildCorsairToolDefs({
@@ -412,7 +681,9 @@ export function createCorsairAgentTools(
   });
 
   const tools: ToolSet = {
-    ...createWriteTools(userId, defaultTimeZone, steps, options?.actions),
+    ...createWriteTools(userId, defaultTimeZone, steps, options?.actions, {
+      interactiveMode: options?.interactiveMode,
+    }),
   };
 
   for (const def of defs) {

@@ -10,9 +10,9 @@ export function AnalyzingCard({ action }: { action: AgentAction }) {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-border-default/80 bg-bg-elevated/50 px-4 py-3 backdrop-blur-md"
+      transition={{ type: 'spring', stiffness: 400, damping: 28 }}
     >
       <p
         className={cn(
