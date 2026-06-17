@@ -30,7 +30,7 @@ export const PLUGIN_REGISTRY: PluginDefinition[] = [
     corsairPlugin: 'github',
     label: 'GitHub',
     shortLabel: 'GitHub',
-    description: 'Pull requests, issues, and repo activity alongside your work.',
+    description: 'Sign in with GitHub to see pull requests, issues, and repo activity.',
     matchers: ['github'],
     availableInOnboarding: true,
     order: 2,

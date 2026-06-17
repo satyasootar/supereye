@@ -29,7 +29,12 @@ if (!kek) {
 const pool = new pg.Pool({ connectionString: databaseUrl });
 
 const corsair = createCorsair({
-  plugins: [gmail(), googlecalendar(), github(), googledrive()],
+  plugins: [
+    gmail(),
+    googlecalendar(),
+    github({ authType: 'oauth_2' }),
+    googledrive(),
+  ],
   database: pool,
   kek,
   multiTenancy: true,
@@ -54,6 +59,19 @@ if (clientId && clientSecret) {
 } else {
   console.warn(
     '[corsair-bootstrap] AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET not set — skipping Google OAuth app setup'
+  );
+}
+
+const githubClientId = process.env.GITHUB_CLIENT_ID;
+const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
+if (githubClientId && githubClientSecret) {
+  credentials.github = {
+    client_id: githubClientId,
+    client_secret: githubClientSecret,
+  };
+} else {
+  console.warn(
+    '[corsair-bootstrap] GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET not set — skipping GitHub OAuth app setup'
   );
 }
 

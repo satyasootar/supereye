@@ -62,7 +62,7 @@ For email + calendar + Google Meet requests: create the calendar event **first**
       ? ''
       : 'If a tool fails with "not connected", tell the user to connect the service in Settings → Integrations.',
     !hasGithub
-      ? 'GitHub is NOT connected — use list_operations / run_script only after user connects GitHub (Personal Access Token via Corsair setup).'
+      ? 'GitHub is NOT connected — use list_operations / run_script only after user connects GitHub in Settings → Connections.'
       : 'GitHub IS connected — use tenant.github.api.* or run_script for PRs, issues, repos.',
     !hasDrive
       ? 'Google Drive is NOT connected.'
@@ -112,7 +112,7 @@ ${interactiveBlock}
 - For GitHub PRs/issues/repos: **always use \`list_github_pull_requests\`, \`list_github_issues\`, or \`list_github_repos\` first** — do NOT use run_script for PR queries.
 - For Google Drive files: **always use \`list_drive_recent_files\` or \`search_drive_files\` first** when user asks for recent documents or Drive links before sending email.
 - For Google Drive: do NOT use run_script unless the dedicated tools fail.
-- Never claim you lack GitHub access without calling \`list_github_pull_requests\` first. If it errors with "not connected", tell the user to connect GitHub with a Personal Access Token in Settings → Integrations.
+- Never claim you lack GitHub access without calling \`list_github_pull_requests\` first. If it errors with "not connected", tell the user to connect GitHub in Settings → Connections.
 - **To send email: always use the \`send_email\` tool** — never call \`messages.send\` with \`to\`/\`subject\`/\`body\` directly. Gmail requires a \`raw\` MIME payload; the tool handles that.
 - **To create calendar events: always use the \`create_calendar_event\` tool** — do NOT use run_script for event creation.
 - **To clear today's schedule: use \`clear_calendar_schedule\`** with date \`${todayDate}\`. Do NOT loop run_script deletes.

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # One-time VPS bootstrap for Supereye.
 # Run as root on a fresh Ubuntu/Debian VPS:
-#   curl -fsSL https://raw.githubusercontent.com/YOUR_USER/supereye/main/deploy/vps-install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/satyasootar/supereye/main/deploy/vps-install.sh | bash
 # Or after cloning:
 #   sudo bash deploy/vps-install.sh
 
 set -euo pipefail
 
 APP_DIR="/opt/supereye"
-REPO_URL="${REPO_URL:-}"
+REPO_URL="${REPO_URL:-https://github.com/satyasootar/supereye.git}"
 
 echo "==> Installing Docker..."
 if ! command -v docker &>/dev/null; then
@@ -31,7 +31,7 @@ if [ -n "$REPO_URL" ] && [ ! -d "$APP_DIR/.git" ]; then
   git clone "$REPO_URL" "$APP_DIR"
 elif [ ! -d "$APP_DIR/.git" ]; then
   echo "Clone the repo manually into $APP_DIR, then re-run."
-  echo "  git clone https://github.com/YOUR_USER/supereye.git $APP_DIR"
+  echo "  git clone https://github.com/satyasootar/supereye.git $APP_DIR"
 fi
 
 if [ ! -f "$APP_DIR/.env" ]; then
@@ -54,7 +54,7 @@ echo ""
 echo "==> VPS bootstrap complete."
 echo ""
 echo "Next steps:"
-echo "  1. Point DNS A record: your domain → $(curl -4 -s ifconfig.me 2>/dev/null || echo 'YOUR_VPS_IP')"
+echo "  1. Point DNS A record: supereye.dev → 168.144.144.203"
 echo "  2. Edit $APP_DIR/.env (see DEPLOYMENT.md)"
 echo "  3. Configure GitHub secrets for CI/CD (see DEPLOYMENT.md)"
 echo "  4. cd $APP_DIR && docker compose -f docker-compose.prod.yml up -d"

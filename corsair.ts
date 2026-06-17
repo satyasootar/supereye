@@ -30,7 +30,12 @@ function getCorsairKek(): string {
 }
 
 export const corsair = createCorsair({
-  plugins: [gmail(), googlecalendar(), github(), googledrive()],
+  plugins: [
+    gmail(),
+    googlecalendar(),
+    github({ authType: 'oauth_2' }),
+    googledrive(),
+  ],
   database: pool,
   kek: getCorsairKek(),
   multiTenancy: true,

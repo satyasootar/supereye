@@ -29,7 +29,12 @@ const globalForCorsair = globalThis as typeof globalThis & {
 export const corsair =
   globalForCorsair.__supereyeCorsair ??
   createCorsair({
-    plugins: [gmail(), googlecalendar(), github(), googledrive()],
+    plugins: [
+      gmail(),
+      googlecalendar(),
+      github({ authType: 'oauth_2' }),
+      googledrive(),
+    ],
     database: pool,
     kek: getCorsairKek(),
     multiTenancy: true,

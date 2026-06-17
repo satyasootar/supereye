@@ -14,7 +14,7 @@ docker compose -f docker-compose.prod.yml logs cron
 
 ```bash
 curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
-  https://app.yourdomain.com/api/cron/process
+  https://supereye.dev/api/cron/process
 ```
 
 ## Non-Docker VPS (legacy)

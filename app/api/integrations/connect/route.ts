@@ -5,6 +5,22 @@ import { generateOAuthUrl } from 'corsair/oauth';
 import { validationErrorResponse } from '@/lib/validation/http';
 import { integrationsConnectSchema } from '@/lib/validation/integrations';
 
+function integrationSetupError(plugin: string): string {
+  if (plugin === 'googledrive') {
+    return (
+      'Google Drive is not configured. Set AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET ' +
+      '(same Google OAuth app as Gmail/Calendar) and enable the Drive API in Google Cloud Console.'
+    );
+  }
+  if (plugin === 'github') {
+    return (
+      'GitHub OAuth is not configured. Create a GitHub OAuth App and set ' +
+      'GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your environment.'
+    );
+  }
+  return `${plugin} is not configured. Check your server environment and Corsair integration setup.`;
+}
+
 export async function POST(request: NextRequest) {
   const authResult = await requireActiveUserSession();
   if ('error' in authResult) return authResult.error;
@@ -39,21 +55,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // GitHub is configured as `api_key` (PAT) in Corsair, not OAuth (`oauth_2`).
-    // The current UX button still calls this OAuth connect endpoint, so we return
-    // a clear remediation message instead of failing with HTTP 500.
-    if (plugin === 'github') {
-      return NextResponse.json(
-        {
-          error:
-            'GitHub uses a Personal Access Token (api_key), not OAuth. ' +
-            `Set it once for this account (tenantId: ${session.user.id}) with: ` +
-            'npx corsair setup --plugin=github --tenant <tenantId> api_key=<GITHUB_PAT>',
-        },
-        { status: 400 }
-      );
-    }
-
     const { corsair } = await import('@/lib/corsair');
 
     const { url: authUrl } = await generateOAuthUrl(corsair, plugin, {
@@ -70,13 +71,11 @@ export async function POST(request: NextRequest) {
     console.error(`Failed to generate ${plugin} auth URL:`, error);
     const message =
       error instanceof Error ? error.message : 'Failed to generate auth URL';
-    return Response.json(
+    return NextResponse.json(
       {
         error:
           message.includes('client_id') || message.includes('credentials')
-            ? plugin === 'googledrive'
-              ? 'Google Drive is not configured. Run: npx corsair setup --googledrive client_id=YOUR_ID client_secret=YOUR_SECRET (use the same Google OAuth app as Gmail/Calendar). Also enable Google Drive API in Google Cloud Console.'
-              : `${plugin} is not configured. Run: npx corsair setup --${plugin} client_id=YOUR_ID client_secret=YOUR_SECRET`
+            ? integrationSetupError(plugin)
             : 'Failed to generate auth URL',
       },
       { status: 500 }

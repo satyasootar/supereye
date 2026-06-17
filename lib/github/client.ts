@@ -34,7 +34,7 @@ export function getGithubApi(userId: string): GithubApi {
 
   if (!tenant.github?.api) {
     throw new Error(
-      'GitHub is not connected. Connect it in Settings → Integrations using a GitHub Personal Access Token (PAT).'
+      'GitHub is not connected. Open Settings → Connections and click Connect next to GitHub.'
     );
   }
 

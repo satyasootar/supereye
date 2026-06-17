@@ -21,21 +21,24 @@ Push to `main` → GitHub Actions tests, builds Docker image, pushes to GHCR, SS
 ### 1.1 SSH into your VPS
 
 ```bash
-ssh root@YOUR_VPS_IP
+ssh root@168.144.144.203
 ```
 
 ### 1.2 Install Docker and clone the repo
 
 ```bash
-export REPO_URL=https://github.com/YOUR_GITHUB_USERNAME/supereye.git
-curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/supereye/main/deploy/vps-install.sh | bash
+export REPO_URL=https://github.com/satyasootar/supereye.git
+curl -fsSL https://raw.githubusercontent.com/satyasootar/supereye/main/deploy/vps-install.sh | bash
 ```
 
 Or manually:
 
 ```bash
 curl -fsSL https://get.docker.com | sh
-git clone https://github.com/YOUR_GITHUB_USERNAME/supereye.git /opt/supereye
+apt-get install -y git docker-compose-plugin
+
+# Public repo — no token needed
+git clone https://github.com/satyasootar/supereye.git /opt/supereye
 cd /opt/supereye
 cp .env.example .env
 nano .env   # fill in all values (see Part 3)
@@ -47,13 +50,13 @@ Create an **A record** pointing your domain to the VPS IP:
 
 | Type | Name | Value |
 |------|------|-------|
-| A | `app` (or `@`) | `YOUR_VPS_IP` |
+| A | `@` | `168.144.144.203` |
 
 Set in `.env`:
 
 ```env
-DOMAIN=app.yourdomain.com
-NEXT_PUBLIC_APP_URL=https://app.yourdomain.com
+DOMAIN=supereye.dev
+NEXT_PUBLIC_APP_URL=https://supereye.dev
 ```
 
 Wait for DNS propagation (usually 5–30 minutes) before starting Caddy.
@@ -66,21 +69,21 @@ In your GitHub repo → **Settings → Secrets and variables → Actions**, add:
 
 | Secret | Description |
 |--------|-------------|
-| `VPS_HOST` | VPS IP or hostname |
-| `VPS_USER` | SSH user (e.g. `root` or `deploy`) |
-| `VPS_SSH_KEY` | Private SSH key (full PEM contents) |
-| `GHCR_PULL_TOKEN` | GitHub PAT with `read:packages` (for VPS to pull image) |
-| `NEXT_PUBLIC_APP_URL` | `https://app.yourdomain.com` (baked into Docker build) |
+| `VPS_HOST` | `168.144.144.203` |
+| `VPS_USER` | SSH user (e.g. `root`) |
+| `VPS_PASSWORD` | VPS SSH password (root password) |
+| `DEPLOY_PAT` | GitHub PAT with **`read:packages`** — only needed to pull the Docker image from GHCR (see below) |
+| `NEXT_PUBLIC_APP_URL` | `https://supereye.dev` (baked into Docker build) |
 
-**Create GHCR_PULL_TOKEN:** GitHub → Settings → Developer settings → Personal access tokens → `read:packages`.
+**Create DEPLOY_PAT:** GitHub → Settings → Developer settings → Personal access tokens → **Tokens (classic)** → Generate. Enable **`read:packages`**.
 
-**Create VPS SSH key:**
+**Public repo:** You do **not** need `repo` scope or a PAT to `git clone` / `git pull`.
 
-```bash
-ssh-keygen -t ed25519 -C "github-deploy" -f ~/.ssh/supereye_deploy
-# Add ~/.ssh/supereye_deploy.pub to VPS ~/.ssh/authorized_keys
-# Paste ~/.ssh/supereye_deploy contents into VPS_SSH_KEY secret
-```
+**Alternative:** Make the GHCR package public (GitHub → Packages → supereye → Package settings → Change visibility) and you can skip `DEPLOY_PAT` entirely — update the workflow to remove the `docker login` line if you do that.
+
+**Password auth:** Store your VPS root (or deploy user) password in `VPS_PASSWORD`. GitHub Actions uses this for automated deploys — never commit it to the repo.
+
+**Optional (more secure later):** Switch to SSH key auth by replacing `password` with `key` in `.github/workflows/ci-cd.yml` and using a `VPS_SSH_KEY` secret instead.
 
 ### Trigger deploy
 
@@ -111,7 +114,7 @@ openssl rand -base64 32
 openssl rand -hex 24
 ```
 
-Update `DATABASE_URL` and `POSTGRES_PASSWORD` to match. Set `DOCKER_IMAGE` to `ghcr.io/YOUR_USERNAME/supereye:latest`.
+Update `DATABASE_URL` and `POSTGRES_PASSWORD` to match. Set `DOCKER_IMAGE` to `ghcr.io/satyasootar/supereye:latest` (default in `.env.example`).
 
 ---
 
@@ -119,7 +122,7 @@ Update `DATABASE_URL` and `POSTGRES_PASSWORD` to match. Set `DOCKER_IMAGE` to `g
 
 ### 4.1 Create / select project
 
-[Google Cloud Console](https://console.cloud.google.com/) → create project (e.g. `supereye-prod`).
+[Google Cloud Console](https://console.cloud.google.com/) → project **`supereye-499110`**.
 
 ### 4.2 Enable APIs
 
@@ -148,8 +151,8 @@ Update `DATABASE_URL` and `POSTGRES_PASSWORD` to match. Set `DOCKER_IMAGE` to `g
 **Authorized redirect URIs** (add all):
 
 ```
-https://app.yourdomain.com/api/auth/callback/google
-https://app.yourdomain.com/api/corsair/callback
+https://supereye.dev/api/auth/callback/google
+https://supereye.dev/api/corsair/callback
 ```
 
 Copy **Client ID** and **Client Secret** into `.env`:
@@ -161,19 +164,40 @@ AUTH_GOOGLE_SECRET=...
 
 The app bootstrap script (`corsair-bootstrap.mjs`) copies these into Corsair for Gmail/Calendar/Drive integrations automatically on each deploy.
 
+### 4.4b GitHub OAuth App (Connect GitHub in the app)
+
+**GitHub → Settings → Developer settings → OAuth Apps → New OAuth App**
+
+| Field | Value |
+|-------|-------|
+| Application name | `Supereye` |
+| Homepage URL | `https://supereye.dev` |
+| Authorization callback URL | `https://supereye.dev/api/corsair/callback` |
+
+After creating the app, generate a **Client secret** and add to `.env`:
+
+```env
+GITHUB_CLIENT_ID=Ov23li...
+GITHUB_CLIENT_SECRET=...
+```
+
+Redeploy or restart the app so `corsair-bootstrap.mjs` seeds these into Corsair.
+
+Users connect GitHub from **Settings → Connections** or onboarding — they are redirected to GitHub to authorize, then data syncs automatically. No CLI or Personal Access Token required.
+
 ### 4.5 Gmail Pub/Sub (push webhooks)
 
 #### Step A: Create topic
 
 **Pub/Sub → Topics → Create topic**
 
-- Topic ID: `supereye-gmail`
+- Topic ID: `corsair-webhooks` (or create `supereye-gmail` if starting fresh)
 
-Note the full path: `projects/YOUR_PROJECT_ID/topics/supereye-gmail`
+Note the full path: `projects/supereye-499110/topics/corsair-webhooks`
 
 #### Step B: Grant Gmail permission to publish
 
-**Pub/Sub → Topics → supereye-gmail → Permissions → Grant access**
+**Pub/Sub → Topics → corsair-webhooks → Permissions → Grant access**
 
 | Principal | Role |
 |-----------|------|
@@ -185,16 +209,16 @@ Note the full path: `projects/YOUR_PROJECT_ID/topics/supereye-gmail`
 
 | Field | Value |
 |-------|-------|
-| Subscription ID | `supereye-gmail-push` |
+| Subscription ID | `corsair-webhooks-push` |
 | Delivery type | **Push** |
-| Endpoint URL | `https://app.yourdomain.com/api/webhooks/corsair` |
+| Endpoint URL | `https://supereye.dev/api/webhooks/corsair` |
 | Acknowledgement deadline | 10 seconds |
 
 Add to `.env`:
 
 ```env
-GMAIL_PUBSUB_TOPIC=projects/YOUR_PROJECT_ID/topics/supereye-gmail
-GMAIL_PUBSUB_SUBSCRIPTION=projects/YOUR_PROJECT_ID/subscriptions/supereye-gmail-push
+GMAIL_PUBSUB_TOPIC=projects/supereye-499110/topics/corsair-webhooks
+GMAIL_PUBSUB_SUBSCRIPTION=projects/supereye-499110/subscriptions/corsair-webhooks-push
 ```
 
 #### Step D: Verify
@@ -202,7 +226,7 @@ GMAIL_PUBSUB_SUBSCRIPTION=projects/YOUR_PROJECT_ID/subscriptions/supereye-gmail-
 After a user connects Gmail in the app, the app registers a Gmail watch automatically. You can also call:
 
 ```bash
-curl -X POST https://app.yourdomain.com/api/webhooks/register \
+curl -X POST https://supereye.dev/api/webhooks/register \
   -H "Cookie: <session-cookie>"
 ```
 
@@ -210,7 +234,7 @@ curl -X POST https://app.yourdomain.com/api/webhooks/register \
 
 Calendar uses **direct HTTPS push** (no Pub/Sub). The app registers watches automatically when users connect Calendar.
 
-- Webhook URL: `https://app.yourdomain.com/api/webhooks/corsair`
+- Webhook URL: `https://supereye.dev/api/webhooks/corsair`
 - Verification uses `WEBHOOK_SECRET` (HMAC token per user)
 
 No extra Google Console setup beyond enabling Calendar API and OAuth scopes.
@@ -234,7 +258,7 @@ RESEND_API_KEY=re_...
 After verification:
 
 ```env
-RESEND_FROM_EMAIL=Supereye <noreply@yourdomain.com>
+RESEND_FROM_EMAIL=Supereye <noreply@supereye.dev>
 ```
 
 ### 5.3 Test
@@ -271,8 +295,8 @@ On startup the app automatically:
 
 ## Part 7: Post-deploy checklist
 
-- [ ] `https://app.yourdomain.com` loads
-- [ ] `https://app.yourdomain.com/api/health` returns `{"status":"ok"}`
+- [ ] `https://supereye.dev` loads
+- [ ] `https://supereye.dev/api/health` returns `{"status":"ok"}`
 - [ ] Google login works
 - [ ] Connect Gmail → OAuth completes → emails sync
 - [ ] Connect Calendar → events sync
@@ -333,8 +357,8 @@ docker compose -f docker-compose.prod.yml exec postgres \
 Redirect URIs in Google Console must exactly match:
 
 ```
-https://YOUR_DOMAIN/api/auth/callback/google
-https://YOUR_DOMAIN/api/corsair/callback
+https://supereye.dev/api/auth/callback/google
+https://supereye.dev/api/corsair/callback
 ```
 
 ### CORSAIR_KEK changed
@@ -343,7 +367,7 @@ All user integration tokens become unreadable. Users must reconnect integrations
 
 ### GitHub deploy fails on SSH
 
-- Verify `VPS_SSH_KEY`, `VPS_HOST`, `VPS_USER` secrets
+- Verify `VPS_PASSWORD`, `VPS_HOST`, `VPS_USER`, `DEPLOY_PAT` secrets
 - Ensure `/opt/supereye` exists and is a git clone
 - Test: `ssh -i key user@host "cd /opt/supereye && git pull"`
 
