@@ -251,7 +251,7 @@ export function AppTour() {
       return;
     }
     setRect(getTargetRect(currentStep.target));
-  }, [currentStep?.target]);
+  }, [currentStep]);
 
   useEffect(() => {
     setMounted(true);
