@@ -18,6 +18,9 @@ ARG NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# Placeholders for `next build` page-data collection — runtime uses .env from compose
+ENV CORSAIR_KEK=build-time-placeholder
+ENV DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
 
 RUN npm run build
 

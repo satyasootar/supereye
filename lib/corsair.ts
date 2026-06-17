@@ -14,7 +14,9 @@ import { pool } from '@/lib/db/pool';
 function getCorsairKek(): string {
   const kek = process.env.CORSAIR_KEK;
   if (!kek) {
-    if (process.env.NODE_ENV === 'production') {
+    // Next.js `next build` sets NEXT_PHASE=phase-production-build — no real secrets yet.
+    const isNextBuild = process.env.NEXT_PHASE === 'phase-production-build';
+    if (process.env.NODE_ENV === 'production' && !isNextBuild) {
       throw new Error('CORSAIR_KEK must be set in production');
     }
     return 'test-key-000000000000000000000000';
