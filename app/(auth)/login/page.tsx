@@ -4,6 +4,7 @@ import { AuthHeader } from '@/components/auth/auth-header';
 import { GoogleAuthButton } from '@/components/auth/google-auth-button';
 import { AuthDivider } from '@/components/auth/auth-divider';
 import { EmailPasswordLoginForm } from '@/components/auth/email-password-login-form';
+import { DemoLoginButton } from '@/components/auth/demo-login-button';
 
 export const metadata = createPageMetadata({
   title: 'Sign in',
@@ -22,6 +23,8 @@ export default function LoginPage() {
         </p>
 
         <GoogleAuthButton />
+
+        <DemoLoginButton />
 
         <AuthDivider />
 

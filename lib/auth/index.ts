@@ -21,6 +21,8 @@ import { bootstrapUserBilling } from '@/lib/billing/seed';
 import { ensureUserHasSubscription } from '@/lib/billing/admin';
 import { touchUserActivity } from '@/lib/billing/rbac';
 import { authenticateWithPassword } from '@/lib/auth/credentials';
+import { isDemoAccountEmail } from '@/lib/auth/demo-account';
+import { upsertUserPreferences } from '@/lib/user/preferences';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -70,6 +72,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user.id) {
         await bootstrapUserBilling(user.id, user.email);
         await ensureUserHasSubscription(user.id);
+
+        if (isDemoAccountEmail(user.email)) {
+          await upsertUserPreferences(user.id, { onboardingCompleted: false });
+        }
       }
     },
   },
