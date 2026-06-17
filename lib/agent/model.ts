@@ -4,14 +4,27 @@ import type { LanguageModel } from 'ai';
 
 export type AgentProvider = 'mistral' | 'openai';
 
+function hasApiKey(value: string | undefined): boolean {
+  return Boolean(value?.trim());
+}
+
 export function resolveProvider(): AgentProvider {
   const configured = process.env.AI_PROVIDER?.toLowerCase();
-  if (configured === 'openai' || configured === 'mistral') {
-    return configured;
+  const hasOpenAi = hasApiKey(process.env.OPENAI_API_KEY);
+  const hasMistral = hasApiKey(process.env.MISTRAL_API_KEY);
+
+  if (configured === 'openai') {
+    if (hasOpenAi) return 'openai';
+    if (hasMistral) return 'mistral';
   }
-  if (process.env.OPENAI_API_KEY && !process.env.MISTRAL_API_KEY) {
-    return 'openai';
+
+  if (configured === 'mistral') {
+    if (hasMistral) return 'mistral';
+    if (hasOpenAi) return 'openai';
   }
+
+  // Auto: OpenAI only when its key is set; otherwise Mistral.
+  if (hasOpenAi) return 'openai';
   return 'mistral';
 }
 
