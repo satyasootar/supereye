@@ -47,8 +47,13 @@ COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/scripts/migrate.mjs ./scripts/migrate.mjs
 COPY --from=builder /app/scripts/corsair-bootstrap.mjs ./scripts/corsair-bootstrap.mjs
 COPY --from=builder /app/scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
+# ESM does not honor NODE_PATH — link bootstrap deps into standalone node_modules
 RUN chmod +x ./scripts/docker-entrypoint.sh \
-  && chown -R nextjs:nodejs ./bootstrap_modules ./drizzle ./scripts
+  && for d in bootstrap_modules/*; do \
+       name=$(basename "$d"); \
+       ln -sfn "../bootstrap_modules/$name" "node_modules/$name"; \
+     done \
+  && chown -R nextjs:nodejs ./bootstrap_modules ./drizzle ./scripts ./node_modules
 
 USER nextjs
 EXPOSE 3000
