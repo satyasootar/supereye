@@ -4,10 +4,9 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { 
   Inbox, Star, Clock, Send, FileText, Mail, AlertOctagon, Trash2, 
-  ChevronDown, Plus, Settings, HelpCircle, HardDrive, Edit, 
+  ChevronDown, Plus, Settings, HelpCircle, Edit, 
   BarChart, Flame, Paperclip, Users, Tag,   ChevronLeft, ChevronRight, Calendar,
   Sun, Moon, User, Archive, PanelLeftClose, PanelLeftOpen, ArrowLeftRight, Sparkles,
-  GitPullRequest,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef } from 'react';
@@ -31,6 +30,7 @@ import { CalendarSidebar } from './calendar-sidebar';
 import { GithubSidebar } from './github-sidebar';
 import { DriveSidebar } from './drive-sidebar';
 import { WorkspaceSwitcher } from './workspace-switcher';
+import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
 
 export function EmailSidebar() {
   const router = useRouter();
@@ -193,7 +193,7 @@ export function EmailSidebar() {
         <div className="flex h-full w-[240px] flex-col bg-bg-surface">
           <div className="flex h-12 flex-shrink-0 items-center justify-between px-3 border-b border-border-subtle bg-bg-surface">
             <div className="flex items-center gap-2">
-              <GitPullRequest className="h-4 w-4 text-text-primary" />
+              <PluginBrandIcon pluginId="github" size={16} />
               <span className="text-[14px] font-semibold text-text-primary">GitHub</span>
             </div>
             <button
@@ -222,7 +222,7 @@ export function EmailSidebar() {
         <div className="flex h-full w-[240px] flex-col bg-bg-surface">
           <div className="flex h-12 flex-shrink-0 items-center justify-between px-3 border-b border-border-subtle bg-bg-surface">
             <div className="flex items-center gap-2">
-              <HardDrive className="h-4 w-4 text-text-primary" />
+              <PluginBrandIcon pluginId="drive" size={16} />
               <span className="text-[14px] font-semibold text-text-primary">Drive</span>
             </div>
             <button
@@ -233,7 +233,7 @@ export function EmailSidebar() {
               <PanelLeftClose className="h-4 w-4" />
             </button>
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <DriveSidebar variant="default" />
           </div>
         </div>

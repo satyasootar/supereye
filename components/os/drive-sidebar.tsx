@@ -3,7 +3,8 @@
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store/app-store';
 import { useDriveRecent } from '@/hooks/use-github-repos';
-import { Clock, FolderOpen, RefreshCw } from 'lucide-react';
+import { Clock, FolderOpen, RefreshCw, PanelLeftOpen } from 'lucide-react';
+import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
 import type { DriveSection } from '@/lib/drive/types';
 import type { DriveRecentOverview } from '@/lib/drive/types';
 import { DriveItemRow } from './drive-shared';
@@ -23,6 +24,8 @@ export function DriveSidebar({
     setDriveSection,
     openDriveFolder,
     leftSidebarCollapsed,
+    setLeftSidebarCollapsed,
+    activeTabs,
   } = useAppStore();
 
   const isCollapsed = variant === 'default' && leftSidebarCollapsed;
@@ -33,23 +36,44 @@ export function DriveSidebar({
 
   if (isCollapsed) {
     return (
-      <div className="flex h-full w-[48px] flex-col items-center gap-2 py-3">
-        {NAV.map(({ id, icon: Icon, label }) => (
+      <div className="flex h-full w-[48px] flex-col items-center gap-2 border-r border-border-subtle bg-bg-surface py-3">
+        {leftSidebarCollapsed && activeTabs.length <= 1 && (
           <button
-            key={id}
             type="button"
-            title={label}
-            onClick={() => setDriveSection(id)}
-            className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-              driveSection === id
-                ? 'bg-bg-highlight text-accent-blue'
-                : 'text-text-muted hover:bg-bg-overlay'
-            )}
+            onClick={() => setLeftSidebarCollapsed(false)}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary"
+            title="Expand Sidebar"
           >
-            <Icon className="h-4 w-4" />
+            <PanelLeftOpen className="h-4 w-4" />
           </button>
-        ))}
+        )}
+
+        <div
+          className="flex h-8 w-8 items-center justify-center rounded-md bg-bg-highlight"
+          title="Google Drive"
+        >
+          <PluginBrandIcon pluginId="drive" size={18} />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {NAV.map(({ id, icon: Icon, label }) => (
+            <button
+              key={id}
+              type="button"
+              title={label}
+              onClick={() => setDriveSection(id)}
+              className={cn(
+                'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
+                driveSection === id
+                  ? 'bg-bg-highlight text-accent-blue'
+                  : 'text-text-muted hover:bg-bg-overlay'
+              )}
+            >
+              <Icon className="h-4 w-4" />
+            </button>
+          ))}
+        </div>
+
         <button
           type="button"
           title="Refresh"

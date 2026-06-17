@@ -9,7 +9,9 @@ import {
   FolderGit2,
   RefreshCw,
   Search,
+  PanelLeftOpen,
 } from 'lucide-react';
+import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
 import { useCallback, useRef, useState } from 'react';
 import type { GithubSection } from '@/lib/github/types';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
@@ -31,6 +33,8 @@ export function GithubSidebar({
     selectedGithubRepo,
     openGithubRepo,
     leftSidebarCollapsed,
+    setLeftSidebarCollapsed,
+    activeTabs,
   } = useAppStore();
 
   const [repoSearch, setRepoSearch] = useState('');
@@ -69,28 +73,49 @@ export function GithubSidebar({
 
   if (isCollapsed) {
     return (
-      <div className="flex h-full w-[48px] flex-col items-center gap-2 py-3">
-        {NAV.map(({ id, icon: Icon, label }) => (
+      <div className="flex h-full w-[48px] flex-col items-center gap-2 border-r border-border-subtle bg-bg-surface py-3">
+        {leftSidebarCollapsed && activeTabs.length <= 1 && (
           <button
-            key={id}
             type="button"
-            title={label}
-            onClick={() => {
-              setGithubSection(id);
-              if (id === 'repo' && !selectedGithubRepo && repos[0]) {
-                openGithubRepo(repos[0].fullName);
-              }
-            }}
-            className={cn(
-              'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
-              githubSection === id
-                ? 'bg-bg-highlight text-accent-blue'
-                : 'text-text-muted hover:bg-bg-overlay'
-            )}
+            onClick={() => setLeftSidebarCollapsed(false)}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary"
+            title="Expand Sidebar"
           >
-            <Icon className="h-4 w-4" />
+            <PanelLeftOpen className="h-4 w-4" />
           </button>
-        ))}
+        )}
+
+        <div
+          className="flex h-8 w-8 items-center justify-center rounded-md bg-bg-highlight"
+          title="GitHub"
+        >
+          <PluginBrandIcon pluginId="github" size={18} />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {NAV.map(({ id, icon: Icon, label }) => (
+            <button
+              key={id}
+              type="button"
+              title={label}
+              onClick={() => {
+                setGithubSection(id);
+                if (id === 'repo' && !selectedGithubRepo && repos[0]) {
+                  openGithubRepo(repos[0].fullName);
+                }
+              }}
+              className={cn(
+                'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
+                githubSection === id
+                  ? 'bg-bg-highlight text-accent-blue'
+                  : 'text-text-muted hover:bg-bg-overlay'
+              )}
+            >
+              <Icon className="h-4 w-4" />
+            </button>
+          ))}
+        </div>
+
         <button
           type="button"
           title="Refresh"
