@@ -33,6 +33,7 @@ import {
 } from '@/lib/auth/login-rate-limit';
 import { LoginRateLimitedError } from '@/lib/auth/sign-in-errors';
 import { isSessionVersionValid } from '@/lib/auth/session-version';
+import { endActiveUserSession, recordUserLogin } from '@/lib/monitoring/activity';
 
 function isPublicAuthPath(path: string): boolean {
   return (
@@ -107,10 +108,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   events: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       if (user.id) {
         await bootstrapUserBilling(user.id, user.email);
         await ensureUserHasSubscription(user.id);
+
+        await recordUserLogin(user.id, account?.provider ?? 'credentials');
 
         if (isDemoAccountEmail(user.email)) {
           await upsertUserPreferences(user.id, {
@@ -121,6 +124,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
           });
         }
+      }
+    },
+    async signOut(message) {
+      const token = 'token' in message ? message.token : null;
+      const userId = (token?.id as string | undefined) ?? token?.sub;
+      if (userId) {
+        await endActiveUserSession(userId);
       }
     },
   },

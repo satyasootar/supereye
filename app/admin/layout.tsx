@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/billing/rbac';
 import { ensureBillingSeed } from '@/lib/billing/seed';
 import { AdminShell } from '@/components/admin/admin-shell';
 import { QueryProvider } from '@/components/providers/query-provider';
+import { ActivityHeartbeat } from '@/components/monitoring/activity-heartbeat';
 import { createPageMetadata } from '@/lib/site/metadata';
 
 export const metadata = createPageMetadata({
@@ -27,6 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <QueryProvider>
+      <ActivityHeartbeat />
       <AdminShell userEmail={session.user.email}>{children}</AdminShell>
     </QueryProvider>
   );

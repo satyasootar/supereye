@@ -4,6 +4,7 @@ import { QueryProvider } from '@/components/providers/query-provider';
 import { CommandPalette } from '@/components/os/command-palette';
 import { KeyboardSystem } from '@/components/keyboard/keyboard-system';
 import { TokenExhaustedBanner } from '@/components/billing/token-exhausted-banner';
+import { ActivityHeartbeat } from '@/components/monitoring/activity-heartbeat';
 import { createPageMetadata } from '@/lib/site/metadata';
 
 export const metadata = createPageMetadata({
@@ -34,6 +35,7 @@ export default async function DashboardLayout({
 
   return (
     <QueryProvider>
+      <ActivityHeartbeat />
       <KeyboardSystem>
         <div className="mx-auto flex h-screen w-full max-w-[1600px] flex-col overflow-hidden border-x border-border-subtle bg-bg-app shadow-2xl">
           <CommandPalette />

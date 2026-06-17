@@ -6,3 +6,4 @@ export * from './auth';
 export * from './app';
 export * from './corsair';
 export * from './billing';
+export * from './monitoring';

@@ -14,11 +14,13 @@ import {
   Settings,
   ArrowLeft,
   Receipt,
+  Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true },
+  { href: '/admin/monitoring', label: 'Monitoring', icon: Radio },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/plans', label: 'Plans', icon: CreditCard },
   { href: '/admin/tokens', label: 'Tokens', icon: Coins },
