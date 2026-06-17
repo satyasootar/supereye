@@ -9,10 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { emailSchema } from '@/lib/validation/common';
 
-export function EmailPasswordLoginForm() {
+export function EmailPasswordSignupForm() {
   const router = useRouter();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -34,19 +36,42 @@ export function EmailPasswordLoginForm() {
       return;
     }
 
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const result = await signIn('credentials', {
+      const signupRes = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          email,
+          password,
+        }),
+      });
+
+      const payload = (await signupRes.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      if (!signupRes.ok) {
+        setError(payload.error ?? 'Could not create account');
+        return;
+      }
+
+      const loginResult = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
-
-      if (result?.error) {
-        setError('Invalid email or password');
+      if (loginResult?.error) {
+        router.push('/login');
         return;
       }
 
-      router.push('/workspace');
+      router.push('/workspace/onboarding');
       router.refresh();
     } catch {
       setError('Something went wrong. Please try again.');
@@ -57,6 +82,22 @@ export function EmailPasswordLoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="name" className="text-sm font-medium text-text-primary">
+          Full name
+        </label>
+        <Input
+          id="name"
+          name="name"
+          type="text"
+          autoComplete="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your name"
+          maxLength={80}
+        />
+      </div>
+
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="text-sm font-medium text-text-primary">
           Work email
@@ -74,26 +115,34 @@ export function EmailPasswordLoginForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between">
-          <label htmlFor="password" className="text-sm font-medium text-text-primary">
-            Password
-          </label>
-          <Link
-            href="/forgot-password"
-            className="text-xs text-text-muted underline-offset-2 hover:text-text-primary hover:underline"
-          >
-            Forgot password?
-          </Link>
-        </div>
+        <label htmlFor="password" className="text-sm font-medium text-text-primary">
+          Password
+        </label>
         <Input
           id="password"
           name="password"
           type="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Your password"
+          placeholder="At least 8 characters"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="confirmPassword" className="text-sm font-medium text-text-primary">
+          Confirm password
+        </label>
+        <Input
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          required
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="Re-enter your password"
         />
       </div>
 
@@ -111,12 +160,19 @@ export function EmailPasswordLoginForm() {
         {loading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Signing in...
+            Creating account...
           </>
         ) : (
-          'Sign in with email'
+          'Create account'
         )}
       </Button>
+
+      <p className="text-center text-[11px] text-text-muted">
+        Already have an account?{' '}
+        <Link href="/login" className="font-medium text-accent-blue hover:underline">
+          Sign in
+        </Link>
+      </p>
     </form>
   );
 }

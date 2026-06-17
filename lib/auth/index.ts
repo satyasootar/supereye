@@ -115,7 +115,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return true;
       }
 
-      if (path === '/' || path.startsWith('/login')) return true;
+      if (path === '/' || path.startsWith('/login') || path.startsWith('/signup')) return true;
       if (
         path === '/forgot-password' ||
         path === '/reset-password' ||

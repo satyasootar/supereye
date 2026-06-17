@@ -3,41 +3,32 @@ import { createPageMetadata } from '@/lib/site/metadata';
 import { AuthHeader } from '@/components/auth/auth-header';
 import { GoogleAuthButton } from '@/components/auth/google-auth-button';
 import { AuthDivider } from '@/components/auth/auth-divider';
-import { EmailPasswordLoginForm } from '@/components/auth/email-password-login-form';
+import { EmailPasswordSignupForm } from '@/components/auth/email-password-signup-form';
 
 export const metadata = createPageMetadata({
-  title: 'Sign in',
-  description: 'Sign in to Supereye with Google or email and password.',
-  path: '/login',
+  title: 'Sign up',
+  description: 'Create your Supereye account.',
+  path: '/signup',
   noIndex: true,
 });
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <div className="w-full rounded-2xl border border-border-subtle bg-bg-elevated/90 p-5 shadow-xl backdrop-blur-md sm:p-6">
       <div className="flex flex-col gap-4">
-        <AuthHeader title="Sign in" />
+        <AuthHeader title="Create account" />
         <p className="text-sm text-text-secondary">
-          Welcome back. Sign in with Google or your email and password.
+          Get started with Google or create an account with email and password.
         </p>
 
-        <GoogleAuthButton />
+        <GoogleAuthButton id="google-sign-up" />
 
         <AuthDivider />
 
-        <EmailPasswordLoginForm />
+        <EmailPasswordSignupForm />
 
-        <p className="text-center text-xs text-text-muted">
-          Google users can add a password in Profile → Security after signing in.
-        </p>
-        <p className="text-center text-sm text-text-secondary">
-          New here?{' '}
-          <Link href="/signup" className="font-medium text-accent-blue hover:underline">
-            Create an account
-          </Link>
-        </p>
         <p className="text-center text-xs text-text-muted/80">
-          By signing in, you agree to our{' '}
+          By creating an account, you agree to our{' '}
           <Link href="/terms" className="underline underline-offset-2 hover:text-text-secondary">
             Terms
           </Link>{' '}
