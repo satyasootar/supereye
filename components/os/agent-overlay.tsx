@@ -60,7 +60,7 @@ export function AgentOverlay() {
             key="agent-content"
             role="dialog"
             aria-modal="true"
-            aria-label="AI Assistant"
+            aria-label="eye"
             className="fixed inset-0 z-[201] pointer-events-none"
             initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
@@ -72,7 +72,7 @@ export function AgentOverlay() {
                 type="button"
                 onClick={() => setAgentOpen(false)}
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-default bg-bg-elevated/80 text-text-muted backdrop-blur-md transition-colors hover:text-text-primary"
-                aria-label="Close assistant"
+                aria-label="Close eye"
               >
                 <X className="h-4 w-4" />
               </button>

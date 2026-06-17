@@ -9,6 +9,7 @@ import {
   normalizeWorkflowRun,
   isPullRequestIssue,
 } from '@/lib/github/normalize';
+import { countGithubRepositories } from '@/lib/github/repos-page';
 import type {
   GithubOverview,
   GithubPullRequest,
@@ -27,11 +28,14 @@ export async function fetchGithubOverview(
   api: GithubApi,
   repoLimit = 12
 ): Promise<GithubOverview> {
-  const reposResult = await api.repositories.list({
-    perPage: repoLimit,
-    sort: 'updated',
-    direction: 'desc',
-  });
+  const [reposResult, totalRepoCount] = await Promise.all([
+    api.repositories.list({
+      perPage: repoLimit,
+      sort: 'updated',
+      direction: 'desc',
+    }),
+    countGithubRepositories((input) => api.repositories.list(input)).catch(() => null),
+  ]);
 
   const repos = Array.isArray(reposResult)
     ? reposResult.map((item) => normalizeRepo(item as Record<string, unknown>))
@@ -120,7 +124,7 @@ export async function fetchGithubOverview(
   return {
     repos,
     stats: {
-      repoCount: repos.length,
+      repoCount: totalRepoCount ?? repos.length,
       openPulls,
       openIssues,
       recentCommits: recentCommits.length,

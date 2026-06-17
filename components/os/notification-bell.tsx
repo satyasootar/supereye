@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
-import { useAppStore } from '@/lib/store/app-store';
+import { navigateToEmailFromLink } from '@/lib/navigation/email';
 
 type Notification = {
   id: string;
@@ -31,7 +31,6 @@ export function NotificationBell({
 }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { openTab, setSelectedEmailId } = useAppStore();
 
   const { data, isLoading } = useQuery<{ notifications: Notification[] }>({
     queryKey: ['notifications'],
@@ -123,10 +122,7 @@ export function NotificationBell({
                     className={`px-4 py-4 border-b border-border-subtle/50 transition-colors hover:bg-bg-highlight flex gap-3 cursor-pointer group`}
                     onClick={() => {
                       if (!notif.isRead) markAsReadMutation.mutate(notif.id);
-                      if (notif.link?.startsWith('/emails/')) {
-                        const emailId = notif.link.split('/emails/')[1];
-                        openTab('email');
-                        setSelectedEmailId(emailId);
+                      if (navigateToEmailFromLink(notif.link)) {
                         setOpen(false);
                       }
                     }}

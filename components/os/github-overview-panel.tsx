@@ -57,7 +57,7 @@ export function GithubOverviewPanel() {
     .slice(0, 8);
 
   return (
-    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
+    <div ref={scrollRef} className="h-full min-h-0 w-full flex-1 overflow-y-auto custom-scrollbar">
       <div className="border-b border-border-subtle px-5 py-5">
         <h1 className="text-[20px] font-semibold text-text-primary">Overview</h1>
         <p className="mt-1 text-[13px] text-text-muted">

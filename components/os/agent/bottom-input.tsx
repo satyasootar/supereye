@@ -99,7 +99,7 @@ export function BottomInput() {
       ? mode === 'whisper'
         ? 'Recording… tap ✓ to transcribe into the box'
         : 'Speak now — words appear here as you talk…'
-      : 'Ask your assistant...';
+      : 'Ask eye...';
 
   return (
     <motion.div

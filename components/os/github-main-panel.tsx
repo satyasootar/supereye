@@ -166,7 +166,7 @@ export function GithubMainPanel() {
         </div>
       </div>
 
-      <div ref={containerRef} className="flex min-h-0 flex-1 overflow-hidden">
+      <div ref={containerRef} className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {githubSection === 'overview' && <GithubOverviewPanel />}
         {githubSection === 'inbox' && (
           <GithubInboxPanel

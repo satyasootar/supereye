@@ -48,7 +48,7 @@ export const SHORTCUT_TIPS = [
   "Tip: Press Ctrl+K (or Cmd+K) to open the Command Palette.",
   "Tip: Press ? to view all active keyboard shortcuts.",
   "Tip: Press j and k to move down and up in your email list.",
-  "Tip: Press Ctrl+J to toggle this AI Assistant panel open/closed.",
+  "Tip: Press Ctrl+J to toggle eye open/closed.",
   "Tip: Press t in the Calendar view to jump back to Today.",
 ];
 
@@ -107,7 +107,7 @@ export function AiBot({
   const [showTipConfirm, setShowTipConfirm] = useState(false);
 
   const WELCOME_STEPS = [
-    "Hey! I am Eye.",
+    "Hey! I am eye.",
     "I can help you with sending emails,",
     "creating calendar events, and more!"
   ];
@@ -520,7 +520,7 @@ export function AiBot({
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      title={openAgentOnClick ? 'Open AI Assistant' : 'supereye'}
+      title={openAgentOnClick ? 'Open eye' : 'eye'}
       ref={containerRef}
     >
       <AnimatePresence>
@@ -545,7 +545,7 @@ export function AiBot({
             {/* Bubble contents */}
             <div className="pr-4">
               <span className="text-[10px] font-bold uppercase tracking-wider text-accent-blue block mb-1">
-                {bubbleMode === 'welcome' ? 'Eye Assistant' : "Eye's Tip"}
+                {bubbleMode === 'welcome' ? 'eye' : "eye's tip"}
               </span>
               <p className="text-[12.5px] leading-relaxed text-text-primary font-medium min-h-[3.5em]">
                 {bubbleText}

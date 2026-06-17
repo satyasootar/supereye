@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { invalidateClientCacheNamespaces } from '@/lib/store/data-cache-store';
 import { SSE_INVALIDATION_MAP } from '@/lib/sse/events';
 import type { SSEEventType } from '@/lib/sse/events';
+import { navigateToEmailFromLink } from '@/lib/navigation/email';
 
 /**
  * SSE hook with automatic reconnection and centralized event handling.
@@ -61,7 +62,7 @@ export function useSSE() {
                   label: 'View',
                   onClick: () => {
                     if (notif.link) {
-                      window.location.hash = notif.link as string;
+                      navigateToEmailFromLink(notif.link as string);
                     }
                   }
                 }

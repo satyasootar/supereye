@@ -76,8 +76,8 @@ export function BotSettingsSection() {
     <div className="flex flex-col gap-6">
       {/* About Eye */}
       <ProfileSection
-        title="About Eye"
-        description="Eye is your AI-powered assistant built into Supereye. It helps you compose emails, schedule meetings, and navigate your workspace — all through natural conversation."
+        title="About eye"
+        description="eye is your AI assistant built into Supereye. It helps you compose emails, schedule meetings, and navigate your workspace — all through natural conversation."
       >
         <div className="flex items-start gap-4 rounded-[var(--radius)] border border-border-subtle bg-bg-elevated/50 p-4">
           <div className="shrink-0 pt-1">

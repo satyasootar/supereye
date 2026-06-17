@@ -35,11 +35,21 @@ export async function syncGmailForUser(userId: string) {
     // Renew Gmail push notification watch (expires ~7 days)
     await registerGmailWatch(userId);
 
-    const gmailResult = await t.gmail.api.messages.list({
-      userId: 'me',
-      maxResults: 20,
-    });
-    const messageIds = gmailResult.messages || [];
+    const messageIds: { id: string }[] = [];
+    let pageToken: string | undefined;
+    const syncCap = 200;
+
+    while (messageIds.length < syncCap) {
+      const gmailResult = await t.gmail.api.messages.list({
+        userId: 'me',
+        maxResults: Math.min(100, syncCap - messageIds.length),
+        pageToken,
+      });
+      const batch = gmailResult.messages ?? [];
+      messageIds.push(...batch);
+      if (!gmailResult.nextPageToken || batch.length === 0) break;
+      pageToken = gmailResult.nextPageToken;
+    }
 
     const toInsert = [];
 

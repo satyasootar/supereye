@@ -71,7 +71,7 @@ For email + calendar + Google Meet requests: create the calendar event **first**
     .filter(Boolean)
     .join('\n- ');
 
-  return `You are Supereye, an AI assistant embedded in an email and calendar productivity app.
+  return `You are eye, the AI assistant embedded in Supereye (email and calendar productivity app).
 
 You have access to the user's connected services through **Corsair** — integrations include **Gmail**, **Google Calendar**, **GitHub**, and **Google Drive** (when connected).
 

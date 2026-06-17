@@ -47,6 +47,10 @@ export async function GET(req: Request) {
       baseQuery = baseQuery.where(
         sql`${emails.userId} = ${session.user.id} AND ${emails.isArchived} = false AND (${emails.labelIds} @> ${categoryFilter}::jsonb OR ${emails.labelIds} IS NULL)${priorityFilter}`
       ) as typeof baseQuery;
+    } else if (category === 'STARRED') {
+      baseQuery = baseQuery.where(
+        sql`${emails.userId} = ${session.user.id} AND ${emails.isStarred} = true${priorityFilter}`
+      ) as typeof baseQuery;
     } else {
       const categoryFilter = JSON.stringify([category]);
       baseQuery = baseQuery.where(

@@ -34,6 +34,31 @@ export function resolveRepositoriesHasMore(
   return reposLength === perPage;
 }
 
+export async function countGithubRepositories(
+  list: (input: Record<string, unknown>) => Promise<unknown>,
+  perPage = 100
+): Promise<number> {
+  let total = 0;
+  let page = 1;
+
+  for (;;) {
+    const result = await list({
+      perPage,
+      per_page: perPage,
+      page,
+      sort: 'updated',
+      direction: 'desc',
+    });
+    const repos = parseRepositoriesListResult(result);
+    total += repos.length;
+    if (!resolveRepositoriesHasMore(result, repos.length, perPage)) break;
+    page += 1;
+    if (page > 100) break;
+  }
+
+  return total;
+}
+
 export function buildGithubReposPage(
   result: unknown,
   page: number,
