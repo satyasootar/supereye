@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { useAppStore } from '@/lib/store/app-store';
 import { AGENT_SAMPLE_GROUPS, fillAgentInput } from '@/lib/agent/sample-prompts';
-import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
+import { AgentServiceIcon } from './agent-service-icon';
 import { cn } from '@/lib/utils';
 
 const spring = { type: 'spring' as const, stiffness: 220, damping: 28 };
@@ -38,9 +38,7 @@ export function FloatingSuggestions() {
               className="rounded-xl border border-border-subtle bg-bg-elevated/80 p-3.5 shadow-sm"
             >
               <div className="mb-2.5 flex items-start gap-2.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-bg-surface">
-                  <PluginBrandIcon pluginId={group.iconPluginId} size={20} />
-                </div>
+                <AgentServiceIcon service={group.iconPluginId} size={20} framed />
                 <div className="min-w-0">
                   <p className="text-[13px] font-semibold text-text-primary">{group.label}</p>
                   <p className="text-[12px] text-text-muted">{group.description}</p>

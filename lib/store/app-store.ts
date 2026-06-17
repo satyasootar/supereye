@@ -93,7 +93,8 @@ export type AgentAction = {
     folderId?: string;
     folderName?: string;
     driveAction?: 'upload' | 'create' | 'share' | 'browse';
-    files?: Array<{ name: string; type: string; size?: number }>;
+    files?: Array<{ name: string; type: string; size?: number; url?: string }>;
+    webViewLink?: string;
     progress?: number;
   };
 };

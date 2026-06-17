@@ -14,7 +14,9 @@ export function getDriveApi(userId: string): DriveApi {
   const tenant = getTenant(userId) as { googledrive?: { api: DriveApi } };
 
   if (!tenant.googledrive?.api) {
-    throw new Error('Google Drive is not connected for this account');
+    throw new Error(
+      'Google Drive is not connected. Connect it in Settings → Integrations (Google OAuth).'
+    );
   }
 
   return tenant.googledrive.api;

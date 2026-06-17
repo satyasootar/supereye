@@ -10,6 +10,8 @@ import { ConversationStream } from './agent/conversation-stream';
 import { FloatingSuggestions } from './agent/floating-suggestions';
 import { BottomInput } from './agent/bottom-input';
 
+const backdropTransition = { duration: 0.15, ease: 'easeOut' as const };
+
 export function AgentOverlay() {
   const { isAgentOpen, setAgentOpen, agentThreadId, isAgentExecuting } = useAppStore();
   const { loadThread } = useAgentThreads();
@@ -43,42 +45,53 @@ export function AgentOverlay() {
   return (
     <AnimatePresence>
       {isAgentOpen && (
-        <motion.div
-          role="dialog"
-          aria-modal="true"
-          aria-label="AI Assistant"
-          className="fixed inset-0 z-[200] pointer-events-auto"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-        >
-          <div className="absolute inset-0 bg-black/15 backdrop-blur-[10px]" aria-hidden />
+        <>
+          <motion.div
+            key="agent-backdrop"
+            aria-hidden
+            className="fixed inset-0 z-[200] bg-black/15 backdrop-blur-[10px]"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={backdropTransition}
+          />
 
-          <div className="absolute right-6 top-6 z-[210]">
-            <button
-              type="button"
-              onClick={() => setAgentOpen(false)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-default bg-bg-elevated/80 text-text-muted backdrop-blur-md transition-colors hover:text-text-primary"
-              aria-label="Close assistant"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="relative z-10 flex h-full pointer-events-none">
-            <div className="flex min-w-0 flex-1 flex-col">
-              <div className="flex-1 overflow-y-auto px-6 pt-8 pb-36 pointer-events-auto custom-scrollbar">
-                <div className="mx-auto flex max-w-[700px] flex-col gap-4">
-                  <ContextBanner />
-                  <ConversationStream />
-                  <FloatingSuggestions />
-                </div>
-              </div>
-              <BottomInput />
+          <motion.div
+            key="agent-content"
+            role="dialog"
+            aria-modal="true"
+            aria-label="AI Assistant"
+            className="fixed inset-0 z-[201] pointer-events-none"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={backdropTransition}
+          >
+            <div className="absolute right-6 top-6 z-[210] pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => setAgentOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-default bg-bg-elevated/80 text-text-muted backdrop-blur-md transition-colors hover:text-text-primary"
+                aria-label="Close assistant"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-          </div>
-        </motion.div>
+
+            <div className="relative z-10 flex h-full">
+              <div className="flex min-w-0 flex-1 flex-col">
+                <div className="flex-1 overflow-y-auto px-6 pt-8 pb-36 pointer-events-auto custom-scrollbar">
+                  <div className="mx-auto flex max-w-[700px] flex-col gap-4">
+                    <ContextBanner />
+                    <ConversationStream />
+                    <FloatingSuggestions />
+                  </div>
+                </div>
+                <BottomInput />
+              </div>
+            </div>
+          </motion.div>
+        </>
       )}
     </AnimatePresence>
   );

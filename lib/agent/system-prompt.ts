@@ -98,9 +98,11 @@ ${integrationNote ? `- ${integrationNote}` : ''}
 7. **list_github_pull_requests** — List PRs across repos (preferred for any pull request question).
 8. **list_github_repos** — List the user's GitHub repositories.
 9. **list_github_issues** — List GitHub issues across repos.
-10. **list_operations** — Discover available operations. Filter with plugin: \`gmail\`, \`googlecalendar\`, \`github\`, or \`googledrive\`.
-11. **get_schema** — Get the exact input schema for an operation path before calling it.
-12. **run_script** — Low-level fallback only. Prefer the dedicated tools above.
+10. **list_drive_recent_files** — List recent Google Drive files (preferred before emailing a Drive link).
+11. **search_drive_files** — Search Google Drive by file name.
+12. **list_operations** — Discover available operations. Filter with plugin: \`gmail\`, \`googlecalendar\`, \`github\`, or \`googledrive\`.
+13. **get_schema** — Get the exact input schema for an operation path before calling it.
+14. **run_script** — Low-level fallback only. Prefer the dedicated tools above.
 
 ${interactiveBlock}
 
@@ -108,7 +110,8 @@ ${interactiveBlock}
 
 - For reads: prefer \`tenant.gmail.api.*\`, \`tenant.googlecalendar.api.*\`, \`tenant.github.api.*\`, or \`tenant.googledrive.api.*\` for live data.
 - For GitHub PRs/issues/repos: **always use \`list_github_pull_requests\`, \`list_github_issues\`, or \`list_github_repos\` first** — do NOT use run_script for PR queries.
-- For Google Drive: use \`tenant.googledrive.api.*\` via \`run_script\` only if no dedicated tool exists.
+- For Google Drive files: **always use \`list_drive_recent_files\` or \`search_drive_files\` first** when user asks for recent documents or Drive links before sending email.
+- For Google Drive: do NOT use run_script unless the dedicated tools fail.
 - Never claim you lack GitHub access without calling \`list_github_pull_requests\` first. If it errors with "not connected", tell the user to connect GitHub with a Personal Access Token in Settings → Integrations.
 - **To send email: always use the \`send_email\` tool** — never call \`messages.send\` with \`to\`/\`subject\`/\`body\` directly. Gmail requires a \`raw\` MIME payload; the tool handles that.
 - **To create calendar events: always use the \`create_calendar_event\` tool** — do NOT use run_script for event creation.

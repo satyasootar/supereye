@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Send, Sparkles, Calendar, Video } from 'lucide-react';
+import { AgentServiceIcon } from './agent-service-icon';
+import { Send, Sparkles, Video } from 'lucide-react';
 import { useAppStore, type AgentCalendarIntent } from '@/lib/store/app-store';
 import { useAgentChat } from '@/hooks/use-agent-chat';
 import { useAgentContext } from '@/hooks/use-agent-context';
@@ -108,7 +109,7 @@ export function EmailReviewPanel() {
         {/* Email section */}
         <div className="space-y-3 rounded-xl border border-border-default bg-bg-elevated p-4 shadow-md">
           <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4 text-accent-blue" />
+            <AgentServiceIcon service="email" size={16} />
             <span className="text-[12px] font-semibold uppercase tracking-wider text-text-muted">
               Review your email
             </span>
@@ -185,7 +186,7 @@ export function EmailReviewPanel() {
 
             <div className="rounded-xl border border-border-default bg-bg-elevated p-4 shadow-md">
               <div className="mb-3 flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-accent-blue" />
+                <AgentServiceIcon service="calendar" size={16} />
                 <span className="text-[12px] font-semibold uppercase tracking-wider text-text-muted">
                   Edit event details
                 </span>

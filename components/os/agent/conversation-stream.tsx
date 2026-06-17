@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import { ActionStream } from './action-stream';
 import { EmailReviewPanel } from './email-review-panel';
 import { AgentAvatar } from './agent-avatar';
+import { agentMarkdownLinkProps } from './agent-link-text';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -57,9 +58,9 @@ function MessageRow({
         </div>
       ) : (
         <div className="max-w-[min(640px,85%)] pb-4 border-b border-border-subtle/40">
-          <div className="text-[15px] leading-relaxed text-text-primary [&>ul]:mb-3 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:mb-3 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-2.5 [&>p:last-child]:mb-0 [&>strong]:font-semibold [&>strong]:text-text-primary">
+          <div className="text-[15px] leading-relaxed text-text-primary [&>ul]:mb-3 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:mb-3 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-2.5 [&>p:last-child]:mb-0 [&>strong]:font-semibold [&>strong]:text-text-primary [&_a]:text-accent-blue [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-accent-blue-dim">
             {msg.content ? (
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
+              <ReactMarkdown components={agentMarkdownLinkProps()}>{msg.content}</ReactMarkdown>
             ) : msg.isStreaming ? (
               <span className="agent-shimmer-text text-[14px]">Composing response</span>
             ) : null}

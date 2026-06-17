@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore, type AgentAction } from '@/lib/store/app-store';
 import { AgentAvatar } from './agent-avatar';
+import { AgentServiceIcon, resolveActionService } from './agent-service-icon';
 import { AnalyzingCard } from './actions/analyzing-card';
 import { EmailDraftCard } from './actions/email-draft-card';
 import { EmailSendCard } from './actions/email-send-card';
@@ -81,11 +82,26 @@ export function ActionStream() {
           }}
           className="flex gap-3"
         >
-          <AgentAvatar
-            size={28}
-            working={action.status === 'running' && isAgentExecuting}
-            className="mt-0.5"
-          />
+          {(() => {
+            const service = resolveActionService(action);
+            if (!service) {
+              return (
+                <AgentAvatar
+                  size={28}
+                  working={action.status === 'running' && isAgentExecuting}
+                  className="mt-0.5"
+                />
+              );
+            }
+            return (
+              <div className="relative mt-0.5 shrink-0">
+                {action.status === 'running' && isAgentExecuting && (
+                  <span className="absolute -inset-1 animate-pulse rounded-full bg-accent-blue/10" />
+                )}
+                <AgentServiceIcon service={service} size={20} framed />
+              </div>
+            );
+          })()}
           <div className="min-w-0 flex-1">
             {action.type === 'email_draft' ? (
               <EmailDraftCard action={action} onDraftComplete={onDraftComplete} />

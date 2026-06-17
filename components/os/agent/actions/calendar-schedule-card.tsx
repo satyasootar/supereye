@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AgentAction } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
-import { Calendar, Check, UserPlus } from 'lucide-react';
+import { AgentServiceIcon } from '../agent-service-icon';
+import { Check, UserPlus } from 'lucide-react';
 
 const spring = { type: 'spring' as const, stiffness: 220, damping: 26 };
 
@@ -121,7 +122,7 @@ export function CalendarScheduleCard({ action }: { action: AgentAction }) {
     >
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Calendar className="h-3.5 w-3.5 text-text-muted" />
+        <AgentServiceIcon service="calendar" size={14} />
         <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
           {isPreview ? 'Calendar event preview' : 'Scheduling event'}
         </span>

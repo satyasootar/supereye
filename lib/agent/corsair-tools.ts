@@ -17,6 +17,11 @@ import {
   listGithubReposForUser,
   listGithubIssuesForUser,
 } from '@/lib/agent/github-actions';
+import {
+  listDriveRecentFilesForUser,
+  searchDriveFilesForUser,
+  toDriveActionFilesFromSummary,
+} from '@/lib/agent/drive-actions';
 import { createScriptTenant, getScriptHelpers } from '@/lib/agent/script-tenant';
 import { DEFAULT_TIMEZONE, resolveTimeZone, getTodayInTimezone } from '@/lib/agent/datetime';
 import type { AgentStepEmitter } from '@/lib/agent/stream-events';
@@ -33,6 +38,8 @@ const TOOL_STEP_LABELS: Record<string, string> = {
   list_github_pull_requests: 'Loading GitHub pull requests',
   list_github_repos: 'Loading GitHub repositories',
   list_github_issues: 'Loading GitHub issues',
+  list_drive_recent_files: 'Browsing Google Drive',
+  search_drive_files: 'Searching Google Drive',
   list_calendar_events: 'Loading calendar',
   delete_calendar_event: 'Removing event',
   clear_calendar_schedule: 'Clearing schedule',
@@ -460,6 +467,102 @@ function createWriteTools(
           return result;
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : 'Failed to load issues';
+          if (actionId && actions) actions.fail(actionId, msg);
+          if (stepId) steps?.update(stepId, { status: 'error', label: msg });
+          throw new Error(msg);
+        }
+      },
+    }),
+    list_drive_recent_files: tool({
+      description:
+        'List recently modified files in Google Drive for the connected user. Use before emailing a Drive link or when user asks for recent documents.',
+      inputSchema: z.object({
+        limit: z.number().int().min(1).max(30).optional().describe('Default 10'),
+        filesOnly: z.boolean().optional().describe('Exclude folders. Default true'),
+      }),
+      execute: async (input) => {
+        const stepId = steps?.subStep('Browsing Google Drive');
+        const groupId = `drive-${Date.now()}`;
+        const actionId = actions?.start({
+          type: 'drive_action',
+          status: 'running',
+          title: 'Finding recent files',
+          groupId,
+          payload: { toolName: 'list_drive_recent_files', driveAction: 'browse' },
+        });
+
+        try {
+          const result = await listDriveRecentFilesForUser(userId, input);
+          const top = result.mostRecent;
+          const displayFiles = result.files.slice(0, 5);
+
+          if (actionId && actions) {
+            actions.complete(actionId, {
+              title: top
+                ? `Found ${result.count} file(s) · latest: ${top.name}`
+                : `Found ${result.count} file(s)`,
+              payload: {
+                toolName: 'list_drive_recent_files',
+                driveAction: 'browse',
+                files: toDriveActionFilesFromSummary(displayFiles),
+                fileName: top?.name,
+                fileType: top?.mimeType,
+                webViewLink: top?.url ?? undefined,
+              },
+            });
+          }
+
+          steps?.completeRunning(top ? `Latest file: ${top.name}` : 'Drive browse complete');
+          return result;
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : 'Failed to browse Drive';
+          if (actionId && actions) actions.fail(actionId, msg);
+          if (stepId) steps?.update(stepId, { status: 'error', label: msg });
+          throw new Error(msg);
+        }
+      },
+    }),
+    search_drive_files: tool({
+      description: 'Search Google Drive files by name for the connected user.',
+      inputSchema: z.object({
+        query: z.string().min(1).describe('Search term, e.g. meeting notes'),
+        limit: z.number().int().min(1).max(30).optional(),
+      }),
+      execute: async (input) => {
+        const stepId = steps?.subStep('Searching Google Drive');
+        const actionId = actions?.start({
+          type: 'drive_action',
+          status: 'running',
+          title: 'Searching Drive',
+          groupId: `drive-search-${Date.now()}`,
+          payload: { toolName: 'search_drive_files', driveAction: 'browse' },
+        });
+
+        try {
+          const result = await searchDriveFilesForUser(userId, input);
+          const top = result.mostRecent;
+          const displayFiles = result.files.slice(0, 5);
+
+          if (actionId && actions) {
+            actions.complete(actionId, {
+              title: top
+                ? `Found ${result.count} match(es) · top: ${top.name}`
+                : `No files matched "${input.query}"`,
+              payload: {
+                toolName: 'search_drive_files',
+                driveAction: 'browse',
+                files: toDriveActionFilesFromSummary(displayFiles),
+                fileName: top?.name,
+                fileType: top?.mimeType,
+                webViewLink: top?.url ?? undefined,
+              },
+            });
+          }
+
+          steps?.completeRunning(`Found ${result.count} file(s)`);
+          return result;
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : 'Drive search failed';
           if (actionId && actions) actions.fail(actionId, msg);
           if (stepId) steps?.update(stepId, { status: 'error', label: msg });
           throw new Error(msg);

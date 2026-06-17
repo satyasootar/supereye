@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AgentAction } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
-import { Mail, Send } from 'lucide-react';
+import { AgentServiceIcon } from '../agent-service-icon';
+import { Send } from 'lucide-react';
+import { AgentLinkText } from '@/components/os/agent/agent-link-text';
 
 const spring = { type: 'spring' as const, stiffness: 220, damping: 26 };
 
@@ -98,7 +100,7 @@ export function EmailDraftCard({
     >
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Mail className="h-3.5 w-3.5 text-text-muted" />
+        <AgentServiceIcon service="email" size={14} />
         <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
           {isAwaitingReview ? 'Review draft' : showPreview ? 'Email ready' : 'Composing email'}
         </span>
@@ -183,7 +185,7 @@ export function EmailDraftCard({
               </div>
               <div className="border-b border-border-subtle/30" />
               <p className="whitespace-pre-wrap pt-1 text-[13px] leading-relaxed text-text-secondary">
-                {body}
+                <AgentLinkText text={body} />
               </p>
             </div>
           </motion.div>

@@ -3,7 +3,8 @@
 import { motion } from 'framer-motion';
 import type { AgentAction } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
-import { GitPullRequest, GitBranch, CircleDot, GitCommit, Check } from 'lucide-react';
+import { AgentServiceIcon } from '../agent-service-icon';
+import { GitBranch, Check } from 'lucide-react';
 
 const spring = { type: 'spring' as const, stiffness: 380, damping: 26 };
 
@@ -55,19 +56,17 @@ export function GitHubActionCard({ action }: { action: AgentAction }) {
   const isIssue = !!p?.issueTitle || !!p?.issueNumber;
   const isCommit = !!p?.commitMessage;
 
-  const Icon = isPR ? GitPullRequest : isIssue ? CircleDot : isCommit ? GitCommit : GitBranch;
-
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={spring}
-      className="space-y-2"
+      className="space-y-2 rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-sm"
     >
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Icon className="h-3.5 w-3.5 text-text-muted" />
+        <AgentServiceIcon service="github" size={14} />
         {p?.repoName ? (
           <span className="font-mono text-[12px] text-text-muted">
             <span className="opacity-50">{p.repoName.split('/')[0]}/</span>

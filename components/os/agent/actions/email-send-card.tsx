@@ -4,14 +4,15 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { AgentAction } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
-import { Check, Loader2, Wifi } from 'lucide-react';
+import { AgentServiceIcon } from '../agent-service-icon';
+import { Check, Loader2 } from 'lucide-react';
 
 const spring = { type: 'spring' as const, stiffness: 220, damping: 26 };
 
 const PHASES = [
-  { key: 'connecting', label: 'Connecting to Gmail', icon: Wifi },
-  { key: 'sending', label: 'Sending message', icon: Loader2 },
-  { key: 'sent', label: 'Email sent successfully', icon: Check },
+  { key: 'connecting', label: 'Connecting to Gmail' },
+  { key: 'sending', label: 'Sending message' },
+  { key: 'sent', label: 'Email sent successfully' },
 ] as const;
 
 export function EmailSendCard({
@@ -46,13 +47,19 @@ export function EmailSendCard({
       transition={spring}
       className="space-y-0 rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-sm"
     >
+      <div className="mb-3 flex items-center gap-2 border-b border-border-subtle/60 pb-3">
+        <AgentServiceIcon service="email" size={14} />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+          Gmail
+        </span>
+      </div>
+
       {PHASES.map((step, i) => {
         const isActive = i === currentIndex && action.status === 'running';
         const isDone = i < currentIndex || (action.status === 'done' && i <= currentIndex);
         const isFuture = i > currentIndex && action.status === 'running';
         if (isFuture) return null;
 
-        const Icon = step.icon;
         return (
           <motion.div
             key={step.key}
@@ -61,7 +68,6 @@ export function EmailSendCard({
             transition={{ ...spring, delay: i * 0.18 }}
             className="flex items-center gap-3 py-1.5"
           >
-            {/* Vertical timeline accent */}
             <div
               className={cn(
                 'flex h-7 w-7 items-center justify-center rounded-md',
@@ -72,12 +78,14 @@ export function EmailSendCard({
                     : 'text-text-muted'
               )}
             >
-              {isActive ? (
-                <Icon className="h-3.5 w-3.5 animate-spin" />
+              {i === 0 && !isDone ? (
+                <AgentServiceIcon service="email" size={16} />
+              ) : isActive ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : isDone && !isError ? (
                 <Check className="h-3.5 w-3.5" />
               ) : (
-                <Icon className="h-3.5 w-3.5" />
+                <Loader2 className="h-3.5 w-3.5" />
               )}
             </div>
 

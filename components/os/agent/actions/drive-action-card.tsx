@@ -3,19 +3,19 @@
 import { motion } from 'framer-motion';
 import type { AgentAction } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
+import { AgentServiceIcon } from '../agent-service-icon';
 import {
-  HardDrive,
   FileText,
   Folder,
   Image,
   FileSpreadsheet,
   File,
   Check,
-  Upload,
   Share2,
 } from 'lucide-react';
+import { agentLinkClassName } from '@/components/os/agent/agent-link-text';
 
-const spring = { type: 'spring' as const, stiffness: 400, damping: 28 };
+const spring = { type: 'spring' as const, stiffness: 220, damping: 26 };
 
 function fileIcon(type?: string) {
   if (!type) return File;
@@ -49,8 +49,9 @@ export function DriveActionCard({ action }: { action: AgentAction }) {
   const hasFileList = files && files.length > 0;
   const isUploadOrCreate = driveAction === 'upload' || driveAction === 'create';
   const isShare = driveAction === 'share';
+  const isBrowse = driveAction === 'browse';
 
-  const ActionIcon = isUploadOrCreate ? Upload : isShare ? Share2 : HardDrive;
+  const headerLabel = isBrowse ? 'Browsing Drive' : 'Google Drive';
 
   return (
     <motion.div
@@ -58,13 +59,13 @@ export function DriveActionCard({ action }: { action: AgentAction }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={spring}
-      className="space-y-2"
+      className="space-y-2 rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-sm"
     >
       {/* Header */}
       <div className="flex items-center gap-2">
-        <ActionIcon className="h-3.5 w-3.5 text-text-muted" />
+        <AgentServiceIcon service="drive" size={14} />
         <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-          Google Drive
+          {headerLabel}
         </span>
         {p?.folderName && (
           <span className="text-[11px] text-text-muted">
@@ -84,7 +85,7 @@ export function DriveActionCard({ action }: { action: AgentAction }) {
 
       {/* File list — staggered reveal */}
       {hasFileList && (
-        <div className="space-y-1">
+        <div className="space-y-1 rounded-lg bg-bg-surface p-2">
           {files.map((file, i) => {
             const Icon = fileIcon(file.type);
             return (
@@ -96,9 +97,20 @@ export function DriveActionCard({ action }: { action: AgentAction }) {
                 className="flex items-center gap-2.5 py-1"
               >
                 <Icon className="h-4 w-4 shrink-0 text-text-muted" />
-                <span className="truncate text-[13px] font-medium text-text-primary">
-                  {file.name}
-                </span>
+                {file.url ? (
+                  <a
+                    href={file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn('truncate text-[13px] font-medium', agentLinkClassName)}
+                  >
+                    {file.name}
+                  </a>
+                ) : (
+                  <span className="truncate text-[13px] font-medium text-text-primary">
+                    {file.name}
+                  </span>
+                )}
                 {file.size && (
                   <span className="ml-auto shrink-0 text-[10px] text-text-muted">
                     {formatSize(file.size)}
@@ -116,15 +128,26 @@ export function DriveActionCard({ action }: { action: AgentAction }) {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.08 }}
-          className="flex items-center gap-2.5"
+          className="flex items-center gap-2.5 rounded-lg bg-bg-surface p-2.5"
         >
           {(() => {
             const Icon = fileIcon(p.fileType);
             return <Icon className="h-4 w-4 shrink-0 text-text-muted" />;
           })()}
-          <span className="truncate text-[13px] font-medium text-text-primary">
-            {p.fileName}
-          </span>
+          {p.webViewLink ? (
+            <a
+              href={p.webViewLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn('truncate text-[13px] font-medium', agentLinkClassName)}
+            >
+              {p.fileName}
+            </a>
+          ) : (
+            <span className="truncate text-[13px] font-medium text-text-primary">
+              {p.fileName}
+            </span>
+          )}
           {isShare && isDone && (
             <motion.span
               initial={{ opacity: 0, scale: 0.8 }}
@@ -159,8 +182,10 @@ export function DriveActionCard({ action }: { action: AgentAction }) {
           transition={{ ...spring, delay: 0.1 }}
           className="flex items-center gap-1.5 text-[11px] font-medium text-accent-blue"
         >
-          <Check className="h-3.5 w-3.5" />
-          {isUploadOrCreate ? 'Uploaded' : isShare ? 'Shared' : 'Done'}
+          {isDone && (
+            <Check className="h-3.5 w-3.5" />
+          )}
+          {isUploadOrCreate ? 'Uploaded' : isShare ? 'Shared' : isBrowse ? 'Ready' : 'Done'}
         </motion.div>
       )}
     </motion.div>

@@ -9,6 +9,7 @@ import { useVoiceInput } from '@/hooks/use-voice-input';
 import { InlineVoiceBar } from './inline-voice-bar';
 import { ThreadHistoryPopover } from './thread-history-popover';
 import { AGENT_SAMPLE_GROUPS, fillAgentInput } from '@/lib/agent/sample-prompts';
+import { AgentServiceIcon } from './agent-service-icon';
 import { cn } from '@/lib/utils';
 
 export function BottomInput() {
@@ -88,7 +89,10 @@ export function BottomInput() {
 
   const showVoiceBar = isListening || isProcessing;
   const showInputSamples = !input.trim() && agentMessages.length === 0 && !showVoiceBar;
-  const quickSamples = AGENT_SAMPLE_GROUPS.map((g) => g.samples[0]);
+  const quickSamples = AGENT_SAMPLE_GROUPS.map((g) => ({
+    ...g.samples[0],
+    service: g.iconPluginId,
+  }));
   const placeholder = isProcessing
     ? 'Processing your voice…'
     : isListening
@@ -100,9 +104,9 @@ export function BottomInput() {
   return (
     <motion.div
       className="pointer-events-auto fixed bottom-6 left-1/2 z-[210] w-full max-w-2xl -translate-x-1/2 px-4"
-      initial={{ opacity: 0, scale: 0.98, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
     >
       <form
         onSubmit={handleSubmit}
@@ -121,10 +125,11 @@ export function BottomInput() {
                 disabled={isAgentExecuting}
                 onClick={() => fillAgentInput(sample.prompt)}
                 className={cn(
-                  'rounded-md border border-border-subtle bg-bg-surface px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors',
+                  'inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-surface px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors',
                   'hover:border-accent-blue/30 hover:text-text-primary disabled:opacity-40'
                 )}
               >
+                <AgentServiceIcon service={sample.service} size={12} />
                 {sample.label}
               </button>
             ))}
