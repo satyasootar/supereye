@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { createPageMetadata } from '@/lib/site/metadata';
 import { AuthHeader } from '@/components/auth/auth-header';
 import { GoogleAuthButton } from '@/components/auth/google-auth-button';
 import { AuthDivider } from '@/components/auth/auth-divider';
 import { EmailPasswordLoginForm } from '@/components/auth/email-password-login-form';
 import { DemoLoginButton } from '@/components/auth/demo-login-button';
+import { LoginAlerts } from '@/components/auth/login-alerts';
 
 export const metadata = createPageMetadata({
   title: 'Sign in',
@@ -21,6 +23,10 @@ export default function LoginPage() {
         <p className="text-sm text-text-secondary">
           Welcome back. Sign in with Google or your email and password.
         </p>
+
+        <Suspense fallback={null}>
+          <LoginAlerts />
+        </Suspense>
 
         <GoogleAuthButton />
 

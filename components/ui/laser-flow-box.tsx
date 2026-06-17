@@ -193,7 +193,7 @@ export function LaserFlowBoxExample() {
                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
               }}
             >
-              Get Started for Free
+              Get started
             </Link>
           </div>
         </div>

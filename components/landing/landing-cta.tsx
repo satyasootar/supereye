@@ -301,12 +301,12 @@ export function LandingCta() {
             Ready to see your whole day?
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-base text-text-secondary">
-            Join power users who run their entire workday from one intelligent workspace. Free to start — no credit card required.
+            Join power users who run their entire workday from one intelligent workspace. Plans start at $20/month.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="gap-2 px-8">
               <Link href="/login">
-                Get started for free
+                Get started
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

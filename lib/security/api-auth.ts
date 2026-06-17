@@ -4,7 +4,7 @@ import { requireActiveUser, AuthorizationError } from '@/lib/billing/rbac';
 
 export async function requireUserSession() {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.error === 'SessionInvalid') {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
   }
   return { session };

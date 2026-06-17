@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { emailSchema } from '@/lib/validation/common';
+import { getCredentialsSignInErrorMessage } from '@/lib/auth/sign-in-errors';
 
 export function EmailPasswordLoginForm() {
   const router = useRouter();
@@ -42,7 +43,8 @@ export function EmailPasswordLoginForm() {
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        const code = 'code' in result ? (result.code as string | undefined) : undefined;
+        setError(getCredentialsSignInErrorMessage(result.error, code));
         return;
       }
 

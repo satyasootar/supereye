@@ -24,8 +24,12 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.error === 'SessionInvalid') {
     redirect('/login');
+  }
+
+  if (session.user.status === 'suspended') {
+    redirect('/login?suspended=1');
   }
 
   return (

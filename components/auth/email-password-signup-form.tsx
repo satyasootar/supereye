@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { emailSchema } from '@/lib/validation/common';
+import { getCredentialsSignInErrorMessage } from '@/lib/auth/sign-in-errors';
 
 export function EmailPasswordSignupForm() {
   const router = useRouter();
@@ -67,7 +68,9 @@ export function EmailPasswordSignupForm() {
         redirect: false,
       });
       if (loginResult?.error) {
-        router.push('/login');
+        const code =
+          'code' in loginResult ? (loginResult.code as string | undefined) : undefined;
+        setError(getCredentialsSignInErrorMessage(loginResult.error, code));
         return;
       }
 

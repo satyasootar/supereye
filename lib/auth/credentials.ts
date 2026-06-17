@@ -6,6 +6,7 @@ import {
   verifyPassword,
   validatePassword,
 } from '@/lib/auth/password';
+import { bumpUserSessionVersion } from '@/lib/auth/session-version';
 
 export async function getUserByEmail(email: string) {
   const normalized = email.trim().toLowerCase();
@@ -83,6 +84,8 @@ export async function setUserPassword(
     .set({ passwordHash, updatedAt: new Date() })
     .where(eq(users.id, userId));
 
+  await bumpUserSessionVersion(userId);
+
   return {};
 }
 
@@ -109,6 +112,8 @@ export async function resetUserPassword(
     .update(users)
     .set({ passwordHash, updatedAt: new Date() })
     .where(eq(users.id, userId));
+
+  await bumpUserSessionVersion(userId);
 
   return {};
 }

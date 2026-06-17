@@ -14,7 +14,8 @@ export const metadata = createPageMetadata({
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-  if (!session?.user?.id) redirect('/login');
+  if (!session?.user?.id || session.error === 'SessionInvalid') redirect('/login');
+  if (session.user.status === 'suspended') redirect('/login?suspended=1');
 
   try {
     await requireAdmin(session.user.id);

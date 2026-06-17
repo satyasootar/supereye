@@ -23,6 +23,8 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash'),
   role: text('role').$type<'super_admin' | 'user' | 'enterprise_user'>().notNull().default('user'),
   status: text('status').$type<'active' | 'suspended'>().notNull().default('active'),
+  sessionVersion: integer('session_version').notNull().default(0),
+  passwordChangedAt: timestamp('password_changed_at', { withTimezone: true }),
   lastActiveAt: timestamp('last_active_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
@@ -77,6 +79,17 @@ export const verificationTokens = pgTable(
     }),
   ]
 );
+
+export const loginAttempts = pgTable('login_attempts', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  ipHash: text('ip_hash').notNull(),
+  emailHash: text('email_hash').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const passwordResetTokens = pgTable('password_reset_tokens', {
   id: text('id')

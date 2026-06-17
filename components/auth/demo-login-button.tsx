@@ -7,6 +7,7 @@ import { Info, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BorderBeam } from '@/components/ui/border-beam';
 import { DEMO_ACCOUNT_EMAIL } from '@/lib/auth/demo-account';
+import { getCredentialsSignInErrorMessage } from '@/lib/auth/sign-in-errors';
 
 const DEMO_EMAIL = DEMO_ACCOUNT_EMAIL;
 const DEMO_PASSWORD = 'Kollects@123';
@@ -30,7 +31,12 @@ export function DemoLoginButton() {
       });
 
       if (result?.error) {
-        setError('Demo login is unavailable right now. Please try again later.');
+        const code = 'code' in result ? (result.code as string | undefined) : undefined;
+        setError(
+          code === 'rate_limited'
+            ? getCredentialsSignInErrorMessage(result.error, code)
+            : 'Demo login is unavailable right now. Please try again later.'
+        );
         return;
       }
 

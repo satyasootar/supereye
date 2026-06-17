@@ -5,20 +5,26 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { formatCurrency, formatTokens } from '@/lib/billing/format';
+import {
+  DEFAULT_PRO_TOKENS,
+  DEFAULT_STARTER_TOKENS,
+} from '@/lib/billing/constants';
 import { LandingSection, SectionHeader } from './landing-section';
 
 const PLANS = [
   {
-    name: 'Free',
-    price: '$0',
-    period: 'forever',
-    description: 'For individuals getting started with a unified inbox and calendar.',
+    name: 'Starter',
+    price: formatCurrency(2000),
+    period: '/month',
+    description: 'For individuals who want a unified inbox, calendar, and AI workflow.',
     features: [
       'Gmail + Calendar sync',
-      'Unified split view',
-      'Basic keyboard shortcuts',
-      'AI triage (50 emails/day)',
-      'Command palette',
+      'Up to 2 integrations',
+      'Unified split workspace',
+      'AI chat, triage & draft replies',
+      `${formatTokens(DEFAULT_STARTER_TOKENS)} AI tokens / month`,
+      'Keyboard shortcuts & command palette',
     ],
     cta: 'Get started',
     href: '/login',
@@ -26,32 +32,32 @@ const PLANS = [
   },
   {
     name: 'Pro',
-    price: '$12',
+    price: formatCurrency(10000),
     period: '/month',
-    description: 'For power users who live in their inbox and need AI on tap.',
+    description: 'For power users who need more AI capacity and integrations.',
     features: [
-      'Everything in Free',
-      'Unlimited AI triage',
-      'AI agent & draft replies',
-      'One-click scheduling',
-      'Priority real-time sync',
-      'Custom keyboard bindings',
+      'Everything in Starter',
+      `${formatTokens(DEFAULT_PRO_TOKENS)} AI tokens / month`,
+      'Up to 5 integrations',
+      'Priority AI processing',
+      'Advanced automations',
+      'Up to 3 team members',
     ],
-    cta: 'Start free trial',
+    cta: 'Get started',
     href: '/login',
     highlighted: true,
   },
   {
-    name: 'Team',
+    name: 'Enterprise',
     price: 'Custom',
     period: '',
-    description: 'For teams that want shared workflows and admin controls.',
+    description: 'For teams that need custom limits, admin controls, and dedicated support.',
     features: [
       'Everything in Pro',
-      'Team workspaces',
-      'Shared triage rules',
+      'Custom token allocation',
+      'Unlimited integrations & seats',
       'Admin dashboard',
-      'SSO & audit logs',
+      'Shared workspaces',
       'Dedicated support',
     ],
     cta: 'Contact sales',
@@ -68,7 +74,7 @@ export function LandingPricing() {
       <SectionHeader
         eyebrow="Pricing"
         title="Simple, transparent pricing"
-        description="Start free. Upgrade when you're ready to unlock the full AI workflow."
+        description="Every plan includes the full Supereye workspace. Pick the token and integration limits that fit your workflow."
       />
 
       <div className="grid gap-6 md:grid-cols-3">
