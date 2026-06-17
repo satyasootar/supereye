@@ -6,8 +6,7 @@ import { setIntegrationCache } from '@/lib/cache/integration-cache';
 import { GITHUB_REPOS_PAGE_SIZE } from '@/lib/github/types';
 import { getGithubApi } from '@/lib/github/client';
 import { fetchGithubOverview } from '@/lib/github/fetch';
-import { normalizeRepo } from '@/lib/github/normalize';
-import type { GithubReposPage } from '@/lib/github/types';
+import { buildGithubReposPage } from '@/lib/github/repos-page';
 
 export async function syncGithubForUser(userId: string) {
   const api = getGithubApi(userId);
@@ -15,6 +14,7 @@ export async function syncGithubForUser(userId: string) {
   const [reposResult, overview] = await Promise.all([
     api.repositories.list({
       perPage: GITHUB_REPOS_PAGE_SIZE,
+      per_page: GITHUB_REPOS_PAGE_SIZE,
       page: 1,
       sort: 'updated',
       direction: 'desc',
@@ -22,16 +22,7 @@ export async function syncGithubForUser(userId: string) {
     fetchGithubOverview(api, 8),
   ]);
 
-  const repos = Array.isArray(reposResult)
-    ? reposResult.map((item) => normalizeRepo(item as Record<string, unknown>))
-    : [];
-
-  const reposPage: GithubReposPage = {
-    repos,
-    page: 1,
-    perPage: GITHUB_REPOS_PAGE_SIZE,
-    hasMore: repos.length === GITHUB_REPOS_PAGE_SIZE,
-  };
+  const reposPage = buildGithubReposPage(reposResult, 1, GITHUB_REPOS_PAGE_SIZE);
 
   await Promise.all([
     setIntegrationCache(userId, CACHE_KEYS.githubRepos(1, GITHUB_REPOS_PAGE_SIZE), reposPage),
@@ -61,5 +52,5 @@ export async function syncGithubForUser(userId: string) {
       set: { lastSyncedAt: new Date() },
     });
 
-  return { success: true, count: repos.length };
+  return { success: true, count: reposPage.repos.length };
 }

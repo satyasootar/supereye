@@ -6,7 +6,7 @@ import { CACHE_KEYS } from '@/lib/cache/cache-keys';
 import { getIntegrationCache, isCacheFresh, setIntegrationCache } from '@/lib/cache/integration-cache';
 import { SYNC_STALE_MS } from '@/lib/cache/sync-policy';
 import { getGithubApi } from '@/lib/github/client';
-import { normalizeRepo } from '@/lib/github/normalize';
+import { buildGithubReposPage } from '@/lib/github/repos-page';
 import { syncGithubForUser } from '@/lib/github/sync';
 import { GITHUB_REPOS_PAGE_SIZE, type GithubReposPage } from '@/lib/github/types';
 
@@ -45,21 +45,13 @@ export async function GET(request: NextRequest) {
     const api = getGithubApi(userId);
     const result = await api.repositories.list({
       perPage,
+      per_page: perPage,
       page,
       sort: 'updated',
       direction: 'desc',
     });
 
-    const repos = Array.isArray(result)
-      ? result.map((item) => normalizeRepo(item as Record<string, unknown>))
-      : [];
-
-    const payload: GithubReposPage = {
-      repos,
-      page,
-      perPage,
-      hasMore: repos.length === perPage,
-    };
+    const payload = buildGithubReposPage(result, page, perPage);
 
     await setIntegrationCache(userId, cacheKey, payload);
     return NextResponse.json(payload);

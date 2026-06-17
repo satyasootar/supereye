@@ -175,7 +175,7 @@ export function EmailSidebar() {
               <PanelLeftClose className="h-4 w-4" />
             </button>
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <CalendarSidebar variant="default" />
           </div>
         </div>
@@ -204,7 +204,7 @@ export function EmailSidebar() {
               <PanelLeftClose className="h-4 w-4" />
             </button>
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <GithubSidebar variant="default" />
           </div>
         </div>

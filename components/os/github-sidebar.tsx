@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 import type { GithubSection } from '@/lib/github/types';
+import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 
 const NAV: { id: GithubSection; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -34,7 +35,6 @@ export function GithubSidebar({
 
   const [repoSearch, setRepoSearch] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
-  const isCollapsed = variant === 'default' && leftSidebarCollapsed;
 
   const {
     repos,
@@ -46,13 +46,19 @@ export function GithubSidebar({
     fetchNextPage,
   } = useGithubRepos();
 
-  const handleRepoListScroll = useCallback(() => {
-    const el = listRef.current;
-    if (!el || !hasNextPage || isFetchingNextPage) return;
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 48) {
-      void fetchNextPage();
-    }
+  const loadMore = useCallback(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+    void fetchNextPage();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  const sentinelRef = useInfiniteScroll({
+    enabled: hasNextPage && !isFetchingNextPage && !repoSearch.trim(),
+    onLoadMore: loadMore,
+    rootRef: listRef,
+    watchKey: repos.length,
+  });
+  const isCollapsed = variant === 'default' && leftSidebarCollapsed;
+
   const filteredRepos = repoSearch.trim()
     ? repos.filter(
         (r) =>
@@ -151,7 +157,6 @@ export function GithubSidebar({
 
       <div
         ref={listRef}
-        onScroll={handleRepoListScroll}
         className="min-h-0 flex-1 overflow-y-auto custom-scrollbar px-2 pb-2"
       >
         {isLoading ? (
@@ -183,14 +188,11 @@ export function GithubSidebar({
               );
             })}
             {hasNextPage && !repoSearch.trim() && (
-              <button
-                type="button"
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                className="mt-1 w-full rounded-md px-2 py-2 text-center text-[11px] font-medium text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary disabled:opacity-50"
-              >
-                {isFetchingNextPage ? 'Loading more…' : 'Load more repositories'}
-              </button>
+              <div ref={sentinelRef} className="flex min-h-8 items-center justify-center py-2">
+                {isFetchingNextPage && (
+                  <span className="text-[11px] text-text-muted">Loading more repositories…</span>
+                )}
+              </div>
             )}
           </>
         )}

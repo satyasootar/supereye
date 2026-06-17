@@ -1,9 +1,10 @@
 'use client';
 
-import { useGithubOverview } from '@/hooks/use-github-repos';
+import { useCallback, useRef } from 'react';
+import { useGithubOverview, useGithubRepos } from '@/hooks/use-github-repos';
+import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import { GitPullRequest, CircleDot, GitCommit, Inbox } from 'lucide-react';
 import { useAppStore } from '@/lib/store/app-store';
-import type { GithubOverview } from '@/lib/github/types';
 import {
   GithubRepoCard,
   GithubStatCard,
@@ -14,8 +15,27 @@ import {
 
 export function GithubOverviewPanel() {
   const { openGithubRepo, openGithubItem, setGithubSection } = useAppStore();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading } = useGithubOverview();
+  const {
+    repos,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useGithubRepos();
+
+  const loadMoreRepos = useCallback(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+    void fetchNextPage();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  const reposSentinelRef = useInfiniteScroll({
+    enabled: hasNextPage && !isFetchingNextPage,
+    onLoadMore: loadMoreRepos,
+    rootRef: scrollRef,
+    watchKey: repos.length,
+  });
 
   if (isLoading || !data) {
     return (
@@ -37,7 +57,7 @@ export function GithubOverviewPanel() {
     .slice(0, 8);
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
+    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
       <div className="border-b border-border-subtle px-5 py-5">
         <h1 className="text-[20px] font-semibold text-text-primary">Overview</h1>
         <p className="mt-1 text-[13px] text-text-muted">
@@ -140,7 +160,7 @@ export function GithubOverviewPanel() {
           </div>
         </div>
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-          {data.repos.map((repo) => (
+          {repos.map((repo) => (
             <GithubRepoCard
               key={repo.id}
               repo={repo}
@@ -149,6 +169,13 @@ export function GithubOverviewPanel() {
             />
           ))}
         </div>
+        {hasNextPage && (
+          <div ref={reposSentinelRef} className="flex min-h-10 items-center justify-center pt-2">
+            {isFetchingNextPage && (
+              <span className="text-[12px] text-text-muted">Loading more repositories…</span>
+            )}
+          </div>
+        )}
       </section>
     </div>
   );
