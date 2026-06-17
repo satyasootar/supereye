@@ -1,4 +1,4 @@
-<![CDATA[<div align="center">
+<div align="center">
   <h1>Supereye</h1>
   <p><strong>Your entire workday. One intelligent workspace.</strong></p>
   <p>A unified AI-powered command center that connects Gmail, Google Calendar, GitHub, and Google Drive — so you stop switching tabs and start getting things done.</p>
@@ -286,11 +286,6 @@ Supereye runs on your own infrastructure. Your emails, calendar data, and API to
 - [ ] **Keyboard-first navigation** — vim-style j/k navigation throughout
 - [ ] **Mobile responsive layout** — proper touch experience
 
----
-
-## License
-
-MIT
 
 ---
 
@@ -300,4 +295,3 @@ MIT
     <a href="https://supereye.dev">supereye.dev</a>
   </p>
 </div>
-]]>
