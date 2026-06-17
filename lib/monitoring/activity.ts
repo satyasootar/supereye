@@ -1,11 +1,13 @@
 import { and, desc, eq, isNull, lt, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import {
-  userActivitySessions,
-  userLoginEvents,
   users,
   aiUsageEvents,
   tokenWallets,
+  subscriptions,
+  plans,
+  userActivitySessions,
+  userLoginEvents,
 } from '@/lib/db/schema';
 import {
   isRecentlyOnline,
@@ -136,22 +138,33 @@ export async function recordUserHeartbeat(userId: string) {
   });
 }
 
-export type AdminMonitoringUser = {
+export type AdminUserWithMonitoring = {
   id: string;
   name: string | null;
   email: string | null;
+  role: string;
   status: string;
+  createdAt: string;
+  lastActiveAt: string | null;
+  balance: number | null;
+  monthlyAllocation: number | null;
+  usedThisPeriod: number | null;
+  unlimited: boolean | null;
+  planName: string | null;
+  planSlug: string | null;
+  subscriptionStatus: string | null;
   isOnline: boolean;
   lastLoginAt: string | null;
   lastSeenAt: string | null;
   currentSessionStartedAt: string | null;
   currentSessionSeconds: number;
   totalTimeSpentSeconds: number;
-  tokensUsedThisPeriod: number;
   aiTokensUsed: number;
 };
 
-export async function getAdminMonitoringUsers(): Promise<AdminMonitoringUser[]> {
+export async function listAdminUsersWithMonitoring(params?: {
+  search?: string;
+}): Promise<AdminUserWithMonitoring[]> {
   const now = new Date();
   await Promise.all(
     (
@@ -173,17 +186,30 @@ export async function getAdminMonitoringUsers(): Promise<AdminMonitoringUser[]> 
       id: users.id,
       name: users.name,
       email: users.email,
+      role: users.role,
       status: users.status,
+      createdAt: users.createdAt,
       lastLoginAt: users.lastLoginAt,
       lastActiveAt: users.lastActiveAt,
       totalTimeSpentSeconds: users.totalTimeSpentSeconds,
+      balance: tokenWallets.balance,
+      monthlyAllocation: tokenWallets.monthlyAllocation,
       usedThisPeriod: tokenWallets.usedThisPeriod,
+      unlimited: tokenWallets.unlimited,
+      planName: plans.name,
+      planSlug: plans.slug,
+      subscriptionStatus: subscriptions.status,
       sessionStartedAt: userActivitySessions.startedAt,
       sessionHeartbeatAt: userActivitySessions.lastHeartbeatAt,
       sessionEndedAt: userActivitySessions.endedAt,
     })
     .from(users)
     .leftJoin(tokenWallets, eq(tokenWallets.userId, users.id))
+    .leftJoin(
+      subscriptions,
+      and(eq(subscriptions.userId, users.id), eq(subscriptions.status, 'active'))
+    )
+    .leftJoin(plans, eq(subscriptions.planId, plans.id))
     .leftJoin(
       userActivitySessions,
       and(
@@ -204,7 +230,7 @@ export async function getAdminMonitoringUsers(): Promise<AdminMonitoringUser[]> 
   const aiMap = new Map(aiUsageByUser.map((row) => [row.userId, row.total]));
 
   const seen = new Set<string>();
-  const result: AdminMonitoringUser[] = [];
+  let result: AdminUserWithMonitoring[] = [];
 
   for (const row of rows) {
     if (seen.has(row.id)) continue;
@@ -228,7 +254,17 @@ export async function getAdminMonitoringUsers(): Promise<AdminMonitoringUser[]> 
       id: row.id,
       name: row.name,
       email: row.email,
+      role: row.role,
       status: row.status,
+      createdAt: row.createdAt.toISOString(),
+      lastActiveAt: row.lastActiveAt?.toISOString() ?? null,
+      balance: row.balance,
+      monthlyAllocation: row.monthlyAllocation,
+      usedThisPeriod: row.usedThisPeriod,
+      unlimited: row.unlimited,
+      planName: row.planName,
+      planSlug: row.planSlug,
+      subscriptionStatus: row.subscriptionStatus,
       isOnline: online,
       lastLoginAt: row.lastLoginAt?.toISOString() ?? null,
       lastSeenAt: (row.sessionHeartbeatAt ?? row.lastActiveAt)?.toISOString() ?? null,
@@ -236,9 +272,16 @@ export async function getAdminMonitoringUsers(): Promise<AdminMonitoringUser[]> 
         online && row.sessionStartedAt ? row.sessionStartedAt.toISOString() : null,
       currentSessionSeconds,
       totalTimeSpentSeconds: (row.totalTimeSpentSeconds ?? 0) + currentSessionSeconds,
-      tokensUsedThisPeriod: row.usedThisPeriod ?? 0,
       aiTokensUsed: aiMap.get(row.id) ?? 0,
     });
+  }
+
+  if (params?.search) {
+    const q = params.search.toLowerCase();
+    result = result.filter(
+      (r) =>
+        r.email?.toLowerCase().includes(q) || r.name?.toLowerCase().includes(q)
+    );
   }
 
   result.sort((a, b) => {
