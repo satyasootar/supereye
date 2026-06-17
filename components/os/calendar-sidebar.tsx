@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
 import { CalendarModal } from './calendar-modal';
 import { CreateEventModal } from './create-event-modal';
+import { getEventColorClasses } from '@/lib/calendar/colors';
 
 const miniCalDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -112,6 +113,14 @@ export function CalendarSidebar({
       }
     });
     return set;
+  }, [events]);
+
+  const eventColorIndex = useMemo(() => {
+    const map = new Map<string, number>();
+    (events || []).forEach((evt, idx) => {
+      if (evt.id) map.set(evt.id, idx);
+    });
+    return map;
   }, [events]);
 
   const upcomingEventsList = useMemo(() => {
@@ -243,13 +252,11 @@ export function CalendarSidebar({
                 key={i} 
                 onClick={() => setCurrentDateStr(dateObj.toISOString())}
                 className={cn(
-                  "relative flex h-8 w-full items-center justify-center text-[12px] cursor-pointer transition-colors select-none",
+                  "relative flex h-8 w-full items-center justify-center text-[12px] cursor-pointer transition-colors select-none group",
                   isCurrMonth 
                     ? "text-text-primary" 
-                    : "text-text-muted/30 hover:text-text-secondary",
-                  inActiveWeek 
-                    ? "bg-accent-blue/15 text-accent-blue font-medium" 
-                    : "hover:bg-bg-overlay rounded-full",
+                    : "text-text-muted/30 group-hover:text-text-secondary",
+                  inActiveWeek && "bg-accent-blue/15 text-accent-blue font-medium",
                   inActiveWeek && i % 7 === 0 && "rounded-l-full",
                   inActiveWeek && i % 7 === 6 && "rounded-r-full"
                 )}
@@ -259,8 +266,8 @@ export function CalendarSidebar({
                   isSelected 
                     ? "bg-accent-blue text-white hover:bg-accent-blue-dim font-bold shadow-sm" 
                     : isToday 
-                      ? "border border-accent-blue/40 text-accent-blue font-bold" 
-                      : ""
+                      ? "border border-accent-blue/40 text-accent-blue font-bold group-hover:bg-bg-overlay" 
+                      : "group-hover:bg-bg-overlay"
                 )}>
                   {dateObj.getDate()}
                 </span>
@@ -290,7 +297,7 @@ export function CalendarSidebar({
         </button>
 
         {upcomingExpanded && (
-          <div className="flex flex-col mt-2 px-1 gap-2">
+          <div className="mt-2 flex flex-col gap-1.5 px-1">
             {isLoading ? (
               <div className="text-[13px] text-text-muted px-2">Loading...</div>
             ) : upcomingEventsList.length === 0 ? (
@@ -305,16 +312,30 @@ export function CalendarSidebar({
                                 d.getMonth() === todayDate.getMonth() && 
                                 d.getFullYear() === todayDate.getFullYear();
                 const dateStr = isToday ? 'Today' : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                const colorClass = getEventColorClasses(
+                  evt.colorId,
+                  evt.id ? (eventColorIndex.get(evt.id) ?? i) : i,
+                  evt.summary
+                );
                 
                 return (
-                  <div key={evt.id || i} className="group relative flex gap-3 rounded-lg p-2 hover:bg-bg-overlay cursor-pointer transition-colors">
-                    <div className="mt-1 flex h-2 w-2 flex-shrink-0 rounded-full bg-accent-blue" />
-                    <div className="flex flex-col overflow-hidden">
-                      <span className="truncate text-[13.5px] font-medium text-text-primary group-hover:text-accent-blue transition-colors">
-                        {evt.summary || '(No title)'}
-                      </span>
-                      <span className="truncate text-[12px] text-text-secondary">
-                        {dateStr}, {timeStr}
+                  <div
+                    key={evt.id || i}
+                    className={cn(
+                      'group cursor-pointer rounded-[6px] border px-2.5 py-2 text-[12px] font-semibold shadow-sm transition-all hover:scale-[1.01]',
+                      colorClass
+                    )}
+                  >
+                    <div className="flex min-w-0 flex-col gap-0.5 overflow-hidden">
+                      <div className="flex items-center gap-1.5 overflow-hidden">
+                        {!isAllDay && (
+                          <span className="flex-shrink-0 opacity-80">{timeStr}</span>
+                        )}
+                        <span className="truncate">{evt.summary || '(No title)'}</span>
+                      </div>
+                      <span className="truncate text-[11px] font-normal opacity-75">
+                        {dateStr}
+                        {isAllDay ? ` · ${timeStr}` : ''}
                       </span>
                     </div>
                   </div>
