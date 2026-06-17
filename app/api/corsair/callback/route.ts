@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { processSupereyeOAuthCallback } from '@/lib/corsair/oauth-callback';
+import { processSupereyeOAuthCallback, getOAuthCallbackUri } from '@/lib/corsair/oauth-callback';
 import { redirect } from 'next/navigation';
 import { getUserPreferences } from '@/lib/user/preferences';
 import { syncWorkspacesFromPlugins } from '@/lib/workspaces/workspaces';
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing code or state' }, { status: 400 });
   }
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/corsair/callback`;
+  const redirectUri = getOAuthCallbackUri();
 
   let successUrl = '/workspace/onboarding?connected=1';
 

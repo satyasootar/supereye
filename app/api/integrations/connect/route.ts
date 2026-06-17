@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { generateOAuthUrl } from 'corsair/oauth';
+import { getOAuthCallbackUri } from '@/lib/corsair/oauth-callback';
 import { validationErrorResponse } from '@/lib/validation/http';
 import { integrationsConnectSchema } from '@/lib/validation/integrations';
 
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
   }
   const plugin = pluginParsed.data.plugin;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
   if (!appUrl) {
     console.error('NEXT_PUBLIC_APP_URL is not set');
     return Response.json(
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     const { url: authUrl } = await generateOAuthUrl(corsair, plugin, {
       tenantId: session.user.id,
-      redirectUri: `${appUrl}/api/corsair/callback`,
+      redirectUri: getOAuthCallbackUri(),
     });
 
     if (isFormRequest) {

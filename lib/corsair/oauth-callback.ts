@@ -1,6 +1,10 @@
+import { randomUUID } from 'node:crypto';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { encryptDEK, generateDEK } from 'corsair/core';
+import { createCorsairDatabase } from 'corsair/db';
 import { processOAuthCallback } from 'corsair/oauth';
 import { corsair, getTenant } from '@/lib/corsair';
+import { pool } from '@/lib/db/pool';
 
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 const OAUTH_STATE_MAX_AGE_MS = 600_000;
@@ -21,6 +25,14 @@ type GitHubTenantKeys = {
   set_refresh_token: (token: string) => Promise<void>;
   set_expires_at: (timestamp: string) => Promise<void>;
 };
+
+export function getOAuthCallbackUri(): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
+  if (!appUrl) {
+    throw new Error('NEXT_PUBLIC_APP_URL is not set');
+  }
+  return `${appUrl}/api/corsair/callback`;
+}
 
 function verifySignedOAuthState(
   state: string,
@@ -65,11 +77,54 @@ function verifySignedOAuthState(
   }
 }
 
-function isFormEncodedTokenError(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    error.message.includes('Token endpoint returned non-JSON response')
-  );
+async function ensureCorsairOAuthAccount(
+  plugin: string,
+  tenantId: string
+): Promise<void> {
+  const kek = process.env.CORSAIR_KEK;
+  if (!kek) throw new Error('CORSAIR_KEK is not set');
+
+  const database = createCorsairDatabase(pool);
+  const integration = await database.db
+    .selectFrom('corsair_integrations')
+    .selectAll()
+    .where('name', '=', plugin)
+    .executeTakeFirst();
+
+  if (!integration) {
+    throw new Error(`Integration '${plugin}' not found. Run setupCorsair first.`);
+  }
+
+  const existing = await database.db
+    .selectFrom('corsair_accounts')
+    .select('id')
+    .where('tenant_id', '=', tenantId)
+    .where('integration_id', '=', integration.id)
+    .executeTakeFirst();
+
+  if (existing) return;
+
+  const now = new Date();
+  await database.db
+    .insertInto('corsair_accounts')
+    .values({
+      id: randomUUID(),
+      tenant_id: tenantId,
+      integration_id: integration.id,
+      config: {},
+      dek: await encryptDEK(generateDEK(), kek),
+      created_at: now,
+      updated_at: now,
+    })
+    .execute();
+}
+
+function parseGitHubTokenPayload(text: string): Record<string, string> {
+  try {
+    return JSON.parse(text) as Record<string, string>;
+  } catch {
+    return Object.fromEntries(new URLSearchParams(text));
+  }
 }
 
 async function exchangeGitHubOAuthCode(
@@ -86,6 +141,8 @@ async function exchangeGitHubOAuthCode(
     throw new Error("Credentials not configured for 'github'");
   }
 
+  const normalizedRedirectUri = redirectUri.replace(/\/$/, '');
+
   const response = await fetch(GITHUB_TOKEN_URL, {
     method: 'POST',
     headers: {
@@ -96,24 +153,29 @@ async function exchangeGitHubOAuthCode(
       client_id: clientId,
       client_secret: clientSecret,
       code: code.trim(),
-      redirect_uri: redirectUri,
+      redirect_uri: normalizedRedirectUri,
     }),
   });
 
   const text = await response.text();
+  const tokenData = parseGitHubTokenPayload(text);
+
+  if (tokenData.error) {
+    throw new Error(
+      tokenData.error_description ||
+        tokenData.error ||
+        'GitHub OAuth token exchange failed'
+    );
+  }
+
   if (!response.ok) {
     throw new Error(`Token exchange failed (${response.status}): ${text}`);
   }
 
-  let tokenData: Record<string, string>;
-  try {
-    tokenData = JSON.parse(text) as Record<string, string>;
-  } catch {
-    tokenData = Object.fromEntries(new URLSearchParams(text));
-  }
-
   if (!tokenData.access_token) {
-    throw new Error('No access_token returned from github');
+    throw new Error(
+      `No access_token returned from github${text ? `: ${text.slice(0, 200)}` : ''}`
+    );
   }
 
   return {
@@ -157,23 +219,40 @@ async function completeGitHubOAuthCallback(
     throw new Error('Invalid or tampered state parameter');
   }
 
+  await ensureCorsairOAuthAccount('github', parsed.tenantId);
   const tokens = await exchangeGitHubOAuthCode(options.code, options.redirectUri);
   await storeGitHubTokens(parsed.tenantId, tokens);
 
   return { plugin: 'github', tenantId: parsed.tenantId };
 }
 
+function isGitHubOAuthCallbackError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return (
+    error.message.includes('Token endpoint returned non-JSON response') ||
+    error.message.includes('No access_token returned from github')
+  );
+}
+
 /**
- * Corsair's token exchange expects JSON, but GitHub returns form-urlencoded
- * unless Accept: application/json is sent. Wrap the SDK callback and recover.
+ * GitHub's token endpoint needs Accept: application/json. Corsair's built-in
+ * exchange does not send it, so handle GitHub before calling processOAuthCallback.
  */
 export async function processSupereyeOAuthCallback(
   options: OAuthCallbackOptions
 ): Promise<OAuthCallbackResult> {
+  const kek = process.env.CORSAIR_KEK;
+  if (kek) {
+    const parsed = verifySignedOAuthState(options.state, kek);
+    if (parsed?.plugin === 'github') {
+      return completeGitHubOAuthCallback(options);
+    }
+  }
+
   try {
     return await processOAuthCallback(corsair, options);
   } catch (error) {
-    if (!isFormEncodedTokenError(error)) throw error;
+    if (!isGitHubOAuthCallbackError(error)) throw error;
     return completeGitHubOAuthCallback(options);
   }
 }
