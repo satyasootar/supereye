@@ -474,7 +474,7 @@ export function BriefDashboard() {
 
         if (connected.length === 0) return;
 
-        let mailRes: Response | null = null;
+        let mailRes: Response | undefined;
         const syncTasks: Promise<void>[] = [];
 
         if (connected.includes('email')) {
@@ -496,7 +496,7 @@ export function BriefDashboard() {
 
         await Promise.all(syncTasks);
 
-        if (mailRes && !mailRes.ok) {
+        if (mailRes !== undefined && !mailRes.ok) {
           const err = await mailRes.json().catch(() => ({}));
           setSyncError(
             typeof err.error === 'string'

@@ -14,6 +14,10 @@
     "test:keyboard": "npx tsx --test lib/keyboard/__tests__/keyboard.test.ts lib/keyboard/__tests__/validate-overrides.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:prod": "node scripts/migrate.mjs",
+    "corsair:bootstrap": "node scripts/corsair-bootstrap.mjs",
+    "docker:prod": "docker compose -f docker-compose.prod.yml up -d --build",
+    "docker:prod:down": "docker compose -f docker-compose.prod.yml down",
     "db:studio": "drizzle-kit studio",
     "setup:drive": "npx tsx scripts/setup-googledrive-from-calendar.ts"
   },

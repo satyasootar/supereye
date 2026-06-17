@@ -1,0 +1,94 @@
+# Production stack: PostgreSQL + Next.js app + Caddy (HTTPS) + cron worker.
+#
+# First-time VPS setup: see DEPLOYMENT.md
+#
+# Usage:
+#   cp .env.example .env   # fill in values on the VPS
+#   docker compose -f docker-compose.prod.yml up -d
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-supereye}
+      POSTGRES_USER: ${POSTGRES_USER:-supereye}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-supereye} -d ${POSTGRES_DB:-supereye}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  app:
+    image: ${DOCKER_IMAGE:-ghcr.io/your-github-username/supereye:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-supereye}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-supereye}
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - '3000'
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env (e.g. app.example.com)}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - internal
+
+  cron:
+    image: alpine:3.20
+    restart: unless-stopped
+    env_file: .env
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        apk add --no-cache curl > /dev/null
+        echo "[cron] Scheduled email processor started (every 60s)"
+        while true; do
+          curl -sf -H "Authorization: Bearer $${CRON_SECRET}" http://app:3000/api/cron/process > /dev/null 2>&1 || true
+          sleep 60
+        done
+    depends_on:
+      - app
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge

@@ -1,0 +1,37 @@
+# Caddy reverse proxy — automatic HTTPS via Let's Encrypt.
+# DOMAIN and ACME_EMAIL are set in .env (see docker-compose.prod.yml).
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode gzip
+
+	# SSE: disable buffering so calendar/email live updates stream correctly
+	@sse path /api/events/sse
+	handle @sse {
+		reverse_proxy app:3000 {
+			flush_interval -1
+			transport http {
+				keepalive 30s
+			}
+		}
+	}
+
+	# Webhooks + everything else
+	reverse_proxy app:3000 {
+		transport http {
+			keepalive 30s
+		}
+	}
+
+	# Optional: restrict admin if needed later
+	# @admin path /admin*
+	# handle @admin { ... }
+}
+
+# Redirect www → apex (uncomment and set if you use www)
+# www.{$DOMAIN} {
+# 	redir https://{$DOMAIN}{uri} permanent
+# }

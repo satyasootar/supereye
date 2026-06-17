@@ -1,24 +1,34 @@
-# VPS Scheduled Email Setup
+# Scheduled Email Cron
 
-Because you are hosting this on a VPS instead of a serverless platform like Vercel, you need a way to constantly check if there are scheduled emails ready to be sent.
+In **production Docker**, scheduled emails are processed automatically by the `cron` service in `docker-compose.prod.yml`. It calls `/api/cron/process` every 60 seconds with the `CRON_SECRET` bearer token.
 
-You can easily automate this using Linux's built-in `cron` daemon!
+No host-level crontab is required when using Docker Compose.
 
-### Setup Instructions
+## Verify cron is running
 
-1. SSH into your VPS.
-2. Open your crontab file by running:
-   ```bash
-   crontab -e
-   ```
-3. Add the following line to the very bottom of the file:
-   ```bash
-   * * * * * curl -s http://localhost:3000/api/cron/process >/dev/null 2>&1
-   ```
-   *(Note: Change `3000` to whatever port your Next.js application is actually running on in production, e.g., `80` or `8080` if you're using a proxy like Nginx).*
+```bash
+docker compose -f docker-compose.prod.yml logs cron
+```
 
-### How it works
-- The `* * * * *` means the cron job will run **every 1 minute**.
-- It pings the `/api/cron/process` endpoint.
-- If there are emails scheduled to go out *before* the current time, the script sends them instantly via Corsair + Gmail.
-- It silently ignores errors (`>/dev/null`) so it doesn't clutter your server logs.
+## Manual trigger (debugging)
+
+```bash
+curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
+  https://app.yourdomain.com/api/cron/process
+```
+
+## Non-Docker VPS (legacy)
+
+If running `next start` directly without Docker:
+
+```bash
+crontab -e
+```
+
+Add:
+
+```bash
+* * * * * curl -sf -H "Authorization: Bearer YOUR_CRON_SECRET" http://127.0.0.1:3000/api/cron/process >/dev/null 2>&1
+```
+
+Replace `YOUR_CRON_SECRET` with the value from `.env`.
