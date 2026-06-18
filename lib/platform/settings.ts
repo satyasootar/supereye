@@ -15,7 +15,15 @@ const DEFAULT_SETTINGS: PlatformSettings = {
   updatedAt: null,
 };
 
+function isNextProductionBuild() {
+  return process.env.NEXT_PHASE === 'phase-production-build';
+}
+
 export async function getPlatformSettings(): Promise<PlatformSettings> {
+  if (isNextProductionBuild()) {
+    return DEFAULT_SETTINGS;
+  }
+
   const [row] = await db
     .select({
       demoLoginEnabled: platformSettings.demoLoginEnabled,
