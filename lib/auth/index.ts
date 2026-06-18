@@ -22,6 +22,7 @@ import { bootstrapUserBilling } from '@/lib/billing/seed';
 import { ensureUserHasSubscription } from '@/lib/billing/admin';
 import { getUserAccess, touchUserActivity } from '@/lib/billing/rbac';
 import { authenticateWithPassword } from '@/lib/auth/credentials';
+import { normalizeUserEmail } from '@/lib/auth/normalize-email';
 import { isDemoAccountEmail } from '@/lib/auth/demo-account';
 import { DEFAULT_BOT_SETTINGS } from '@/lib/plugins/types';
 import { upsertUserPreferences } from '@/lib/user/preferences';
@@ -78,7 +79,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         const email =
-          typeof credentials?.email === 'string' ? credentials.email : '';
+          typeof credentials?.email === 'string'
+            ? normalizeUserEmail(credentials.email)
+            : '';
         const password =
           typeof credentials?.password === 'string' ? credentials.password : '';
 
@@ -109,6 +112,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   events: {
     async signIn({ user, account }) {
+      if (user.id && user.email) {
+        const normalized = normalizeUserEmail(user.email);
+        if (normalized !== user.email) {
+          await db
+            .update(users)
+            .set({ email: normalized, updatedAt: new Date() })
+            .where(eq(users.id, user.id));
+        }
+      }
+
       if (user.id) {
         await bootstrapUserBilling(user.id, user.email);
         await ensureUserHasSubscription(user.id);

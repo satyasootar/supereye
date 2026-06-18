@@ -3,6 +3,7 @@ import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { passwordResetTokens, sessions, users } from '@/lib/db/schema';
 import { getUserByEmail, resetUserPassword } from '@/lib/auth/credentials';
+import { normalizeUserEmail } from '@/lib/auth/normalize-email';
 import {
   buildPasswordResetEmail,
   sendTransactionalEmail,
@@ -52,7 +53,7 @@ async function invalidateActiveTokens(userId: string) {
  * Request a password reset email. Always returns success to avoid email enumeration.
  */
 export async function requestPasswordReset(email: string): Promise<{ ok: true }> {
-  const user = await getUserByEmail(email);
+  const user = await getUserByEmail(normalizeUserEmail(email));
 
   if (!user?.email || user.status === 'suspended') {
     return { ok: true };

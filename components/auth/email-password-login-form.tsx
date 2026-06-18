@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { emailSchema } from '@/lib/validation/common';
+import { normalizeUserEmail } from '@/lib/auth/normalize-email';
 import { getCredentialsSignInErrorMessage } from '@/lib/auth/sign-in-errors';
 
 export function EmailPasswordLoginForm() {
@@ -36,8 +37,9 @@ export function EmailPasswordLoginForm() {
     }
 
     try {
+      const normalizedEmail = normalizeUserEmail(emailCheck.data);
       const result = await signIn('credentials', {
-        email,
+        email: normalizedEmail,
         password,
         redirect: false,
       });

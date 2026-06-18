@@ -6,10 +6,10 @@ import {
   verifyPassword,
   validatePassword,
 } from '@/lib/auth/password';
-import { bumpUserSessionVersion } from '@/lib/auth/session-version';
+import { normalizeUserEmail } from '@/lib/auth/normalize-email';
 
 export async function getUserByEmail(email: string) {
-  const normalized = email.trim().toLowerCase();
+  const normalized = normalizeUserEmail(email);
   const [user] = await db
     .select({
       id: users.id,
@@ -21,6 +21,7 @@ export async function getUserByEmail(email: string) {
     })
     .from(users)
     .where(sql`lower(${users.email}) = ${normalized}`)
+    .orderBy(sql`case when ${users.passwordHash} is not null then 0 else 1 end`)
     .limit(1);
 
   return user ?? null;
@@ -45,6 +46,35 @@ export async function userHasPassword(userId: string): Promise<boolean> {
     .limit(1);
 
   return !!row?.passwordHash;
+}
+
+async function persistUserPassword(
+  userId: string,
+  newPassword: string
+): Promise<{ error?: string }> {
+  const passwordHash = await hashPassword(newPassword);
+
+  const [updated] = await db
+    .update(users)
+    .set({
+      passwordHash,
+      sessionVersion: sql`coalesce(${users.sessionVersion}, 0) + 1`,
+      passwordChangedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId))
+    .returning({ passwordHash: users.passwordHash });
+
+  if (!updated?.passwordHash) {
+    return { error: 'Failed to save password' };
+  }
+
+  const verified = await verifyPassword(newPassword, updated.passwordHash);
+  if (!verified) {
+    return { error: 'Failed to save password' };
+  }
+
+  return {};
 }
 
 export async function setUserPassword(
@@ -78,15 +108,7 @@ export async function setUserPassword(
     }
   }
 
-  const passwordHash = await hashPassword(newPassword);
-  await db
-    .update(users)
-    .set({ passwordHash, updatedAt: new Date() })
-    .where(eq(users.id, userId));
-
-  await bumpUserSessionVersion(userId);
-
-  return {};
+  return persistUserPassword(userId, newPassword);
 }
 
 /** Set password without current password (e.g. after email reset). */
@@ -107,13 +129,5 @@ export async function resetUserPassword(
     return { error: 'Account not found' };
   }
 
-  const passwordHash = await hashPassword(newPassword);
-  await db
-    .update(users)
-    .set({ passwordHash, updatedAt: new Date() })
-    .where(eq(users.id, userId));
-
-  await bumpUserSessionVersion(userId);
-
-  return {};
+  return persistUserPassword(userId, newPassword);
 }

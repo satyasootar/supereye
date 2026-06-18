@@ -6,6 +6,7 @@ import { Loader2, ArrowLeft, MailCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { emailSchema } from '@/lib/validation/common';
+import { normalizeUserEmail } from '@/lib/auth/normalize-email';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
@@ -29,7 +30,7 @@ export function ForgotPasswordForm() {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: normalizeUserEmail(emailCheck.data) }),
       });
 
       const data = await res.json().catch(() => ({}));

@@ -33,7 +33,8 @@ export async function POST(req: Request) {
   );
 
   if (result.error) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+    const status = result.error === 'Failed to save password' ? 500 : 400;
+    return NextResponse.json({ error: result.error }, { status });
   }
 
   return NextResponse.json({
