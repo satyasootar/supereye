@@ -28,7 +28,7 @@ https://youtu.be/HYDXgFp9cBw
 
 ## 🧭 My Journey
 
-> **Building in public — drop your journey videos here**
+> **Building in public**
 
 | Episode | What I covered |
 |---------|----------------|
