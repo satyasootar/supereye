@@ -10,7 +10,9 @@ import {
   Inbox, Send, FileText
 } from 'lucide-react';
 import { EmailReader } from './email-reader';
+import { EmailFetchPatienceNotice } from './email-fetch-patience-notice';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSlowLoadingNotice } from '@/lib/hooks/use-slow-loading-notice';
 
 type EmailMessage = {
   id: string;
@@ -68,6 +70,8 @@ export function EmailCompactPanel({ hideHeader = false }: { hideHeader?: boolean
       });
     },
   });
+
+  const showSlowFetchNotice = useSlowLoadingNotice(isLoading);
 
   const rawEmails = data?.pages.flat() || [];
   const emails = Array.from(new Map(rawEmails.map(e => [e.id, e])).values());
@@ -169,21 +173,25 @@ export function EmailCompactPanel({ hideHeader = false }: { hideHeader?: boolean
             className="custom-scrollbar min-h-0 flex-1 overflow-y-auto"
           >
             {isLoading ? (
-              <div className="flex flex-col gap-2 w-full p-3 animate-pulse">
-                {Array.from({ length: 8 }).map((_, idx) => (
-                  <div 
-                    key={idx} 
-                    className="flex flex-col gap-2 p-2.5 border border-border-subtle/50 rounded-lg bg-bg-app/40"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div className="h-3.5 bg-border-default/40 rounded w-2/5" />
-                      <div className="h-3 bg-border-default/30 rounded w-10" />
+              showSlowFetchNotice ? (
+                <EmailFetchPatienceNotice className="m-3" />
+              ) : (
+                <div className="flex flex-col gap-2 w-full p-3 animate-pulse">
+                  {Array.from({ length: 8 }).map((_, idx) => (
+                    <div 
+                      key={idx} 
+                      className="flex flex-col gap-2 p-2.5 border border-border-subtle/50 rounded-lg bg-bg-app/40"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="h-3.5 bg-border-default/40 rounded w-2/5" />
+                        <div className="h-3 bg-border-default/30 rounded w-10" />
+                      </div>
+                      <div className="h-3 bg-border-default/35 rounded w-11/12" />
+                      <div className="h-3 bg-border-default/20 rounded w-2/3" />
                     </div>
-                    <div className="h-3 bg-border-default/35 rounded w-11/12" />
-                    <div className="h-3 bg-border-default/20 rounded w-2/3" />
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             ) : emails.length === 0 ? (
               <div className="p-6 text-center text-text-muted text-[13px]">No emails found.</div>
             ) : (

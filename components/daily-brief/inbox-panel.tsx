@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Mail, Star, Archive, CheckCircle2, Circle, Link as LinkIcon } from 'lucide-react';
 import { EmailThread } from './email-thread';
+import { EmailFetchPatienceNotice } from '@/components/os/email-fetch-patience-notice';
 import { cn } from '@/lib/utils';
+import { useSlowLoadingNotice } from '@/lib/hooks/use-slow-loading-notice';
 
 export interface InboxMessage {
   id: string;
@@ -84,18 +86,26 @@ export function InboxPanel({ openEmailId, setOpenEmailId }: InboxPanelProps) {
     }
   });
 
+  const showSlowFetchNotice = useSlowLoadingNotice(isLoading);
+
   if (isLoading) {
     return (
-      <div className="flex h-full flex-col gap-4 p-6 animate-pulse">
-        <div className="h-8 w-48 rounded-lg bg-muted/50" />
-        <div className="flex flex-col gap-4 mt-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex flex-col gap-2 rounded-2xl border border-border/50 p-4">
-              <div className="h-5 w-3/4 rounded bg-muted/50" />
-              <div className="h-4 w-1/2 rounded bg-muted/50" />
+      <div className="flex h-full flex-col p-6">
+        {showSlowFetchNotice ? (
+          <EmailFetchPatienceNotice className="mt-12" />
+        ) : (
+          <div className="flex flex-col gap-4 animate-pulse">
+            <div className="h-8 w-48 rounded-lg bg-muted/50" />
+            <div className="mt-4 flex flex-col gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex flex-col gap-2 rounded-2xl border border-border/50 p-4">
+                  <div className="h-5 w-3/4 rounded bg-muted/50" />
+                  <div className="h-4 w-1/2 rounded bg-muted/50" />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     );
   }

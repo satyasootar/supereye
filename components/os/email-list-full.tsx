@@ -30,7 +30,9 @@ import { Check } from "lucide-react";
 import { AdvancedSearchFilter } from '@/components/os/advanced-search-filter';
 import { SendersFilter } from '@/components/os/senders-filter';
 import { EmailPriorityBadge } from '@/components/os/email-priority-badge';
+import { EmailFetchPatienceNotice } from '@/components/os/email-fetch-patience-notice';
 import type { EmailPriorityTier } from '@/lib/mail/priority';
+import { useSlowLoadingNotice } from '@/lib/hooks/use-slow-loading-notice';
 
 type EmailMessage = {
   id: string;
@@ -278,6 +280,8 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   });
 
   const isSearching = debouncedSearch.trim().length > 0;
+  const isInitialLoading = (isLoading && !isSearching) || (isSearching && isSearchLoading);
+  const showSlowFetchNotice = useSlowLoadingNotice(isLoading && !isSearching);
   const rawEmails = isSearching ? (searchData || []) : (data?.pages.flat() || []);
   const emails = Array.from(new Map(rawEmails.map(e => [e.id, e])).values()).filter((email) => {
     if (isSearching || emailPriorityFilter === 'all') return true;
@@ -769,27 +773,31 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
 
       {/* Email List Content */}
       <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-4">
-        {(isLoading && !isSearching) || (isSearching && isSearchLoading) ? (
-          <div className="flex flex-col w-full animate-pulse gap-1">
-            {Array.from({ length: 12 }).map((_, idx) => (
-              <div 
-                key={idx} 
-                className="flex items-center gap-3 px-3 py-3 border-l-2 border-transparent border-b border-border-subtle/25"
-              >
-                {/* Checkbox Skeleton */}
-                <div className="h-4 w-4 bg-border-default/40 rounded flex-shrink-0" />
-                {/* Sender Skeleton */}
-                <div className={cn("h-4 bg-border-default/40 rounded flex-shrink-0", isSplitView ? "w-[120px]" : "w-[200px]")} />
-                {/* Subject & Snippet Skeleton */}
-                <div className="flex-1 flex gap-2 overflow-hidden">
-                  <div className="h-4 bg-border-default/45 rounded w-1/3 flex-shrink-0" />
-                  <div className="h-4 bg-border-default/20 rounded w-1/2 flex-shrink-0 hidden md:block" />
+        {isInitialLoading ? (
+          showSlowFetchNotice ? (
+            <EmailFetchPatienceNotice className="mt-8" />
+          ) : (
+            <div className="flex flex-col w-full animate-pulse gap-1">
+              {Array.from({ length: 12 }).map((_, idx) => (
+                <div 
+                  key={idx} 
+                  className="flex items-center gap-3 px-3 py-3 border-l-2 border-transparent border-b border-border-subtle/25"
+                >
+                  {/* Checkbox Skeleton */}
+                  <div className="h-4 w-4 bg-border-default/40 rounded flex-shrink-0" />
+                  {/* Sender Skeleton */}
+                  <div className={cn("h-4 bg-border-default/40 rounded flex-shrink-0", isSplitView ? "w-[120px]" : "w-[200px]")} />
+                  {/* Subject & Snippet Skeleton */}
+                  <div className="flex-1 flex gap-2 overflow-hidden">
+                    <div className="h-4 bg-border-default/45 rounded w-1/3 flex-shrink-0" />
+                    <div className="h-4 bg-border-default/20 rounded w-1/2 flex-shrink-0 hidden md:block" />
+                  </div>
+                  {/* Date Skeleton */}
+                  <div className="w-12 h-3.5 bg-border-default/30 rounded flex-shrink-0" />
                 </div>
-                {/* Date Skeleton */}
-                <div className="w-12 h-3.5 bg-border-default/30 rounded flex-shrink-0" />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         ) : error && !isSearching ? (
           <div className="p-8 text-center text-red-500">Failed to load emails.</div>
         ) : emails.length === 0 ? (
