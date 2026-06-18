@@ -1,5 +1,6 @@
 import { SUPER_ADMIN_EMAILS } from '@/lib/billing/constants';
 import { AdminPageHeader, AdminPanel } from '@/components/admin/admin-shell';
+import { DemoLoginSettings } from '@/components/admin/demo-login-settings';
 
 export default function AdminSettingsPage() {
   return (
@@ -8,6 +9,10 @@ export default function AdminSettingsPage() {
         title="Settings"
         description="Platform configuration and access control settings."
       />
+
+      <div className="mb-4 grid gap-4 lg:grid-cols-2">
+        <DemoLoginSettings />
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <AdminPanel title="Super Admin Access">

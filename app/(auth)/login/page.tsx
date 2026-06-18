@@ -7,6 +7,7 @@ import { AuthDivider } from '@/components/auth/auth-divider';
 import { EmailPasswordLoginForm } from '@/components/auth/email-password-login-form';
 import { DemoLoginButton } from '@/components/auth/demo-login-button';
 import { LoginAlerts } from '@/components/auth/login-alerts';
+import { getPlatformSettings } from '@/lib/platform/settings';
 
 export const metadata = createPageMetadata({
   title: 'Sign in',
@@ -15,7 +16,9 @@ export const metadata = createPageMetadata({
   noIndex: true,
 });
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const { demoLoginEnabled } = await getPlatformSettings();
+
   return (
     <div className="w-full rounded-2xl border border-border-subtle bg-bg-elevated/90 p-5 shadow-xl backdrop-blur-md sm:p-6">
       <div className="flex flex-col gap-4">
@@ -30,7 +33,7 @@ export default function LoginPage() {
 
         <GoogleAuthButton />
 
-        <DemoLoginButton />
+        {demoLoginEnabled && <DemoLoginButton />}
 
         <AuthDivider />
 

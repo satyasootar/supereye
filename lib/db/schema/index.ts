@@ -7,3 +7,4 @@ export * from './app';
 export * from './corsair';
 export * from './billing';
 export * from './monitoring';
+export * from './platform';

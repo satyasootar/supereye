@@ -97,6 +97,30 @@ export const AGENT_SAMPLE_GROUPS: SamplePromptGroup[] = [
   },
 ];
 
+export type QuickSample = SamplePrompt & {
+  service: SamplePromptGroup['iconPluginId'];
+};
+
+const ALL_QUICK_SAMPLES: QuickSample[] = AGENT_SAMPLE_GROUPS.flatMap((group) =>
+  group.samples.map((sample) => ({ ...sample, service: group.iconPluginId }))
+);
+
+function shuffle<T>(items: T[]): T[] {
+  const next = [...items];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+  return next;
+}
+
+export function pickQuickSamples(count: number, excludeIds: string[] = []): QuickSample[] {
+  const excluded = new Set(excludeIds);
+  const available = ALL_QUICK_SAMPLES.filter((sample) => !excluded.has(sample.id));
+  const pool = available.length >= count ? available : ALL_QUICK_SAMPLES;
+  return shuffle(pool).slice(0, count);
+}
+
 export function fillAgentInput(text: string) {
   window.dispatchEvent(new CustomEvent('agent:fill-input', { detail: { text } }));
   window.dispatchEvent(new Event('agent:focus-input'));

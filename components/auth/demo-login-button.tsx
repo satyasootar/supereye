@@ -33,9 +33,7 @@ export function DemoLoginButton() {
       if (result?.error) {
         const code = 'code' in result ? (result.code as string | undefined) : undefined;
         setError(
-          code === 'rate_limited'
-            ? getCredentialsSignInErrorMessage(result.error, code)
-            : 'Demo login is unavailable right now. Please try again later.'
+          getCredentialsSignInErrorMessage(result.error, code)
         );
         return;
       }

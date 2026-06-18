@@ -33,9 +33,10 @@ import {
   clearLoginAttemptsForEmail,
   recordFailedLoginAttempt,
 } from '@/lib/auth/login-rate-limit';
-import { LoginRateLimitedError } from '@/lib/auth/sign-in-errors';
+import { LoginRateLimitedError, DemoLoginDisabledError } from '@/lib/auth/sign-in-errors';
 import { isSessionVersionValid } from '@/lib/auth/session-version';
 import { endActiveUserSession, recordUserLogin } from '@/lib/monitoring/activity';
+import { getPlatformSettings } from '@/lib/platform/settings';
 
 function isPublicAuthPath(path: string): boolean {
   return (
@@ -87,6 +88,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           typeof credentials?.password === 'string' ? credentials.password : '';
 
         if (!email || !password) return null;
+
+        if (isDemoAccountEmail(email)) {
+          const { demoLoginEnabled } = await getPlatformSettings();
+          if (!demoLoginEnabled) {
+            throw new DemoLoginDisabledError();
+          }
+        }
 
         const headerList = await headers();
         const ip = getClientIp(headerList);

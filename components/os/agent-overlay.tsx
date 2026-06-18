@@ -7,7 +7,6 @@ import { useAppStore } from '@/lib/store/app-store';
 import { useAgentThreads } from '@/hooks/use-agent-threads';
 import { ContextBanner } from './agent/context-banner';
 import { ConversationStream } from './agent/conversation-stream';
-import { FloatingSuggestions } from './agent/floating-suggestions';
 import { BottomInput } from './agent/bottom-input';
 
 const backdropTransition = { duration: 0.15, ease: 'easeOut' as const };
@@ -84,7 +83,6 @@ export function AgentOverlay() {
                   <div className="mx-auto flex max-w-[700px] flex-col gap-4">
                     <ContextBanner />
                     <ConversationStream />
-                    <FloatingSuggestions />
                   </div>
                 </div>
                 <BottomInput />

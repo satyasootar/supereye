@@ -2,18 +2,19 @@
 
 import { useState, FormEvent, KeyboardEvent, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Mic, ArrowUp, Loader2, Wand2 } from 'lucide-react';
+import { Mic, ArrowUp, Loader2, RefreshCw, Wand2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useAgentChat } from '@/hooks/use-agent-chat';
 import { useVoiceInput } from '@/hooks/use-voice-input';
 import { InlineVoiceBar } from './inline-voice-bar';
 import { ThreadHistoryPopover } from './thread-history-popover';
-import { AGENT_SAMPLE_GROUPS, fillAgentInput } from '@/lib/agent/sample-prompts';
+import { fillAgentInput, pickQuickSamples } from '@/lib/agent/sample-prompts';
 import { AgentServiceIcon } from './agent-service-icon';
 import { cn } from '@/lib/utils';
 
 export function BottomInput() {
   const [input, setInput] = useState('');
+  const [quickSamples, setQuickSamples] = useState(() => pickQuickSamples(3));
   const { isAgentExecuting, agentInteractiveMode, setAgentInteractiveMode, agentMessages } =
     useAppStore();
   const { sendMessage } = useAgentChat();
@@ -89,10 +90,10 @@ export function BottomInput() {
 
   const showVoiceBar = isListening || isProcessing;
   const showInputSamples = !input.trim() && agentMessages.length === 0 && !showVoiceBar;
-  const quickSamples = AGENT_SAMPLE_GROUPS.map((g) => ({
-    ...g.samples[0],
-    service: g.iconPluginId,
-  }));
+
+  const handleRefreshSamples = () => {
+    setQuickSamples(pickQuickSamples(3, quickSamples.map((sample) => sample.id)));
+  };
   const placeholder = isProcessing
     ? 'Processing your voice…'
     : isListening
@@ -117,22 +118,37 @@ export function BottomInput() {
         )}
       >
         {showInputSamples && (
-          <div className="flex flex-wrap gap-1.5 border-b border-border-subtle/60 px-3 py-2">
-            {quickSamples.map((sample) => (
-              <button
-                key={sample.id}
-                type="button"
-                disabled={isAgentExecuting}
-                onClick={() => fillAgentInput(sample.prompt)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-surface px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors',
-                  'hover:border-accent-blue/30 hover:text-text-primary disabled:opacity-40'
-                )}
-              >
-                <AgentServiceIcon service={sample.service} size={12} />
-                {sample.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-1.5 border-b border-border-subtle/60 px-3 py-2">
+            <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+              {quickSamples.map((sample) => (
+                <button
+                  key={sample.id}
+                  type="button"
+                  disabled={isAgentExecuting}
+                  onClick={() => fillAgentInput(sample.prompt)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-surface px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors',
+                    'hover:border-accent-blue/30 hover:text-text-primary disabled:opacity-40'
+                  )}
+                >
+                  <AgentServiceIcon service={sample.service} size={12} />
+                  {sample.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={handleRefreshSamples}
+              disabled={isAgentExecuting}
+              title="Show different suggestions"
+              aria-label="Refresh suggestions"
+              className={cn(
+                'flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border-subtle bg-bg-surface text-text-muted transition-colors',
+                'hover:border-accent-blue/30 hover:text-text-primary disabled:opacity-40'
+              )}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
           </div>
         )}
 

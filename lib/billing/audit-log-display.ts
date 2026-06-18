@@ -9,6 +9,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   create_enterprise_account: 'Created enterprise account',
   update_token_cost: 'Updated token cost',
   update_top_up_pack: 'Updated top-up pack',
+  update_platform_settings: 'Updated platform settings',
   admin_allocation: 'Added tokens',
   admin_removal: 'Removed tokens',
   bonus_credits: 'Granted bonus credits',
@@ -79,6 +80,9 @@ export function formatAuditMetadata(metadata: Record<string, unknown> | null | u
   if (typeof metadata.displayName === 'string') parts.push(`label: ${metadata.displayName}`);
   if (typeof metadata.isActive === 'boolean') {
     parts.push(metadata.isActive ? 'active' : 'inactive');
+  }
+  if (typeof metadata.demoLoginEnabled === 'boolean') {
+    parts.push(`demo login: ${metadata.demoLoginEnabled ? 'enabled' : 'disabled'}`);
   }
 
   if (parts.length > 0) return parts.join(' · ');
