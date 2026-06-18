@@ -71,7 +71,7 @@ export default function AdminOverviewPage() {
     <div>
       <AdminPageHeader
         title="Overview"
-        description="Platform health, revenue, and AI usage at a glance."
+        description="Platform health, growth, revenue, plan analytics, and AI usage in one place."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

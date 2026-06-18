@@ -25,6 +25,18 @@ export function formatDate(value: string | Date | null | undefined): string {
   });
 }
 
+export function formatDateTime(value: string | Date | null | undefined): string {
+  if (!value) return '—';
+  const d = typeof value === 'string' ? new Date(value) : value;
+  return d.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export function downloadCsv(filename: string, rows: string[][]) {
   const csv = rows
     .map((row) =>

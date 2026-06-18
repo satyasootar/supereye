@@ -51,7 +51,9 @@ export const adminEnterpriseCreateSchema = z.object({
 });
 
 export const adminAuditQuerySchema = paginationQuerySchema.extend({
-  limit: z.coerce.number().int().min(1).max(100).default(100),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  action: z.string().trim().max(80).optional(),
+  search: z.string().trim().max(200).optional(),
 });
 
 export const adminBillingQuerySchema = paginationQuerySchema.extend({

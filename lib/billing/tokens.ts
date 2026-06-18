@@ -4,10 +4,10 @@ import {
   tokenWallets,
   tokenLedger,
   tokenActionCosts,
-  adminAuditLogs,
   type ledgerActionEnum,
 } from '@/lib/db/schema';
 import { getUserRole } from './rbac';
+import { writeAdminAuditLog } from './audit-log';
 
 export class TokenExhaustedError extends Error {
   status = 402;
@@ -171,7 +171,7 @@ export async function adjustTokens(params: {
   });
 
   if (params.adminUserId) {
-    await db.insert(adminAuditLogs).values({
+    await writeAdminAuditLog({
       adminUserId: params.adminUserId,
       action: params.action,
       targetType: 'user',
@@ -183,7 +183,11 @@ export async function adjustTokens(params: {
   return { previousBalance, newBalance };
 }
 
-export async function resetPeriodTokens(userId: string, monthlyAllocation: number) {
+export async function resetPeriodTokens(
+  userId: string,
+  monthlyAllocation: number,
+  adminUserId?: string
+) {
   const wallet = await getTokenWallet(userId);
   if (!wallet) return;
 
@@ -213,6 +217,17 @@ export async function resetPeriodTokens(userId: string, monthlyAllocation: numbe
     tokensRemoved: 0,
     previousBalance,
     newBalance,
-    reason: 'Monthly plan renewal',
+    reason: adminUserId ? 'Admin token period reset' : 'Monthly plan renewal',
+    adminUserId,
   });
+
+  if (adminUserId) {
+    await writeAdminAuditLog({
+      adminUserId,
+      action: 'period_reset',
+      targetType: 'user',
+      targetId: userId,
+      metadata: { monthlyAllocation },
+    });
+  }
 }

@@ -2,21 +2,36 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader, AdminPanel } from '@/components/admin/admin-shell';
-import { SimpleBarChart } from '@/components/admin/simple-bar-chart';
+import { PluginUsageChart } from '@/components/admin/plugin-usage-chart';
 import { DataTable } from '@/components/admin/data-table';
 
+type PluginAnalyticsResponse = {
+  totalConnections: number;
+  uniqueUsers: number;
+  byPlugin: { pluginId: string; label: string; count: number }[];
+  connectionTrend: Array<Record<string, string | number>>;
+  pluginSeries: { key: string; label: string }[];
+  userPluginConnections: { name: string; count: number; plugins: string[] }[];
+};
+
+function normalizePluginAnalytics(data: Partial<PluginAnalyticsResponse>): PluginAnalyticsResponse {
+  return {
+    totalConnections: data.totalConnections ?? 0,
+    uniqueUsers: data.uniqueUsers ?? 0,
+    byPlugin: data.byPlugin ?? [],
+    connectionTrend: data.connectionTrend ?? [],
+    pluginSeries: data.pluginSeries ?? [],
+    userPluginConnections: data.userPluginConnections ?? [],
+  };
+}
+
 export default function AdminPluginsPage() {
-  const { data, isLoading } = useQuery<{
-    totalConnections: number;
-    uniqueUsers: number;
-    byIntegration: Record<string, number>;
-    userPlugins: Record<string, string[]>;
-  }>({
-    queryKey: ['admin-plugins'],
+  const { data, isLoading } = useQuery<PluginAnalyticsResponse>({
+    queryKey: ['admin-plugins', 3],
     queryFn: async () => {
       const res = await fetch('/api/admin/plugins');
       if (!res.ok) throw new Error('Failed');
-      return res.json();
+      return normalizePluginAnalytics(await res.json());
     },
   });
 
@@ -24,18 +39,11 @@ export default function AdminPluginsPage() {
     return <p className="text-sm text-text-muted">Loading plugin analytics…</p>;
   }
 
-  const integrationData = Object.entries(data.byIntegration).map(([label, value]) => ({
-    label,
-    value,
+  const userRows = (data.userPluginConnections ?? []).slice(0, 50).map((row) => ({
+    name: row.name,
+    count: row.count,
+    plugins: row.plugins.join(', '),
   }));
-
-  const userRows = Object.entries(data.userPlugins)
-    .slice(0, 50)
-    .map(([userId, plugins]) => ({
-      userId: userId.slice(0, 8) + '…',
-      count: plugins.length,
-      plugins: plugins.join(', '),
-    }));
 
   return (
     <div>
@@ -55,18 +63,24 @@ export default function AdminPluginsPage() {
         </AdminPanel>
         <AdminPanel>
           <p className="text-xs uppercase text-text-muted">Integrations</p>
-          <p className="mt-1 text-2xl font-semibold">{integrationData.length}</p>
+          <p className="mt-1 text-2xl font-semibold">{data.pluginSeries.length}</p>
         </AdminPanel>
       </div>
 
       <AdminPanel title="Most Used Plugins" className="mb-6">
-        <SimpleBarChart data={integrationData} />
+        <p className="mb-4 text-sm text-text-muted">
+          Cumulative connections per plugin over the last 30 days.
+        </p>
+        <PluginUsageChart
+          connectionTrend={data.connectionTrend ?? []}
+          pluginSeries={data.pluginSeries ?? []}
+        />
       </AdminPanel>
 
       <AdminPanel title="User Plugin Connections">
         <DataTable
           columns={[
-            { key: 'userId', label: 'User ID' },
+            { key: 'name', label: 'User' },
             { key: 'count', label: 'Count' },
             { key: 'plugins', label: 'Plugins' },
           ]}

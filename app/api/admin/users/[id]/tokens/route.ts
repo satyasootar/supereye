@@ -21,7 +21,7 @@ export async function POST(req: Request, context: RouteContext) {
   const body = parsed.data;
 
   if ('monthlyAllocation' in body) {
-    await resetPeriodTokens(id, body.monthlyAllocation);
+    await resetPeriodTokens(id, body.monthlyAllocation, authResult.admin.id);
     return NextResponse.json({ ok: true });
   }
 

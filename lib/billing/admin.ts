@@ -1,4 +1,4 @@
-import { eq, desc, sql, and, gte, count, sum } from 'drizzle-orm';
+import { eq, desc, sql, and, gte, count, sum, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import {
   users,
@@ -9,9 +9,12 @@ import {
   invoices,
   aiUsageEvents,
   corsairAccounts,
-  adminAuditLogs,
+  corsairIntegrations,
 } from '@/lib/db/schema';
+import { getPluginByCorsairName, PLUGIN_REGISTRY } from '@/lib/plugins/registry';
+import { ANALYTICS_WINDOW_DAYS, fillDailySeries } from './chart-series';
 import { resetPeriodTokens, adjustTokens } from './tokens';
+import { writeAdminAuditLog } from './audit-log';
 import { getStarterPlanId } from './seed';
 
 export async function assignPlanToUser(params: {
@@ -68,6 +71,14 @@ export async function assignPlanToUser(params: {
       issuedAt: now,
       periodStart: now,
       periodEnd,
+    });
+
+    await writeAdminAuditLog({
+      adminUserId: params.adminUserId,
+      action: 'assign_plan',
+      targetType: 'user',
+      targetId: params.userId,
+      metadata: { planId: params.planId, planName: plan.name },
     });
   }
 
@@ -238,32 +249,109 @@ export async function getPluginAnalytics() {
   const accounts = await db
     .select({
       tenantId: corsairAccounts.tenantId,
-      integrationId: corsairAccounts.integrationId,
+      createdAt: corsairAccounts.createdAt,
+      integrationName: corsairIntegrations.name,
     })
-    .from(corsairAccounts);
+    .from(corsairAccounts)
+    .innerJoin(
+      corsairIntegrations,
+      eq(corsairAccounts.integrationId, corsairIntegrations.id)
+    );
 
-  const byIntegration: Record<string, number> = {};
+  type PluginBucket = { pluginId: string; label: string; count: number };
+  const byPluginMap = new Map<string, PluginBucket>();
   const userPlugins: Record<string, string[]> = {};
 
-  for (const acc of accounts) {
-    byIntegration[acc.integrationId] = (byIntegration[acc.integrationId] ?? 0) + 1;
+  const resolvedAccounts = accounts.map((acc) => {
+    const plugin = getPluginByCorsairName(acc.integrationName);
+    const pluginId = plugin?.id ?? acc.integrationName;
+    const label = plugin?.label ?? acc.integrationName;
+    return { ...acc, pluginId, label };
+  });
+
+  for (const acc of resolvedAccounts) {
+    const existing = byPluginMap.get(acc.pluginId);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      byPluginMap.set(acc.pluginId, {
+        pluginId: acc.pluginId,
+        label: acc.label,
+        count: 1,
+      });
+    }
+
     if (!userPlugins[acc.tenantId]) userPlugins[acc.tenantId] = [];
-    if (!userPlugins[acc.tenantId].includes(acc.integrationId)) {
-      userPlugins[acc.tenantId].push(acc.integrationId);
+    if (!userPlugins[acc.tenantId].includes(acc.label)) {
+      userPlugins[acc.tenantId].push(acc.label);
     }
   }
 
+  const byPlugin = PLUGIN_REGISTRY.map((plugin) => ({
+    pluginId: plugin.id,
+    label: plugin.label,
+    count: byPluginMap.get(plugin.id)?.count ?? 0,
+  })).sort((a, b) => b.count - a.count);
+
+  const pluginSeries = PLUGIN_REGISTRY.map((plugin) => ({
+    key: plugin.id,
+    label: plugin.label,
+  }));
+
+  const dayKeys = fillDailySeries([], ANALYTICS_WINDOW_DAYS).map((point) => point.day);
+  const connectionTrend = dayKeys.map((day) => {
+    const dayEnd = new Date(`${day}T23:59:59.999`);
+    const row: Record<string, string | number> = { day };
+
+    for (const plugin of PLUGIN_REGISTRY) {
+      row[plugin.id] = resolvedAccounts.filter(
+        (acc) => acc.pluginId === plugin.id && acc.createdAt <= dayEnd
+      ).length;
+    }
+
+    return row;
+  });
+
+  const tenantIds = Object.keys(userPlugins);
+  const userRows =
+    tenantIds.length > 0
+      ? await db
+          .select({ id: users.id, name: users.name, email: users.email })
+          .from(users)
+          .where(inArray(users.id, tenantIds))
+      : [];
+
+  const userLabelById = new Map(
+    userRows.map((user) => [
+      user.id,
+      user.name?.trim() || user.email || 'Unknown user',
+    ])
+  );
+
+  const userPluginConnections = tenantIds
+    .map((tenantId) => {
+      const plugins = userPlugins[tenantId];
+      return {
+        name: userLabelById.get(tenantId) ?? 'Unknown user',
+        count: plugins.length,
+        plugins,
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   return {
     totalConnections: accounts.length,
-    byIntegration,
-    uniqueUsers: Object.keys(userPlugins).length,
-    userPlugins,
+    byPlugin,
+    connectionTrend,
+    pluginSeries,
+    uniqueUsers: tenantIds.length,
+    userPluginConnections,
   };
 }
 
 export async function suspendUser(userId: string, adminUserId: string) {
   await db.update(users).set({ status: 'suspended', updatedAt: new Date() }).where(eq(users.id, userId));
-  await db.insert(adminAuditLogs).values({
+  await writeAdminAuditLog({
     adminUserId,
     action: 'suspend_user',
     targetType: 'user',
@@ -273,7 +361,7 @@ export async function suspendUser(userId: string, adminUserId: string) {
 
 export async function activateUser(userId: string, adminUserId: string) {
   await db.update(users).set({ status: 'active', updatedAt: new Date() }).where(eq(users.id, userId));
-  await db.insert(adminAuditLogs).values({
+  await writeAdminAuditLog({
     adminUserId,
     action: 'activate_user',
     targetType: 'user',

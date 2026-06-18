@@ -12,11 +12,11 @@ import {
   payments,
   aiUsageEvents,
   corsairAccounts,
-  adminAuditLogs,
   organizations,
   enterpriseAccounts,
 } from '@/lib/db/schema';
 import { resetPeriodTokens, adjustTokens } from './tokens';
+import { writeAdminAuditLog, listAuditLogs as fetchAuditLogs } from './audit-log';
 import {
   ANALYTICS_WINDOW_DAYS,
   fillDailySeries,
@@ -55,7 +55,7 @@ export async function updatePlan(
     .where(eq(plans.id, planId))
     .returning();
 
-  await db.insert(adminAuditLogs).values({
+  await writeAdminAuditLog({
     adminUserId,
     action: 'update_plan',
     targetType: 'plan',
@@ -97,7 +97,7 @@ export async function createEnterprisePlan(
     })
     .returning();
 
-  await db.insert(adminAuditLogs).values({
+  await writeAdminAuditLog({
     adminUserId,
     action: 'create_enterprise_plan',
     targetType: 'plan',
@@ -123,7 +123,7 @@ export async function updateTokenActionCost(
     .where(eq(tokenActionCosts.id, id))
     .returning();
 
-  await db.insert(adminAuditLogs).values({
+  await writeAdminAuditLog({
     adminUserId,
     action: 'update_token_cost',
     targetType: 'token_action_cost',
@@ -163,7 +163,7 @@ export async function updateTopUpPack(
     .where(eq(tokenTopUpPacks.id, id))
     .returning();
 
-  await db.insert(adminAuditLogs).values({
+  await writeAdminAuditLog({
     adminUserId,
     action: 'update_top_up_pack',
     targetType: 'token_top_up_pack',
@@ -239,20 +239,8 @@ export async function listTokenLedger(params: {
 }
 
 export async function listAuditLogs(params: { limit?: number; offset?: number }) {
-  const limit = params.limit ?? 100;
-  const offset = params.offset ?? 0;
-
-  return db
-    .select({
-      log: adminAuditLogs,
-      adminEmail: users.email,
-      adminName: users.name,
-    })
-    .from(adminAuditLogs)
-    .innerJoin(users, eq(adminAuditLogs.adminUserId, users.id))
-    .orderBy(desc(adminAuditLogs.createdAt))
-    .limit(limit)
-    .offset(offset);
+  const { logs } = await fetchAuditLogs(params);
+  return logs;
 }
 
 export async function getUserDetailForAdmin(userId: string) {
@@ -311,7 +299,7 @@ export async function updateUserAdmin(
     .where(eq(users.id, userId))
     .returning();
 
-  await db.insert(adminAuditLogs).values({
+  await writeAdminAuditLog({
     adminUserId,
     action: 'update_user',
     targetType: 'user',
@@ -323,7 +311,7 @@ export async function updateUserAdmin(
 }
 
 export async function deleteUserAdmin(userId: string, adminUserId: string) {
-  await db.insert(adminAuditLogs).values({
+  await writeAdminAuditLog({
     adminUserId,
     action: 'delete_user',
     targetType: 'user',
@@ -383,12 +371,17 @@ export async function createEnterpriseAccount(params: {
     await resetPeriodTokens(params.userId, params.customMonthlyTokens);
   }
 
-  await db.insert(adminAuditLogs).values({
+  await writeAdminAuditLog({
     adminUserId: params.adminUserId,
     action: 'create_enterprise_account',
     targetType: 'enterprise_account',
     targetId: account.id,
-    metadata: params,
+    metadata: {
+      organizationName: params.organizationName,
+      userId: params.userId,
+      customPlanId: params.customPlanId,
+      customMonthlyTokens: params.customMonthlyTokens,
+    },
   });
 
   return { org, account };
