@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
 import { OnboardingShortcutsStep } from '@/components/onboarding/onboarding-shortcuts-step';
+import { DemoOnboardingBanner } from '@/components/onboarding/demo-onboarding-banner';
 import { getOnboardingPlugins, getPlugin } from '@/lib/plugins/registry';
 import { useActivePlugins, ACTIVE_PLUGINS_KEY } from '@/hooks/use-active-plugins';
 import { USER_PREFERENCES_KEY } from '@/hooks/use-workspaces';
@@ -34,7 +35,7 @@ const PLUGIN_META: Record<string, { iconBg: string }> = {
 
 type OnboardingStep = 'connect' | 'shortcuts';
 
-export function OnboardingPageClient() {
+export function OnboardingPageClient({ isDemoAccount = false }: { isDemoAccount?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -114,6 +115,7 @@ export function OnboardingPageClient() {
         onContinue={finishOnboarding}
         onBack={() => setStep('connect')}
         finishing={finishing}
+        isDemoAccount={isDemoAccount}
       />
     );
   }
@@ -130,6 +132,8 @@ export function OnboardingPageClient() {
         />
 
         <div className="relative mx-auto w-full max-w-3xl px-6 py-10 pb-8">
+        {isDemoAccount && <DemoOnboardingBanner />}
+
         <motion.header
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

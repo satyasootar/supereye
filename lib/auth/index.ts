@@ -24,6 +24,7 @@ import { getUserAccess, touchUserActivity } from '@/lib/billing/rbac';
 import { authenticateWithPassword } from '@/lib/auth/credentials';
 import { normalizeUserEmail } from '@/lib/auth/normalize-email';
 import { isDemoAccountEmail } from '@/lib/auth/demo-account';
+import { ensureDemoAccountProPlan } from '@/lib/billing/demo';
 import { DEFAULT_BOT_SETTINGS } from '@/lib/plugins/types';
 import { upsertUserPreferences } from '@/lib/user/preferences';
 import { getClientIp } from '@/lib/auth/client-ip';
@@ -129,6 +130,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         await recordUserLogin(user.id, account?.provider ?? 'credentials');
 
         if (isDemoAccountEmail(user.email)) {
+          await ensureDemoAccountProPlan(user.id);
           await upsertUserPreferences(user.id, {
             onboardingCompleted: false,
             botSettings: {

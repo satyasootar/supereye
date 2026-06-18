@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getUserPreferences } from '@/lib/user/preferences';
 import { OnboardingPageClient } from '@/components/onboarding/onboarding-page';
+import { isDemoAccountEmail } from '@/lib/auth/demo-account';
 
 export const metadata = {
   title: 'Onboarding — Supereye',
@@ -15,9 +16,11 @@ export default async function OnboardingPage() {
   const prefs = await getUserPreferences(session.user.id);
   if (prefs.onboardingCompleted) redirect('/workspace');
 
+  const isDemoAccount = isDemoAccountEmail(session.user.email);
+
   return (
     <Suspense fallback={null}>
-      <OnboardingPageClient />
+      <OnboardingPageClient isDemoAccount={isDemoAccount} />
     </Suspense>
   );
 }

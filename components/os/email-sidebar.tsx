@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { 
   Inbox, Star, Clock, Send, FileText, Mail, AlertOctagon, Trash2, 
   ChevronDown, Plus, Settings, HelpCircle, Edit, 
   BarChart, Flame, Paperclip, Users, Tag,   ChevronLeft, ChevronRight, Calendar,
-  Sun, Moon, User, Archive, PanelLeftClose, PanelLeftOpen, ArrowLeftRight, Sparkles,
+  Sun, Moon, User, Archive, PanelLeftClose, PanelLeftOpen, ArrowLeftRight, Sparkles, LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef } from 'react';
@@ -679,6 +679,18 @@ export function EmailSidebar() {
                 />
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsMenuOpen(false);
+                void signOut({ callbackUrl: '/' });
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-text-secondary hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Log out
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

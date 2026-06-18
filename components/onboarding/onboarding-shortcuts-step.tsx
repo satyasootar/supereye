@@ -6,18 +6,21 @@ import {
   ShortcutsReference,
   ShortcutsFooterHint,
 } from '@/components/keyboard/shortcuts-reference';
+import { DemoOnboardingBanner } from '@/components/onboarding/demo-onboarding-banner';
 import { cn } from '@/lib/utils';
 
 type OnboardingShortcutsStepProps = {
   onContinue: () => void;
   onBack?: () => void;
   finishing?: boolean;
+  isDemoAccount?: boolean;
 };
 
 export function OnboardingShortcutsStep({
   onContinue,
   onBack,
   finishing = false,
+  isDemoAccount = false,
 }: OnboardingShortcutsStepProps) {
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-bg-app">
@@ -31,6 +34,8 @@ export function OnboardingShortcutsStep({
         />
 
         <div className="relative mx-auto w-full max-w-2xl px-6 py-10 pb-8">
+          {isDemoAccount && <DemoOnboardingBanner />}
+
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
