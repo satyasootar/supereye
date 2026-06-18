@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
+import { internalErrorResponse } from '@/lib/security/api-errors';
 import { db } from '@/lib/db';
 import { emails, emailEventLinks } from '@/lib/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
@@ -77,11 +78,6 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ messages: fullMessages });
   } catch (error: unknown) {
-    console.error('Failed to fetch emails from DB:', error);
-    const details = error instanceof Error ? error.message : undefined;
-    return NextResponse.json({ 
-      error: 'Failed to fetch emails',
-      details,
-    }, { status: 500 });
+    return internalErrorResponse('Failed to fetch emails', error);
   }
 }

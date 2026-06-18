@@ -13,6 +13,7 @@ import { EmailComposer } from './email-composer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { sanitizeEmailHtml } from '@/lib/mail/sanitize-html';
 
 function formatEmailDate(value: unknown): string {
   if (!value) return '';
@@ -27,6 +28,7 @@ function formatEmailDate(value: unknown): string {
 }
 
 function buildEmailIframeHtml(body: string, isDark: boolean): string {
+  const safeBody = sanitizeEmailHtml(body);
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
     :root { color-scheme: ${isDark ? 'dark' : 'light'}; }
     html, body {
@@ -43,7 +45,7 @@ function buildEmailIframeHtml(body: string, isDark: boolean): string {
     a { color: #3b82f6 !important; }
     img { background-color: transparent !important; max-width: 100% !important; height: auto !important; display: block; }
     table { max-width: 100% !important; }
-  </style></head><body>${body}</body></html>`;
+  </style></head><body>${safeBody}</body></html>`;
 }
 
 function EmailBodyIframe({ body, isDark }: { body: string; isDark: boolean }) {

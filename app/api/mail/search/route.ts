@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
+import { internalErrorResponse } from '@/lib/security/api-errors';
 import { db } from '@/lib/db';
 import { emails, emailEventLinks } from '@/lib/db/schema';
 import { eq, desc, ilike, or, sql, and } from 'drizzle-orm';
@@ -171,11 +172,7 @@ export async function GET(req: Request) {
         gmailFetched: gmailMessagesFetched
       }
     });
-  } catch (error: any) {
-    console.error('Failed to search emails:', error);
-    return NextResponse.json({ 
-      error: 'Failed to search emails',
-      details: error?.message 
-    }, { status: 500 });
+  } catch (error: unknown) {
+    return internalErrorResponse('Failed to search emails', error);
   }
 }

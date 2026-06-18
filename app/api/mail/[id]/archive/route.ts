@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
+import { internalErrorResponse } from '@/lib/security/api-errors';
 import { db } from '@/lib/db';
 import { emails } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -56,8 +57,7 @@ export async function POST(
       );
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('Failed to archive email:', error);
-    return NextResponse.json({ error: 'Failed to archive email', details: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return internalErrorResponse('Failed to archive email', error);
   }
 }

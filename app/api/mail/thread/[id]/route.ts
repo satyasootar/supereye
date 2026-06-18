@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { emails } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
+import { internalErrorResponse } from '@/lib/security/api-errors';
 import { getTenant } from '@/lib/corsair';
 import { getBody } from '@/lib/mail/sync';
 
@@ -108,11 +109,7 @@ export async function GET(
     parsedMessages.sort((a, b) => a.date.getTime() - b.date.getTime());
 
     return NextResponse.json({ messages: parsedMessages });
-  } catch (error: any) {
-    console.error('Failed to fetch thread:', error);
-    return NextResponse.json({ 
-      error: 'Failed to fetch thread',
-      details: error?.message 
-    }, { status: 500 });
+  } catch (error: unknown) {
+    return internalErrorResponse('Failed to fetch thread', error);
   }
 }

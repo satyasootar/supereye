@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
+import { internalErrorResponse } from '@/lib/security/api-errors';
 import { getTenant } from '@/lib/corsair';
 import { db } from '@/lib/db';
 import { emails } from '@/lib/db/schema';
@@ -51,11 +52,7 @@ export async function POST(
       );
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('Failed to trash email:', error);
-    return NextResponse.json(
-      { error: 'Failed to trash email', details: error.message },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    return internalErrorResponse('Failed to trash email', error);
   }
 }

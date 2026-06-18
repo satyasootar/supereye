@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
+import { internalErrorResponse } from '@/lib/security/api-errors';
 import { getTenant } from '@/lib/corsair';
 
 export async function GET(req: Request) {
@@ -22,11 +23,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ labels });
-  } catch (error: any) {
-    console.error('Failed to fetch labels:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch labels', details: error.message },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    return internalErrorResponse('Failed to fetch labels', error);
   }
 }

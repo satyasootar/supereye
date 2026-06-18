@@ -8,8 +8,9 @@ import {
 import { useAppStore } from '@/lib/store/app-store';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
-import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { TemplatePickerModal } from './template-picker-modal';
 
 type ComposeTone =
   | 'professional'
@@ -18,14 +19,6 @@ type ComposeTone =
   | 'persuasive'
   | 'concise'
   | 'empathetic';
-
-type MailTemplate = {
-  id: string;
-  name: string;
-  subject: string;
-  htmlContent: string;
-  isPredefined: boolean;
-};
 
 const TONE_OPTIONS: { value: ComposeTone; label: string }[] = [
   { value: 'professional', label: 'Professional' },
@@ -58,9 +51,7 @@ export function GlobalComposer() {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [scheduleAt, setScheduleAt] = useState<Date | null>(null);
   const [tone, setTone] = useState<ComposeTone>('professional');
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
-  const [showHtmlPreview, setShowHtmlPreview] = useState(false);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [enhancedDraft, setEnhancedDraft] = useState<string | null>(null);
   const [originalDraft, setOriginalDraft] = useState<string | null>(null);
   const [composeSize, setComposeSize] = useState(COMPOSE_SIZE_DEFAULT);
@@ -80,16 +71,6 @@ export function GlobalComposer() {
 
   const queryClient = useQueryClient();
   const draftValue = isHtmlMode ? htmlBody : bodyText;
-
-  const templatesQuery = useQuery<{ templates: MailTemplate[] }>({
-    queryKey: ['mail-templates'],
-    queryFn: async () => {
-      const res = await fetch('/api/mail/templates');
-      if (!res.ok) throw new Error('Failed to load templates');
-      return res.json();
-    },
-    enabled: isComposeOpen && showTemplates,
-  });
 
   const enhanceMutation = useMutation({
     mutationFn: async () => {
@@ -304,6 +285,7 @@ export function GlobalComposer() {
   ];
 
   return (
+    <>
     <motion.div 
       drag={!isMinimized}
       dragControls={dragControls}
@@ -507,80 +489,6 @@ export function GlobalComposer() {
           </div>
 
           {/* Attachments List */}
-          {showTemplates && (
-            <div className="max-h-[280px] overflow-y-auto border-t border-border-subtle px-4 py-3">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-xs font-medium text-text-muted">Marketing templates</p>
-                <button
-                  type="button"
-                  className="h-8 min-w-[140px] rounded-md border border-border-subtle px-3 text-xs font-medium text-accent-blue hover:bg-bg-overlay"
-                  onClick={async () => {
-                    if (!htmlBody.trim()) return toast.error('Add HTML content first');
-                    const name = window.prompt('Template name');
-                    if (!name) return;
-                    const res = await fetch('/api/mail/templates', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        name,
-                        subject,
-                        htmlContent: htmlBody,
-                      }),
-                    });
-                    if (!res.ok) return toast.error('Failed to save template');
-                    toast.success('Template saved');
-                    void queryClient.invalidateQueries({ queryKey: ['mail-templates'] });
-                  }}
-                >
-                  Save current template
-                </button>
-              </div>
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                {(templatesQuery.data?.templates ?? []).map((tpl) => (
-                  <button
-                    key={tpl.id}
-                    type="button"
-                    className="w-full rounded-md border border-border-subtle bg-bg-surface p-3 text-left text-xs transition-colors hover:border-accent-blue/40 hover:bg-bg-overlay"
-                    onClick={() => {
-                      setPreviewTemplateId(tpl.id);
-                      setSubject(tpl.subject);
-                      setHtmlBody(tpl.htmlContent);
-                      setIsHtmlMode(true);
-                    }}
-                  >
-                    <p className="font-medium text-text-primary">
-                      {tpl.name} {tpl.isPredefined ? '(built-in)' : ''}
-                    </p>
-                    <p className="truncate text-text-muted">{tpl.subject || 'No subject'}</p>
-                  </button>
-                ))}
-              </div>
-              {previewTemplateId && (
-                <div className="mt-3 rounded border border-border-subtle bg-bg-base p-2">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-[11px] text-text-muted">Template preview</p>
-                    <button
-                      type="button"
-                      className="h-7 rounded-md border border-border-subtle px-2 text-[11px] text-text-primary hover:bg-bg-overlay"
-                      onClick={() => setShowHtmlPreview((v) => !v)}
-                    >
-                      {showHtmlPreview ? 'Hide preview' : 'Show preview'}
-                    </button>
-                  </div>
-                  {showHtmlPreview && (
-                  <iframe
-                    title="Template preview"
-                    className="h-52 w-full rounded border border-border-subtle bg-white"
-                    srcDoc={
-                      templatesQuery.data?.templates.find((t) => t.id === previewTemplateId)?.htmlContent ?? ''
-                    }
-                  />
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
           {attachments.length > 0 && (
             <div className="px-4 py-2 flex flex-wrap gap-2 border-t border-border-subtle">
               {attachments.map((file, idx) => (
@@ -706,7 +614,7 @@ export function GlobalComposer() {
               <button
                 type="button"
                 className="h-9 min-w-[92px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors"
-                onClick={() => setShowTemplates((v) => !v)}
+                onClick={() => setTemplateModalOpen(true)}
               >
                 Templates
               </button>
@@ -775,5 +683,18 @@ export function GlobalComposer() {
         </div>
       )}
     </motion.div>
+
+    <TemplatePickerModal
+      open={templateModalOpen}
+      onOpenChange={setTemplateModalOpen}
+      onInject={({ subject: tplSubject, htmlContent }) => {
+        if (tplSubject.trim()) setSubject(tplSubject);
+        setHtmlBody(htmlContent);
+        setIsHtmlMode(true);
+        setEnhancedDraft(null);
+        setOriginalDraft(null);
+      }}
+    />
+    </>
   );
 }

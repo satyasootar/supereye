@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
+import { internalErrorResponse } from '@/lib/security/api-errors';
 import { getTenant } from '@/lib/corsair';
 import { getBody } from '@/lib/mail/sync';
 
@@ -58,11 +59,7 @@ export async function GET(req: Request) {
     drafts.sort((a: any, b: any) => b.date.getTime() - a.date.getTime());
 
     return NextResponse.json({ messages: drafts });
-  } catch (error: any) {
-    console.error('Failed to fetch drafts:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch drafts', details: error.message },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    return internalErrorResponse('Failed to fetch drafts', error);
   }
 }
