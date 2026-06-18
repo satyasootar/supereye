@@ -19,6 +19,7 @@ export type UserProfile = {
   email: string | null;
   image: string | null;
   createdAt: string;
+  role: 'super_admin' | 'user' | 'enterprise_user';
   authProvider: string;
   authProviders: string[];
   hasPassword: boolean;
@@ -79,6 +80,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     email: user.email,
     image: user.image,
     createdAt: user.createdAt.toISOString(),
+    role: (user.role as UserProfile['role']) ?? 'user',
     authProvider,
     authProviders,
     hasPassword,

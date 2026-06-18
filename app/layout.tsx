@@ -1,5 +1,4 @@
 import { Poppins, Merriweather, Fira_Code } from "next/font/google"
-import Script from "next/script"
 import type { Metadata, Viewport } from "next"
 
 import "./globals.css"
@@ -50,16 +49,9 @@ export default function RootLayout({
       className={cn("antialiased", firaCode.variable, merriweather.variable, poppins.variable)}
     >
       <head>
-        <Script
-          id="theme-initializer"
-          strategy="beforeInteractive"
+        <script
           dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                const theme = localStorage.getItem('color-theme') || 'default';
-                document.documentElement.setAttribute('data-theme', theme);
-              } catch (_) {}
-            `,
+            __html: `(function(){try{var t=localStorage.getItem('color-theme')||'default';document.documentElement.setAttribute('data-theme',t)}catch(e){}})();`,
           }}
         />
         <link rel="alternate" type="text/plain" href={`${getSiteUrl()}/llms.txt`} title="LLM site summary" />

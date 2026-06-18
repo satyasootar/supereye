@@ -43,6 +43,7 @@ import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
 import { useAppStore } from '@/lib/store/app-store';
 import type { UserProfile } from '@/lib/user/profile';
 import { toast } from 'sonner';
+import { hasAdminRole } from '@/lib/billing/constants';
 
 type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security' | 'shortcuts' | 'dashboard' | 'bot' | 'billing';
 
@@ -125,6 +126,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
     .toUpperCase();
 
   const memberSince = format(new Date(profile.createdAt), 'MMMM d, yyyy');
+  const isAdmin = hasAdminRole(profile.role);
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-bg-app">
@@ -156,7 +158,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
 
       <div className="flex min-h-0 flex-1">
         {/* Settings nav */}
-        <nav className="hidden w-[220px] shrink-0 flex-col border-r border-border-subtle bg-bg-surface p-3 md:flex">
+        <nav className="hidden h-full min-h-0 w-[220px] shrink-0 flex-col border-r border-border-subtle bg-bg-surface p-3 md:flex">
           <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
             Settings
           </p>
@@ -184,20 +186,22 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
             })}
           </ul>
 
-          <div className="mt-auto border-t border-border-subtle pt-4">
-            <Link
-              href="/admin"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-between gap-2.5 rounded-md px-3 py-2 text-left text-[13.5px] text-text-muted hover:bg-bg-overlay hover:text-text-primary transition-colors border-l-2 border-transparent"
-            >
-              <div className="flex items-center gap-2.5">
-                <Shield className="h-4 w-4 shrink-0" />
-                Admin
-              </div>
-              <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
-            </Link>
-          </div>
+          {isAdmin && (
+            <div className="mt-auto border-t border-border-subtle pt-4">
+              <Link
+                href="/admin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-between gap-2.5 rounded-md px-3 py-2 text-left text-[13.5px] text-text-muted hover:bg-bg-overlay hover:text-text-primary transition-colors border-l-2 border-transparent"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Shield className="h-4 w-4 shrink-0" />
+                  Admin
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              </Link>
+            </div>
+          )}
         </nav>
 
         {/* Mobile tab bar */}
@@ -223,16 +227,18 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                 </button>
               );
             })}
-            <Link
-              href="/admin"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium text-text-muted hover:bg-bg-overlay transition-colors"
-            >
-              <Shield className="h-3.5 w-3.5" />
-              Admin
-              <ExternalLink className="ml-0.5 h-3 w-3 opacity-70" />
-            </Link>
+            {isAdmin && (
+              <Link
+                href="/admin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium text-text-muted hover:bg-bg-overlay transition-colors"
+              >
+                <Shield className="h-3.5 w-3.5" />
+                Admin
+                <ExternalLink className="ml-0.5 h-3 w-3 opacity-70" />
+              </Link>
+            )}
           </div>
 
           {/* Content */}

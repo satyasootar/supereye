@@ -12,10 +12,16 @@ export async function GET(req: Request) {
   if ('error' in parsed) return parsed.error;
 
   const { limit, offset, action, search } = parsed.data;
-  const [{ logs, total }, actions] = await Promise.all([
-    listAuditLogs({ limit, offset, action, search }),
-    listAuditActions(),
-  ]);
 
-  return NextResponse.json({ logs, total, actions });
+  try {
+    const [{ logs, total }, actions] = await Promise.all([
+      listAuditLogs({ limit, offset, action, search }),
+      listAuditActions(),
+    ]);
+
+    return NextResponse.json({ logs, total, actions });
+  } catch (error) {
+    console.error('[admin/audit] Failed to load audit logs:', error);
+    return NextResponse.json({ error: 'Failed to load audit logs' }, { status: 500 });
+  }
 }

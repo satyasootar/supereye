@@ -1,7 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
-import { SUPER_ADMIN_EMAILS, type UserRole } from './constants';
+import { SUPER_ADMIN_EMAILS, type UserRole, hasAdminRole } from './constants';
+
+export { hasAdminRole };
 
 export class AuthorizationError extends Error {
   status = 403;
@@ -53,10 +55,6 @@ export async function requireAdmin(userId: string) {
     throw new AuthorizationError('Admin access required');
   }
   return user;
-}
-
-export function hasAdminRole(role: string | null | undefined): boolean {
-  return role === 'super_admin';
 }
 
 export async function touchUserActivity(userId: string) {

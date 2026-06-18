@@ -25,6 +25,10 @@ export { parseSuperAdminEmailsFromSources };
 export const USER_ROLES = ['super_admin', 'user', 'enterprise_user'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
+export function hasAdminRole(role: string | null | undefined): boolean {
+  return role === 'super_admin';
+}
+
 export const DEFAULT_STARTER_TOKENS = 100_000;
 export const DEFAULT_PRO_TOKENS = 1_000_000;
 

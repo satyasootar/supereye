@@ -1,17 +1,15 @@
-import { and, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/lib/db';
 import { adminAuditLogs, plans, users } from '@/lib/db/schema';
 
-export {
-  AUDIT_ACTION_LABELS,
-  formatAuditAction,
-  formatAuditMetadata,
-  formatAuditTarget,
-} from './audit-log-display';
-
 const targetUser = alias(users, 'target_user');
 const targetPlan = alias(plans, 'target_plan');
+
+const planTargetJoin = and(
+  eq(adminAuditLogs.targetType, 'plan'),
+  eq(adminAuditLogs.targetId, sql`${targetPlan.id}::text`)
+);
 
 export async function writeAdminAuditLog(params: {
   adminUserId: string;
@@ -84,14 +82,14 @@ export async function listAuditLogs(params: {
     )
     .leftJoin(
       targetPlan,
-      and(eq(adminAuditLogs.targetType, 'plan'), eq(adminAuditLogs.targetId, targetPlan.id))
+      planTargetJoin
     )
     .where(whereClause);
 
   const [rows, [totalRow]] = await Promise.all([
     baseQuery.orderBy(desc(adminAuditLogs.createdAt)).limit(limit).offset(offset),
     db
-      .select({ total: count() })
+      .select({ total: sql<number>`count(*)::int` })
       .from(adminAuditLogs)
       .innerJoin(users, eq(adminAuditLogs.adminUserId, users.id))
       .leftJoin(
@@ -100,13 +98,19 @@ export async function listAuditLogs(params: {
       )
       .leftJoin(
         targetPlan,
-        and(eq(adminAuditLogs.targetType, 'plan'), eq(adminAuditLogs.targetId, targetPlan.id))
+        planTargetJoin
       )
       .where(whereClause),
   ]);
 
   return {
-    logs: rows,
+    logs: rows.map((row) => ({
+      ...row,
+      log: {
+        ...row.log,
+        createdAt: row.log.createdAt.toISOString(),
+      },
+    })),
     total: totalRow?.total ?? 0,
   };
 }

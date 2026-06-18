@@ -6,7 +6,7 @@ import {
   Inbox, Star, Clock, Send, FileText, Mail, AlertOctagon, Trash2, 
   ChevronDown, Plus, Settings, HelpCircle, Edit, 
   BarChart, Flame, Paperclip, Users, Tag,   ChevronLeft, ChevronRight, Calendar,
-  Sun, Moon, User, Archive, PanelLeftClose, PanelLeftOpen, ArrowLeftRight, Sparkles, LogOut,
+  Sun, Moon, User, Archive, PanelLeftClose, PanelLeftOpen, ArrowLeftRight, LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef } from 'react';
@@ -476,13 +476,13 @@ export function EmailSidebar() {
             href="/workspace/brief"
             data-tour={TOUR_TARGETS.brief}
             className={cn(
-              'flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors',
+              'flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-semibold transition-colors',
               isBriefPage
-                ? 'bg-gradient-to-r from-violet-600/20 to-cyan-600/20 text-text-primary ring-1 ring-violet-500/30'
-                : 'text-text-secondary hover:bg-bg-overlay hover:text-text-primary'
+                ? 'border-violet-500/35 bg-gradient-to-r from-violet-600/20 to-cyan-600/20 text-text-primary shadow-sm ring-1 ring-violet-500/25'
+                : 'border-border-subtle bg-bg-highlight/60 text-text-secondary hover:border-border-default hover:bg-bg-highlight hover:text-text-primary'
             )}
           >
-            <Sparkles className="h-4 w-4 text-violet-400" />
+            <Star className={cn('h-4 w-4', isBriefPage ? 'fill-violet-400 text-violet-400' : 'text-text-muted')} />
             Today
           </Link>
         </div>
@@ -494,13 +494,13 @@ export function EmailSidebar() {
             href="/workspace/brief"
             title="Today"
             className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-md transition-colors',
+              'flex h-8 w-8 items-center justify-center rounded-md border transition-colors',
               isBriefPage
-                ? 'bg-violet-500/20 text-violet-400'
-                : 'text-text-secondary hover:bg-bg-overlay'
+                ? 'border-violet-500/35 bg-violet-500/20 text-violet-400'
+                : 'border-border-subtle bg-bg-highlight/60 text-text-muted hover:border-border-default hover:bg-bg-highlight hover:text-text-primary'
             )}
           >
-            <Sparkles className="h-4 w-4" />
+            <Star className={cn('h-4 w-4', isBriefPage && 'fill-current')} />
           </Link>
         </div>
       )}

@@ -16,7 +16,7 @@ import {
   enterpriseAccounts,
 } from '@/lib/db/schema';
 import { resetPeriodTokens, adjustTokens } from './tokens';
-import { writeAdminAuditLog, listAuditLogs as fetchAuditLogs } from './audit-log';
+import { writeAdminAuditLog } from './audit-log';
 import {
   ANALYTICS_WINDOW_DAYS,
   fillDailySeries,
@@ -236,11 +236,6 @@ export async function listTokenLedger(params: {
     .orderBy(desc(tokenLedger.createdAt))
     .limit(limit)
     .offset(offset);
-}
-
-export async function listAuditLogs(params: { limit?: number; offset?: number }) {
-  const { logs } = await fetchAuditLogs(params);
-  return logs;
 }
 
 export async function getUserDetailForAdmin(userId: string) {

@@ -38,15 +38,15 @@ export function AdminShell({
   const pathname = usePathname();
 
   return (
-    <div className="flex min-h-screen bg-bg-app text-text-primary">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border-subtle bg-bg-elevated lg:flex">
-        <div className="border-b border-border-subtle px-5 py-4">
+    <div className="flex h-screen overflow-hidden bg-bg-app text-text-primary">
+      <aside className="hidden h-full w-64 shrink-0 flex-col border-r border-border-subtle bg-bg-elevated lg:flex">
+        <div className="shrink-0 border-b border-border-subtle px-5 py-4">
           <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
             Supereye Admin
           </p>
           <p className="mt-1 truncate text-sm text-text-secondary">{userEmail}</p>
         </div>
-        <nav className="flex-1 space-y-0.5 p-3">
+        <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-3">
           {NAV.map((item) => {
             const active = item.exact
               ? pathname === item.href
@@ -69,7 +69,7 @@ export function AdminShell({
             );
           })}
         </nav>
-        <div className="border-t border-border-subtle p-3">
+        <div className="shrink-0 border-t border-border-subtle p-3">
           <Link
             href="/workspace"
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-text-muted hover:bg-bg-surface hover:text-text-primary"
@@ -80,8 +80,8 @@ export function AdminShell({
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border-subtle bg-bg-elevated px-4 py-3 lg:px-8">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex shrink-0 items-center justify-between border-b border-border-subtle bg-bg-elevated px-4 py-3 lg:px-8">
           <div className="lg:hidden">
             <p className="text-sm font-semibold">Admin</p>
           </div>
@@ -102,7 +102,7 @@ export function AdminShell({
             ))}
           </select>
         </header>
-        <main className="flex-1 overflow-auto p-4 lg:p-8">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-8">{children}</main>
       </div>
     </div>
   );

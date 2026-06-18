@@ -50,7 +50,7 @@ export default function AdminAuditPage() {
   const [page, setPage] = useState(0);
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data, isLoading, isFetching } = useQuery<AuditResponse>({
+  const { data, isLoading, isFetching, isError, error } = useQuery<AuditResponse>({
     queryKey: ['admin-audit', debouncedSearch, actionFilter, page],
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -61,8 +61,11 @@ export default function AdminAuditPage() {
       if (actionFilter) params.set('action', actionFilter);
 
       const res = await fetch(`/api/admin/audit?${params}`);
-      if (!res.ok) throw new Error('Failed');
-      return res.json();
+      const body = (await res.json().catch(() => ({}))) as AuditResponse & { error?: string };
+      if (!res.ok) {
+        throw new Error(body.error ?? 'Failed to load audit logs');
+      }
+      return body;
     },
   });
 
@@ -146,6 +149,10 @@ export default function AdminAuditPage() {
 
       {isLoading ? (
         <p className="text-sm text-text-muted">Loading audit logs…</p>
+      ) : isError ? (
+        <p className="text-sm text-destructive" role="alert">
+          {error instanceof Error ? error.message : 'Failed to load audit logs.'}
+        </p>
       ) : (
         <>
           <DataTable

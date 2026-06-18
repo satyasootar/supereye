@@ -51,6 +51,10 @@ export function formatAuditTarget(params: {
     return orgName ? `Enterprise · ${orgName}` : 'Enterprise account';
   }
 
+  if (params.targetType === 'platform_settings') {
+    return 'Platform settings';
+  }
+
   const shortId = params.targetId ? params.targetId.slice(0, 8) : '';
   return shortId ? `${params.targetType} · ${shortId}` : params.targetType;
 }
