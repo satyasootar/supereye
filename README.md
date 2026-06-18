@@ -42,6 +42,11 @@ https://youtu.be/HYDXgFp9cBw
 
 ---
 
+> **live link**
+```
+https://supereye.dev
+```
+
 ## The Problem
 
 Modern knowledge workers live across 4–6 different tools simultaneously. You get an email asking to schedule a meeting — so you open Calendar. You're on a call and someone asks about a PR — so you flip to GitHub. A colleague shares a Drive doc in an email — you open that in a third tab.
