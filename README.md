@@ -12,16 +12,18 @@
 
 ---
 
-## 🎬 Demo
-
-> **Drop your demo video here**
+##  Demo
 
 <!-- DEMO VIDEO PLACEHOLDER -->
-<!-- Replace the section below with an actual embed or GIF once you have a recording -->
 ```
-[ 📹  Full product demo — 2 min walkthrough ]
+https://youtu.be/0AcqoR-d6SQ
 ```
 
+
+## YC- video
+```
+https://youtu.be/HYDXgFp9cBw
+```
 ---
 
 ## 🧭 My Journey
@@ -30,13 +32,13 @@
 
 | Episode | What I covered |
 |---------|----------------|
-| 🎬 Ep. 1 | &nbsp; |
-| 🎬 Ep. 2 | &nbsp; |
-| 🎬 Ep. 3 | &nbsp; |
-| 🎬 Ep. 4 | &nbsp; |
-
-<!-- JOURNEY VIDEO PLACEHOLDER -->
-<!-- Paste YouTube embeds or GIF recordings for each episode -->
+| 🎬 Ep. 1 | https://x.com/satyasootar/status/2066224352161632516?s=20 |
+| 🎬 Ep. 2 | https://x.com/satyasootar/status/2066534982097764804?s=20 |
+| 🎬 Ep. 3 | https://x.com/satyasootar/status/2066755147926225085?s=20 |
+| 🎬 Ep. 4 | https://x.com/satyasootar/status/2067129342858260839?s=20 |
+| 🎬 Ep. 5 | https://x.com/satyasootar/status/2067259326218297570?s=20 |
+| 🎬 Ep. 6 | https://x.com/satyasootar/status/2067559717271110099?s=20 |
+| 🎬 Ep. 7 | https://x.com/satyasootar/status/2067661117795500385?s=20 |>
 
 ---
 
