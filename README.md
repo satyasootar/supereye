@@ -14,9 +14,8 @@
 
 ##  Demo
 
-<!-- DEMO VIDEO PLACEHOLDER -->
 ```
-https://youtu.be/0AcqoR-d6SQ
+https://x.com/satyasootar/status/2067915353163022656?s=20
 ```
 
 
