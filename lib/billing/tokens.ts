@@ -261,7 +261,7 @@ export async function adjustTokens(params: {
 
   const bonusDelta = isRemoval
     ? -Math.min(absAmount, wallet.bonusAllocation ?? 0)
-    : params.action === 'bonus_credits'
+    : params.action === 'bonus_credits' || params.action === 'admin_allocation'
       ? absAmount
       : 0;
 

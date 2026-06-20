@@ -54,7 +54,7 @@ describe('token limit enforcement helpers', () => {
     assert.equal(remaining, 200_000);
   });
 
-  it('getWalletDisplayMetrics derives used percent from remaining allowance', () => {
+  it('getWalletDisplayMetrics uses usedThisPeriod for percent, not balance drift', () => {
     const metrics = getWalletDisplayMetrics({
       monthlyAllocation: 600,
       bonusAllocation: 0,
@@ -62,8 +62,21 @@ describe('token limit enforcement helpers', () => {
       balance: 400,
     });
     assert.equal(metrics.remaining, 400);
-    assert.equal(metrics.used, 200);
-    assert.equal(metrics.pct, 33);
+    assert.equal(metrics.used, 0);
+    assert.equal(metrics.pct, 0);
+  });
+
+  it('getWalletDisplayMetrics reflects bonus credits in period limit', () => {
+    const metrics = getWalletDisplayMetrics({
+      monthlyAllocation: 1_000_000,
+      bonusAllocation: 5_000,
+      usedThisPeriod: 995_000,
+      balance: 5_000,
+    });
+    assert.equal(metrics.effectiveLimit, 1_005_000);
+    assert.equal(metrics.remaining, 5_000);
+    assert.equal(metrics.used, 995_000);
+    assert.equal(metrics.pct, 99);
   });
 
   it('getWalletDisplayMetrics tracks usedThisPeriod consumption', () => {

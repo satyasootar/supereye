@@ -32,6 +32,7 @@ export type ManageUserRow = {
   createdAt: string;
   balance: number | null;
   monthlyAllocation: number | null;
+  bonusAllocation: number | null;
   usedThisPeriod: number | null;
   planName: string | null;
   isOnline: boolean;
@@ -125,7 +126,7 @@ export function ManageUserDialog({
   const walletMetrics = getWalletDisplayMetrics({
     balance: user.balance ?? 0,
     monthlyAllocation: user.monthlyAllocation ?? 0,
-    bonusAllocation: 0,
+    bonusAllocation: user.bonusAllocation ?? 0,
     usedThisPeriod: user.usedThisPeriod ?? 0,
   });
 
@@ -196,6 +197,7 @@ export function ManageUserDialog({
               wallet={{
                 balance: user.balance ?? 0,
                 monthlyAllocation: user.monthlyAllocation ?? 0,
+                bonusAllocation: user.bonusAllocation ?? 0,
                 usedThisPeriod: user.usedThisPeriod ?? 0,
                 unlimited: false,
               }}
@@ -205,9 +207,15 @@ export function ManageUserDialog({
             <p className="mt-2 text-xs text-text-muted">
               Period limit:{' '}
               <span className="font-medium text-text-secondary">
-                {formatCreditsExact(user.monthlyAllocation ?? 0)}
+                {formatCreditsExact(walletMetrics.effectiveLimit)}
               </span>
-              {user.planName ? (
+              {(user.bonusAllocation ?? 0) > 0 ? (
+                <span className="text-text-muted">
+                  {' '}
+                  ({formatCreditsExact(user.monthlyAllocation ?? 0)} plan +{' '}
+                  {formatCreditsExact(user.bonusAllocation ?? 0)} bonus)
+                </span>
+              ) : user.planName ? (
                 <span className="text-text-muted"> (assigned {user.planName} plan)</span>
               ) : null}
             </p>
@@ -329,6 +337,12 @@ export function ManageUserDialog({
               {!isSuperAdmin && (
                 <p className="mb-3 text-xs text-text-muted">
                   Admins can only decrease balances. Contact a super admin to grant more tokens.
+                </p>
+              )}
+              {isSuperAdmin && (
+                <p className="mb-3 text-xs text-text-muted">
+                  Add extends the user&apos;s period limit and balance. For a full reset, use Set period
+                  allocation below.
                 </p>
               )}
               <div className="space-y-3 rounded-lg border border-border-subtle bg-bg-surface/40 p-3">

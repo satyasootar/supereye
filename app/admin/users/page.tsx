@@ -23,6 +23,7 @@ type UserRow = {
   lastActiveAt: string | null;
   balance: number | null;
   monthlyAllocation: number | null;
+  bonusAllocation: number | null;
   usedThisPeriod: number | null;
   planName: string | null;
   subscriptionStatus: string | null;

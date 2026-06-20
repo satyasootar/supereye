@@ -36,12 +36,14 @@ export type WalletDisplayMetrics = {
 export function getWalletDisplayMetrics(wallet: WalletSnapshot): WalletDisplayMetrics {
   const effectiveLimit = getEffectiveTokenLimit(wallet);
   const remaining = getRemainingTokenAllowance(wallet);
-  const used =
+  const used = wallet.usedThisPeriod ?? 0;
+  const rawPct = effectiveLimit > 0 ? (used / effectiveLimit) * 100 : 0;
+  let pct =
     effectiveLimit > 0
-      ? Math.min(effectiveLimit, Math.max(0, effectiveLimit - remaining))
-      : (wallet.usedThisPeriod ?? 0);
-  const pct =
-    effectiveLimit > 0 ? Math.min(100, Math.round((used / effectiveLimit) * 100)) : 0;
+      ? remaining > 0 && rawPct < 100
+        ? Math.min(99, Math.floor(rawPct))
+        : Math.min(100, Math.round(rawPct))
+      : 0;
 
   return { effectiveLimit, remaining, used, pct };
 }

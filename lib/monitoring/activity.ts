@@ -154,6 +154,7 @@ export type AdminUserWithMonitoring = {
   lastActiveAt: string | null;
   balance: number | null;
   monthlyAllocation: number | null;
+  bonusAllocation: number | null;
   usedThisPeriod: number | null;
   unlimited: boolean | null;
   planName: string | null;
@@ -200,6 +201,7 @@ export async function listAdminUsersWithMonitoring(params?: {
       totalTimeSpentSeconds: users.totalTimeSpentSeconds,
       balance: tokenWallets.balance,
       monthlyAllocation: tokenWallets.monthlyAllocation,
+      bonusAllocation: tokenWallets.bonusAllocation,
       usedThisPeriod: tokenWallets.usedThisPeriod,
       unlimited: tokenWallets.unlimited,
       planName: plans.name,
@@ -266,6 +268,7 @@ export async function listAdminUsersWithMonitoring(params?: {
       lastActiveAt: row.lastActiveAt?.toISOString() ?? null,
       balance: row.balance,
       monthlyAllocation: row.monthlyAllocation,
+      bonusAllocation: row.bonusAllocation,
       usedThisPeriod: row.usedThisPeriod,
       unlimited: row.unlimited,
       planName: row.planName,
