@@ -7,6 +7,9 @@ import {
 
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TemplatePickerModal } from './template-picker-modal';
 
 type ComposeTone =
   | 'professional'
@@ -95,8 +98,28 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
   const [tone, setTone] = useState<ComposeTone>('professional');
   const [enhancedDraft, setEnhancedDraft] = useState<string | null>(null);
   const [originalDraft, setOriginalDraft] = useState<string | null>(null);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const draftValue = isHtmlMode ? htmlBody : bodyText;
+
+  const openHtmlPreview = () => {
+    if (!isHtmlMode || !htmlBody.trim()) {
+      toast.error('Switch to HTML mode and load template/content first');
+      return;
+    }
+    const previewWindow = window.open('', '_blank', 'width=960,height=720');
+    if (!previewWindow) {
+      toast.error('Popup blocked. Please allow popups to preview HTML.');
+      return;
+    }
+    previewWindow.document.write(htmlBody);
+    previewWindow.document.close();
+  };
+
+  const handleSaveDraft = () => {
+    toast.success('Draft saved');
+    onClose();
+  };
 
   const enhanceMutation = useMutation({
     mutationFn: async () => {
@@ -216,9 +239,35 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
           >
             Cc / Bcc
           </button>
-          <button type="button" aria-label="More options" className="hover:text-text-primary transition-colors">
-            <MoreHorizontal className="h-5 w-5" />
-          </button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button type="button" aria-label="More options" className="hover:text-text-primary transition-colors">
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-48 p-1 flex flex-col gap-0.5">
+              <button onClick={() => setTemplateModalOpen(true)} className="flex items-center gap-2 px-2 py-1.5 text-[13px] hover:bg-bg-surface rounded-md text-text-primary text-left">
+                Templates
+              </button>
+              <button onClick={() => setIsHtmlMode(!isHtmlMode)} className="flex items-center gap-2 px-2 py-1.5 text-[13px] hover:bg-bg-surface rounded-md text-text-primary text-left">
+                {isHtmlMode ? 'HTML on' : 'HTML off'}
+              </button>
+              <button onClick={openHtmlPreview} className="flex items-center gap-2 px-2 py-1.5 text-[13px] hover:bg-bg-surface rounded-md text-text-primary text-left">
+                Preview
+              </button>
+              <div className="h-[1px] bg-border-subtle my-1"></div>
+              <button className="flex items-center gap-2 px-2 py-1.5 text-[13px] hover:bg-bg-surface rounded-md text-text-primary text-left">
+                Insert code
+              </button>
+              <button className="flex items-center gap-2 px-2 py-1.5 text-[13px] hover:bg-bg-surface rounded-md text-text-primary text-left">
+                Insert calendar event
+              </button>
+              <div className="h-[1px] bg-border-subtle my-1"></div>
+              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-2 py-1.5 text-[13px] hover:bg-bg-surface rounded-md text-text-primary text-left">
+                Save Draft
+              </button>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -313,25 +362,25 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
       )}
 
       {/* Bottom Toolbar */}
-      <div className="flex items-center justify-between px-6 py-4">
-        <div className="relative">
-          <div className="flex items-stretch shadow-sm rounded-lg overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
+        <div className="relative shrink-0">
+          <div className="flex items-stretch shadow-sm rounded-md overflow-hidden">
             <button 
               type="button" 
               onClick={handleSend}
               disabled={isSending}
-              className="flex items-center gap-2 px-6 py-2 bg-accent-blue hover:bg-accent-blue-dim text-text-inverse text-[15px] font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+              className="flex h-9 min-w-[92px] items-center justify-center px-4 bg-accent-blue hover:bg-accent-blue-dim text-text-inverse text-[13px] font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isSending ? 'Sending...' : scheduleAt ? 'Schedule' : 'Send'}
             </button>
-            <div className="w-[1px] bg-border-subtle/20"></div>
+            <div className="w-[1px] bg-white/20"></div>
             <button 
               type="button" 
               aria-label="Send options" 
               onClick={() => setShowScheduleSend(!showScheduleSend)}
-              className="flex items-center justify-center px-3 py-2 bg-accent-blue hover:bg-accent-blue-dim text-text-inverse transition-colors"
+              className="flex h-9 w-9 items-center justify-center bg-accent-blue hover:bg-accent-blue-dim text-text-inverse transition-colors"
             >
-              <ChevronDown className="h-5 w-5" />
+              <ChevronDown className="h-4 w-4" />
             </button>
           </div>
           
@@ -391,23 +440,24 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
           )}
         </div>
         
-        <div className="flex items-center gap-4 text-text-muted">
-          <select
-            value={tone}
-            onChange={(e) => setTone(e.target.value as ComposeTone)}
-            className="rounded border border-border-subtle bg-bg-elevated px-2 py-1 text-xs text-text-primary"
-          >
-            <option value="professional">Professional</option>
-            <option value="friendly">Friendly</option>
-            <option value="formal">Formal</option>
-            <option value="persuasive">Persuasive</option>
-            <option value="concise">Concise</option>
-            <option value="empathetic">Empathetic</option>
-          </select>
+        <div className="flex flex-wrap items-center justify-end gap-2 text-text-muted">
+          <Select value={tone} onValueChange={(v) => setTone(v as ComposeTone)}>
+            <SelectTrigger className="h-9 min-w-[110px] bg-bg-elevated border-border-subtle text-xs text-text-primary rounded-md">
+              <SelectValue placeholder="Tone" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="professional" className="text-xs">Professional</SelectItem>
+              <SelectItem value="friendly" className="text-xs">Friendly</SelectItem>
+              <SelectItem value="formal" className="text-xs">Formal</SelectItem>
+              <SelectItem value="persuasive" className="text-xs">Persuasive</SelectItem>
+              <SelectItem value="concise" className="text-xs">Concise</SelectItem>
+              <SelectItem value="empathetic" className="text-xs">Empathetic</SelectItem>
+            </SelectContent>
+          </Select>
           <button
             type="button"
             aria-label="AI Enhance"
-            className="rounded border border-border-subtle px-2 py-1 text-xs hover:text-text-primary transition-colors"
+            className="h-9 min-w-[92px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors flex items-center justify-center"
             onClick={() => {
               if (!draftValue.trim()) return toast.error('Draft is empty');
               setOriginalDraft(draftValue);
@@ -416,9 +466,6 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
             disabled={enhanceMutation.isPending}
           >
             {enhanceMutation.isPending ? 'Enhancing...' : 'AI Enhance'}
-          </button>
-          <button type="button" aria-label="Toggle HTML mode" className="hover:text-text-primary transition-colors" onClick={() => setIsHtmlMode((v) => !v)}>
-            <Sparkles className="h-5 w-5" />
           </button>
           
           <input 
@@ -431,29 +478,31 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
           <button 
             type="button" 
             aria-label="Attach file" 
-            className="hover:text-text-primary transition-colors"
+            className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-bg-surface hover:text-text-primary transition-colors"
             onClick={() => fileInputRef.current?.click()}
           >
-            <Paperclip className="h-5 w-5" />
-          </button>
-          
-          <button type="button" aria-label="Insert code" className="hover:text-text-primary transition-colors">
-            <Code className="h-5 w-5" />
-          </button>
-          <button type="button" aria-label="Insert calendar event" className="hover:text-text-primary transition-colors">
-            <CalendarIcon className="h-5 w-5" />
+            <Paperclip className="h-4 w-4" />
           </button>
           <button 
             type="button"
-            aria-label="Discard draft"
             onClick={onClose}
-            className="hover:text-text-primary transition-colors ml-2"
+            className="h-9 min-w-[70px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors ml-1"
           >
-            <Trash2 className="h-5 w-5" />
+            Close
           </button>
         </div>
       </div>
 
+      <TemplatePickerModal
+        open={templateModalOpen}
+        onOpenChange={setTemplateModalOpen}
+        onInject={({ subject: tplSubject, htmlContent }) => {
+          setHtmlBody(htmlContent);
+          setIsHtmlMode(true);
+          setEnhancedDraft(null);
+          setOriginalDraft(null);
+        }}
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { TemplatePickerModal } from './template-picker-modal';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type ComposeTone =
   | 'professional'
@@ -588,17 +589,18 @@ export function GlobalComposer() {
             </div>
             
             <div className="flex flex-wrap items-center justify-end gap-2 text-text-muted">
-              <select
-                value={tone}
-                onChange={(e) => setTone(e.target.value as ComposeTone)}
-                className="h-9 min-w-[110px] rounded-md border border-border-subtle bg-bg-elevated px-2 text-xs text-text-primary"
-              >
-                {TONE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={tone} onValueChange={(v) => setTone(v as ComposeTone)}>
+                <SelectTrigger className="h-9 min-w-[110px] bg-bg-elevated border-border-subtle text-xs text-text-primary rounded-md">
+                  <SelectValue placeholder="Tone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TONE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <button
                 type="button"
                 className="h-9 min-w-[92px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors"
@@ -633,9 +635,7 @@ export function GlobalComposer() {
               >
                 Preview
               </button>
-              <button type="button" className="flex h-9 w-9 items-center justify-center rounded-md border border-border-subtle hover:text-text-primary transition-colors" title="AI tools">
-                <Sparkles className="h-4 w-4" />
-              </button>
+
               <input 
                 type="file" 
                 multiple 
@@ -673,9 +673,9 @@ export function GlobalComposer() {
                   setEnhancedDraft(null);
                   setOriginalDraft(null);
                 }}
-                className="flex h-9 w-9 items-center justify-center rounded-md border border-border-subtle hover:text-text-primary transition-colors"
+                className="h-9 min-w-[70px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors ml-1"
               >
-                <Trash2 className="h-4 w-4" />
+                Close
               </button>
             </div>
             </div>
