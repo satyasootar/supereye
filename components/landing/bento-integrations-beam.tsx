@@ -45,6 +45,7 @@ export function BentoIntegrationsBeam({ className }: BentoIntegrationsBeamProps)
   const gmailRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
   const githubRef = useRef<HTMLDivElement>(null);
+  const driveRef = useRef<HTMLDivElement>(null);
   const syncRef = useRef<HTMLDivElement>(null);
   const triageRef = useRef<HTMLDivElement>(null);
   const draftRef = useRef<HTMLDivElement>(null);
@@ -59,7 +60,7 @@ export function BentoIntegrationsBeam({ className }: BentoIntegrationsBeamProps)
     >
       <div className="flex w-full max-w-2xl items-center justify-between gap-4 sm:gap-8">
         {/* Left — source integrations */}
-        <div className="flex flex-col gap-4 sm:gap-5">
+        <div className="flex flex-col gap-3.5 sm:gap-4">
           <LogoCircle ref={gmailRef}>
             <PluginBrandIcon pluginId="email" size={30} />
           </LogoCircle>
@@ -68,6 +69,9 @@ export function BentoIntegrationsBeam({ className }: BentoIntegrationsBeamProps)
           </LogoCircle>
           <LogoCircle ref={githubRef}>
             <PluginBrandIcon pluginId="github" size={30} />
+          </LogoCircle>
+          <LogoCircle ref={driveRef}>
+            <PluginBrandIcon pluginId="drive" size={30} />
           </LogoCircle>
         </div>
 
@@ -116,6 +120,15 @@ export function BentoIntegrationsBeam({ className }: BentoIntegrationsBeamProps)
         toRef={centerRef}
         curvature={50}
         delay={0.6}
+        startXOffset={8}
+        endXOffset={-12}
+      />
+      <AnimatedBeam
+        containerRef={containerRef}
+        fromRef={driveRef}
+        toRef={centerRef}
+        curvature={85}
+        delay={0.9}
         startXOffset={8}
         endXOffset={-12}
       />
