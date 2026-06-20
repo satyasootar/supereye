@@ -56,6 +56,6 @@ export const pluginIdSchema = z.enum(['email', 'calendar', 'github', 'drive']);
 
 export const corsairPluginSchema = z.enum(['gmail', 'googlecalendar', 'github', 'googledrive']);
 
-export const userRoleSchema = z.enum(['super_admin', 'user', 'enterprise_user']);
+export const userRoleSchema = z.enum(['super_admin', 'admin', 'user', 'enterprise_user']);
 
 export const emailPriorityTierSchema = z.enum(['urgent', 'can_wait']).nullable();

@@ -17,6 +17,7 @@ import {
 } from '@/lib/db/schema';
 import { resetPeriodTokens, adjustTokens } from './tokens';
 import { writeAdminAuditLog } from './audit-log';
+import type { UserRole } from './constants';
 import {
   ANALYTICS_WINDOW_DAYS,
   fillDailySeries,
@@ -283,7 +284,7 @@ export async function getUserDetailForAdmin(userId: string) {
 export async function updateUserAdmin(
   userId: string,
   data: {
-    role?: 'super_admin' | 'user' | 'enterprise_user';
+    role?: UserRole;
     name?: string;
   },
   adminUserId: string

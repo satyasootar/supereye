@@ -1,9 +1,14 @@
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
-import { SUPER_ADMIN_EMAILS, type UserRole, hasAdminRole } from './constants';
+import {
+  SUPER_ADMIN_EMAILS,
+  type UserRole,
+  hasAdminPanelAccess,
+  hasSuperAdminRole,
+} from './constants';
 
-export { hasAdminRole };
+export { hasAdminPanelAccess, hasSuperAdminRole, hasUnlimitedAiAccess } from './constants';
 
 export class AuthorizationError extends Error {
   status = 403;
@@ -49,12 +54,57 @@ export async function requireActiveUser(userId: string) {
   return user;
 }
 
-export async function requireAdmin(userId: string) {
+/** Admin panel access — super_admin or admin */
+export async function requireAdminPanel(userId: string) {
   const user = await requireActiveUser(userId);
-  if (user.role !== 'super_admin') {
+  if (!hasAdminPanelAccess(user.role)) {
     throw new AuthorizationError('Admin access required');
   }
   return user;
+}
+
+/** Super admin only — token increases, role promotion to admin, plan changes */
+export async function requireSuperAdmin(userId: string) {
+  const user = await requireActiveUser(userId);
+  if (!hasSuperAdminRole(user.role)) {
+    throw new AuthorizationError('Super admin access required');
+  }
+  return user;
+}
+
+/** @deprecated Use requireAdminPanel */
+export async function requireAdmin(userId: string) {
+  return requireAdminPanel(userId);
+}
+
+export function assertCanModifyTargetUser(params: {
+  actorRole: UserRole;
+  targetRole: UserRole;
+}) {
+  const { actorRole, targetRole } = params;
+
+  if (targetRole === 'super_admin' && !hasSuperAdminRole(actorRole)) {
+    throw new AuthorizationError('Cannot modify super admin accounts');
+  }
+
+  if (targetRole === 'admin' && !hasSuperAdminRole(actorRole)) {
+    throw new AuthorizationError('Only super admins can modify admin accounts');
+  }
+}
+
+export function assertCanAssignRole(params: {
+  actorRole: UserRole;
+  newRole: UserRole;
+}) {
+  const { actorRole, newRole } = params;
+
+  if (newRole === 'super_admin') {
+    throw new AuthorizationError('Super admin role can only be assigned via environment config');
+  }
+
+  if (newRole === 'admin' && !hasSuperAdminRole(actorRole)) {
+    throw new AuthorizationError('Only super admins can promote users to admin');
+  }
 }
 
 export async function touchUserActivity(userId: string) {

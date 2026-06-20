@@ -1,6 +1,7 @@
 import { getUserSubscription, ensureUserHasSubscription } from '@/lib/billing/admin';
 import { getTokenWallet } from '@/lib/billing/tokens';
 import { getUserRole } from '@/lib/billing/rbac';
+import { hasUnlimitedAiAccess } from '@/lib/billing/constants';
 import { formatCurrency, formatDate, formatTokens } from '@/lib/billing/format';
 
 export type AgentAccountSummary = {
@@ -31,7 +32,7 @@ export async function getAccountSummaryForAgent(
   ]);
 
   const plan = subscription?.plan;
-  const unlimited = role === 'super_admin' || !!wallet?.unlimited;
+  const unlimited = hasUnlimitedAiAccess(role) || !!wallet?.unlimited;
 
   return {
     role,

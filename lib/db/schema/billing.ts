@@ -15,7 +15,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from './auth';
 
-export const userRoleEnum = ['super_admin', 'user', 'enterprise_user'] as const;
+export const userRoleEnum = ['super_admin', 'admin', 'user', 'enterprise_user'] as const;
 export type UserRole = (typeof userRoleEnum)[number];
 
 export const userStatusEnum = ['active', 'suspended'] as const;
@@ -105,6 +105,7 @@ export const tokenWallets = pgTable('token_wallets', {
     .references(() => users.id, { onDelete: 'cascade' }),
   balance: bigint('balance', { mode: 'number' }).notNull().default(0),
   monthlyAllocation: bigint('monthly_allocation', { mode: 'number' }).notNull().default(0),
+  bonusAllocation: bigint('bonus_allocation', { mode: 'number' }).notNull().default(0),
   usedThisPeriod: bigint('used_this_period', { mode: 'number' }).notNull().default(0),
   periodStart: timestamp('period_start', { withTimezone: true }),
   periodEnd: timestamp('period_end', { withTimezone: true }),

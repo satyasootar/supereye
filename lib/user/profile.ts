@@ -19,7 +19,7 @@ export type UserProfile = {
   email: string | null;
   image: string | null;
   createdAt: string;
-  role: 'super_admin' | 'user' | 'enterprise_user';
+  role: 'super_admin' | 'admin' | 'user' | 'enterprise_user';
   authProvider: string;
   authProviders: string[];
   hasPassword: boolean;

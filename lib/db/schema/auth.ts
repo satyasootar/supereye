@@ -21,7 +21,7 @@ export const users = pgTable('users', {
   emailVerified: timestamp('email_verified', { mode: 'date' }),
   image: text('image'),
   passwordHash: text('password_hash'),
-  role: text('role').$type<'super_admin' | 'user' | 'enterprise_user'>().notNull().default('user'),
+  role: text('role').$type<'super_admin' | 'admin' | 'user' | 'enterprise_user'>().notNull().default('user'),
   status: text('status').$type<'active' | 'suspended'>().notNull().default('active'),
   sessionVersion: integer('session_version').notNull().default(0),
   passwordChangedAt: timestamp('password_changed_at', { withTimezone: true }),

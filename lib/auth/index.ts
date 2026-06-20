@@ -224,7 +224,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       session.user.id = userId;
       session.user.role =
-        (token.role as 'super_admin' | 'user' | 'enterprise_user') ?? 'user';
+        (token.role as 'super_admin' | 'admin' | 'user' | 'enterprise_user') ?? 'user';
       session.user.status = (token.status as 'active' | 'suspended') ?? 'active';
       await touchUserActivity(userId);
       return session;
@@ -244,7 +244,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       if (path.startsWith('/admin')) {
         if (!hasValidSession) return false;
-        if (auth.user.role !== 'super_admin') {
+        if (auth.user.role !== 'super_admin' && auth.user.role !== 'admin') {
           return Response.redirect(new URL('/workspace', request.nextUrl));
         }
         return true;

@@ -27,5 +27,5 @@ export async function GET(req: Request) {
     totalTokensUsedThisPeriod: users.reduce((sum, u) => sum + (u.usedThisPeriod ?? 0), 0),
   };
 
-  return NextResponse.json({ users, summary });
+  return NextResponse.json({ users, summary, callerRole: authResult.admin.role });
 }

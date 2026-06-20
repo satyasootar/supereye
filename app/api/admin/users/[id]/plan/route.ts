@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdminSession } from '@/lib/billing/api-auth';
+import { requireSuperAdminSession } from '@/lib/billing/api-auth';
 import { assignPlanToUser } from '@/lib/billing/admin';
 import { parseJsonBody } from '@/lib/validation/http';
 import { adminAssignPlanSchema } from '@/lib/validation/admin';
@@ -8,7 +8,7 @@ import { uuidSchema } from '@/lib/validation/common';
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(req: Request, context: RouteContext) {
-  const authResult = await requireAdminSession();
+  const authResult = await requireSuperAdminSession();
   if ('error' in authResult) return authResult.error;
 
   const { id } = await context.params;

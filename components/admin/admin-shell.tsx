@@ -15,27 +15,32 @@ import {
   Receipt,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { hasSuperAdminRole } from '@/lib/billing/constants';
 
 const NAV = [
-  { href: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true },
-  { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/plans', label: 'Plans', icon: CreditCard },
-  { href: '/admin/tokens', label: 'Tokens', icon: Coins },
-  { href: '/admin/billing', label: 'Billing', icon: Receipt },
-  { href: '/admin/plugins', label: 'Plugins', icon: Puzzle },
-  { href: '/admin/enterprise', label: 'Enterprise', icon: Building2 },
-  { href: '/admin/audit', label: 'Audit Logs', icon: ScrollText },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
+  { href: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true, superAdminOnly: false },
+  { href: '/admin/users', label: 'Users', icon: Users, superAdminOnly: false },
+  { href: '/admin/plans', label: 'Plans', icon: CreditCard, superAdminOnly: true },
+  { href: '/admin/tokens', label: 'Tokens', icon: Coins, superAdminOnly: false },
+  { href: '/admin/billing', label: 'Billing', icon: Receipt, superAdminOnly: false },
+  { href: '/admin/plugins', label: 'Plugins', icon: Puzzle, superAdminOnly: false },
+  { href: '/admin/enterprise', label: 'Enterprise', icon: Building2, superAdminOnly: true },
+  { href: '/admin/audit', label: 'Audit Logs', icon: ScrollText, superAdminOnly: false },
+  { href: '/admin/settings', label: 'Settings', icon: Settings, superAdminOnly: true },
 ];
 
 export function AdminShell({
   children,
   userEmail,
+  userRole,
 }: {
   children: React.ReactNode;
   userEmail?: string | null;
+  userRole?: string;
 }) {
   const pathname = usePathname();
+  const isSuperAdmin = hasSuperAdminRole(userRole);
+  const navItems = NAV.filter((item) => isSuperAdmin || !item.superAdminOnly);
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg-app text-text-primary">
@@ -45,9 +50,14 @@ export function AdminShell({
             Supereye Admin
           </p>
           <p className="mt-1 truncate text-sm text-text-secondary">{userEmail}</p>
+          {userRole && (
+            <p className="mt-0.5 text-xs text-text-muted capitalize">
+              {userRole.replace('_', ' ')}
+            </p>
+          )}
         </div>
         <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-3">
-          {NAV.map((item) => {
+          {navItems.map((item) => {
             const active = item.exact
               ? pathname === item.href
               : pathname.startsWith(item.href);
@@ -95,7 +105,7 @@ export function AdminShell({
               window.location.href = e.target.value;
             }}
           >
-            {NAV.map((item) => (
+            {navItems.map((item) => (
               <option key={item.href} value={item.href}>
                 {item.label}
               </option>

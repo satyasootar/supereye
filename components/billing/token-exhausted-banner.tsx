@@ -2,10 +2,15 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowUpRight, Coins, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Coins, Mail, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatTokens } from '@/lib/billing/format';
+import {
+  hasUnlimitedAiAccess,
+  TOKEN_SUPPORT_EMAIL,
+  TOKEN_SUPPORT_X_URL,
+} from '@/lib/billing/constants';
 
 type WalletResponse = {
   wallet: {
@@ -28,7 +33,7 @@ export function TokenExhaustedBanner({ className }: { className?: string }) {
     refetchInterval: 60_000,
   });
 
-  if (!data || data.role === 'super_admin' || data.wallet?.unlimited) return null;
+  if (!data || hasUnlimitedAiAccess(data.role) || data.wallet?.unlimited) return null;
 
   const balance = data.wallet?.balance ?? 0;
   if (balance > 0) return null;
@@ -50,7 +55,7 @@ export function TokenExhaustedBanner({ className }: { className?: string }) {
             Your monthly token limit has been exhausted.
           </p>
           <p className="mt-0.5 text-sm text-text-muted">
-            Upgrade your plan or purchase additional tokens to use AI features again.
+            Contact an admin to request additional tokens for your account.
           </p>
         </div>
       </div>
@@ -58,14 +63,20 @@ export function TokenExhaustedBanner({ className }: { className?: string }) {
         <Button asChild size="sm" variant="default">
           <Link href="/workspace/profile?tab=billing">
             <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-            Upgrade
+            Billing
           </Link>
         </Button>
         <Button asChild size="sm" variant="outline">
-          <Link href="/workspace/profile?tab=billing">
+          <a href={`mailto:${TOKEN_SUPPORT_EMAIL}?subject=Token%20limit%20increase%20request`}>
+            <Mail className="mr-1.5 h-3.5 w-3.5" />
+            Email admin
+          </a>
+        </Button>
+        <Button asChild size="sm" variant="outline">
+          <a href={TOKEN_SUPPORT_X_URL} target="_blank" rel="noopener noreferrer">
             <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" />
-            Buy Tokens
-          </Link>
+            X / DM
+          </a>
         </Button>
       </div>
     </div>
@@ -84,7 +95,7 @@ export function TokenBalancePill() {
   });
 
   if (!data?.wallet) return null;
-  if (data.wallet.unlimited || data.role === 'super_admin') {
+  if (data.wallet.unlimited || hasUnlimitedAiAccess(data.role)) {
     return (
       <span className="rounded-full border border-accent-blue/30 bg-accent-blue/10 px-2 py-0.5 text-[11px] font-medium text-accent-blue">
         Unlimited

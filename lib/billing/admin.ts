@@ -15,7 +15,7 @@ import { getPluginByCorsairName, PLUGIN_REGISTRY } from '@/lib/plugins/registry'
 import { ANALYTICS_WINDOW_DAYS, fillDailySeries } from './chart-series';
 import { resetPeriodTokens, adjustTokens } from './tokens';
 import { writeAdminAuditLog } from './audit-log';
-import { getStarterPlanId } from './seed';
+import { getProPlanId } from './seed';
 
 export async function assignPlanToUser(params: {
   userId: string;
@@ -103,10 +103,10 @@ export async function ensureUserHasSubscription(userId: string) {
   const existing = await getUserSubscription(userId);
   if (existing) return existing;
 
-  const starterId = await getStarterPlanId();
-  if (!starterId) return null;
+  const proId = await getProPlanId();
+  if (!proId) return null;
 
-  await assignPlanToUser({ userId, planId: starterId });
+  await assignPlanToUser({ userId, planId: proId });
   return getUserSubscription(userId);
 }
 

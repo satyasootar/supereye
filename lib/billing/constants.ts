@@ -14,23 +14,44 @@ function parseSuperAdminEmailsFromSources(
   return [...emails];
 }
 
-/** Super admin emails — comma-separated in SUPER_ADMIN_EMAILS (or legacy SUPER_ADMIN_EMAIL) */
+/** Super admin emails — SUPER_ADMIN_EMAILS, ADMIN_EMAIL, or legacy SUPER_ADMIN_EMAIL */
 export const SUPER_ADMIN_EMAILS = parseSuperAdminEmailsFromSources(
   process.env.SUPER_ADMIN_EMAILS,
+  process.env.ADMIN_EMAIL,
   process.env.SUPER_ADMIN_EMAIL
 );
 
 export { parseSuperAdminEmailsFromSources };
 
-export const USER_ROLES = ['super_admin', 'user', 'enterprise_user'] as const;
+export const USER_ROLES = ['super_admin', 'admin', 'user', 'enterprise_user'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
-export function hasAdminRole(role: string | null | undefined): boolean {
+/** Can access /admin panel */
+export function hasAdminPanelAccess(role: string | null | undefined): boolean {
+  return role === 'super_admin' || role === 'admin';
+}
+
+/** Super admin only */
+export function hasSuperAdminRole(role: string | null | undefined): boolean {
   return role === 'super_admin';
+}
+
+/** Unlimited AI usage — super admin only */
+export function hasUnlimitedAiAccess(role: string | null | undefined): boolean {
+  return role === 'super_admin';
+}
+
+/** @deprecated Use hasAdminPanelAccess */
+export function hasAdminRole(role: string | null | undefined): boolean {
+  return hasAdminPanelAccess(role);
 }
 
 export const DEFAULT_STARTER_TOKENS = 100_000;
 export const DEFAULT_PRO_TOKENS = 1_000_000;
+
+/** Contact for requesting additional token allocation */
+export const TOKEN_SUPPORT_EMAIL = 'satya.sootar06@gmail.com';
+export const TOKEN_SUPPORT_X_URL = 'https://x.com/satyasootar';
 
 export const DEFAULT_TOKEN_ACTION_COSTS = [
   { actionKey: 'ai_chat', displayName: 'AI Chat Message', tokenCost: 100 },

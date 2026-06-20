@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdminSession } from '@/lib/billing/api-auth';
+import { requireAdminSession, requireSuperAdminSession } from '@/lib/billing/api-auth';
 import {
   listEnterpriseAccounts,
   createEnterpriseAccount,
@@ -16,7 +16,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const authResult = await requireAdminSession();
+  const authResult = await requireSuperAdminSession();
   if ('error' in authResult) return authResult.error;
 
   const parsed = await parseJsonBody(req, adminEnterpriseCreateSchema);

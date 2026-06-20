@@ -41,6 +41,7 @@ type UsersResponse = {
     activeToday: number;
     totalTokensUsedThisPeriod: number;
   };
+  callerRole: string;
 };
 
 function formatDateTime(value: string | null) {
@@ -104,6 +105,15 @@ export default function AdminUsersPage() {
 
   const users = data?.users ?? [];
   const summary = data?.summary;
+  const isSuperAdmin = data?.callerRole === 'super_admin';
+
+  const canModifyUser = (user: UserRow) => {
+    if (user.role === 'super_admin') return false;
+    if (!isSuperAdmin && user.role === 'admin') return false;
+    return true;
+  };
+
+  const selectedModifiable = selected ? canModifyUser(selected) : false;
 
   return (
     <div>
@@ -284,41 +294,66 @@ export default function AdminUsersPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {selected.status === 'active' ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => actionMutation.mutate({ action: 'suspend' })}
-                  >
-                    Suspend
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => actionMutation.mutate({ action: 'activate' })}
-                  >
-                    Activate
-                  </Button>
+                {selectedModifiable && (
+                  <>
+                    {selected.status === 'active' ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => actionMutation.mutate({ action: 'suspend' })}
+                      >
+                        Suspend
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => actionMutation.mutate({ action: 'activate' })}
+                      >
+                        Activate
+                      </Button>
+                    )}
+                    {isSuperAdmin && selected.role !== 'admin' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => actionMutation.mutate({ role: 'admin' })}
+                      >
+                        Set Admin
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => actionMutation.mutate({ role: 'enterprise_user' })}
+                    >
+                      Set Enterprise
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => actionMutation.mutate({ role: 'user' })}
+                    >
+                      Set User
+                    </Button>
+                  </>
                 )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => actionMutation.mutate({ role: 'enterprise_user' })}
-                >
-                  Set Enterprise
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => actionMutation.mutate({ role: 'user' })}
-                >
-                  Set User
-                </Button>
+                {!selectedModifiable && (
+                  <p className="text-sm text-text-muted">
+                    You cannot modify this account&apos;s permissions.
+                  </p>
+                )}
               </div>
 
+              {selectedModifiable && (
               <div className="space-y-2 border-t border-border-subtle pt-4">
                 <p className="text-sm font-medium">Token actions</p>
+                {!isSuperAdmin && (
+                  <p className="text-xs text-text-muted">
+                    Admins can only decrease token balances. Contact a super admin to grant more
+                    tokens.
+                  </p>
+                )}
                 <Input
                   type="number"
                   value={tokenAmount}
@@ -331,18 +366,35 @@ export default function AdminUsersPage() {
                   placeholder="Reason"
                 />
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      tokenMutation.mutate({
-                        action: 'add',
-                        amount: Number(tokenAmount),
-                        reason: tokenReason,
-                      })
-                    }
-                  >
-                    Add Tokens
-                  </Button>
+                  {isSuperAdmin && (
+                    <>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          tokenMutation.mutate({
+                            action: 'add',
+                            amount: Number(tokenAmount),
+                            reason: tokenReason,
+                          })
+                        }
+                      >
+                        Add Tokens
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          tokenMutation.mutate({
+                            action: 'bonus',
+                            amount: Number(tokenAmount),
+                            reason: tokenReason,
+                          })
+                        }
+                      >
+                        Bonus
+                      </Button>
+                    </>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
@@ -356,21 +408,9 @@ export default function AdminUsersPage() {
                   >
                     Remove
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      tokenMutation.mutate({
-                        action: 'bonus',
-                        amount: Number(tokenAmount),
-                        reason: tokenReason,
-                      })
-                    }
-                  >
-                    Bonus
-                  </Button>
                 </div>
               </div>
+              )}
 
               <Button size="sm" variant="ghost" onClick={() => setSelected(null)}>
                 Close

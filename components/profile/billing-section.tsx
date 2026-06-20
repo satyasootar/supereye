@@ -1,16 +1,22 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Coins, CreditCard, Loader2, Sparkles } from 'lucide-react';
+import { Coins, CreditCard, Loader2, Mail, Sparkles } from 'lucide-react';
 import { ProfileSection, ProfileRow } from '@/components/profile/profile-section';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatTokens } from '@/lib/billing/format';
+import {
+  hasUnlimitedAiAccess,
+  TOKEN_SUPPORT_EMAIL,
+  TOKEN_SUPPORT_X_URL,
+} from '@/lib/billing/constants';
 
 type WalletResponse = {
   wallet: {
     balance: number;
     monthlyAllocation: number;
+    bonusAllocation?: number;
     usedThisPeriod: number;
     unlimited: boolean;
     periodEnd: string | null;
@@ -22,6 +28,30 @@ type WalletResponse = {
   packs: { id: string; name: string; tokenAmount: number; priceCents: number }[];
   role: string;
 };
+
+function TokenSupportContact() {
+  return (
+    <div className="mt-3 rounded-lg border border-border-default bg-bg-surface p-4">
+      <p className="text-sm font-medium text-text-primary">Need more tokens?</p>
+      <p className="mt-1 text-sm text-text-muted">
+        Contact a super admin to request additional token allocation for your account.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button asChild size="sm" variant="outline">
+          <a href={`mailto:${TOKEN_SUPPORT_EMAIL}?subject=Token%20limit%20increase%20request`}>
+            <Mail className="mr-1.5 h-3.5 w-3.5" />
+            {TOKEN_SUPPORT_EMAIL}
+          </a>
+        </Button>
+        <Button asChild size="sm" variant="outline">
+          <a href={TOKEN_SUPPORT_X_URL} target="_blank" rel="noopener noreferrer">
+            @satyasootar on X
+          </a>
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function BillingSection() {
   const queryClient = useQueryClient();
@@ -65,10 +95,14 @@ export function BillingSection() {
   }
 
   const { wallet, subscription, packs, role } = data;
-  const isUnlimited = role === 'super_admin' || wallet?.unlimited;
+  const isUnlimited = hasUnlimitedAiAccess(role) || wallet?.unlimited;
   const used = wallet?.usedThisPeriod ?? 0;
   const allocation = wallet?.monthlyAllocation ?? 0;
-  const pct = allocation > 0 ? Math.min(100, Math.round((used / allocation) * 100)) : 0;
+  const bonus = wallet?.bonusAllocation ?? 0;
+  const effectiveLimit = allocation + bonus;
+  const pct =
+    effectiveLimit > 0 ? Math.min(100, Math.round((used / effectiveLimit) * 100)) : 0;
+  const isExhausted = !isUnlimited && (wallet?.balance ?? 0) === 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -80,7 +114,7 @@ export function BillingSection() {
           <div className="flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-text-muted" />
             <span className="text-[13px] font-medium text-text-primary">
-              {subscription?.plan.name ?? 'Starter'}
+              {subscription?.plan.name ?? 'Pro'}
             </span>
             {subscription?.subscription.status && (
               <Badge variant="outline">{subscription.subscription.status}</Badge>
@@ -124,22 +158,28 @@ export function BillingSection() {
                   <span className="text-sm text-text-muted">remaining</span>
                 </div>
                 <span className="text-sm text-text-muted">
-                  {formatTokens(used)} used of {formatTokens(allocation)}
+                  {formatTokens(used)} used of {formatTokens(effectiveLimit)}
                 </span>
               </div>
+              {bonus > 0 && (
+                <p className="mt-1 text-xs text-text-muted">
+                  Includes {formatTokens(bonus)} bonus tokens granted by admin
+                </p>
+              )}
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-bg-surface">
                 <div
                   className="h-full rounded-full bg-accent-blue transition-all"
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              {(wallet?.balance ?? 0) === 0 && (
+              {isExhausted && (
                 <p className="mt-3 text-sm text-amber-600">
-                  Your monthly token limit has been exhausted. Purchase a top-up pack below or
-                  contact support to upgrade.
+                  Your monthly token limit has been exhausted. Request additional tokens from an
+                  admin using the contact options below.
                 </p>
               )}
             </div>
+            <TokenSupportContact />
           </>
         )}
       </ProfileSection>
@@ -147,7 +187,7 @@ export function BillingSection() {
       {!isUnlimited && packs.length > 0 && (
         <ProfileSection
           title="Buy tokens"
-          description="One-time token packs are added to your balance immediately."
+          description="One-time token packs are added to your balance immediately (when billing is enabled)."
         >
           <div className="grid gap-3 sm:grid-cols-3">
             {packs.map((pack) => (

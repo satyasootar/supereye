@@ -7,6 +7,7 @@ import {
   type ledgerActionEnum,
 } from '@/lib/db/schema';
 import { getUserRole } from './rbac';
+import { hasUnlimitedAiAccess } from './constants';
 import { writeAdminAuditLog } from './audit-log';
 
 export class TokenExhaustedError extends Error {
@@ -16,6 +17,24 @@ export class TokenExhaustedError extends Error {
     super(message);
     this.name = 'TokenExhaustedError';
   }
+}
+
+export function getEffectiveTokenLimit(wallet: {
+  monthlyAllocation: number;
+  bonusAllocation: number;
+}): number {
+  return wallet.monthlyAllocation + (wallet.bonusAllocation ?? 0);
+}
+
+export function getRemainingTokenAllowance(wallet: {
+  monthlyAllocation: number;
+  bonusAllocation: number;
+  usedThisPeriod: number;
+  balance: number;
+}): number {
+  const effectiveLimit = getEffectiveTokenLimit(wallet);
+  const fromUsage = Math.max(0, effectiveLimit - wallet.usedThisPeriod);
+  return Math.min(wallet.balance, fromUsage);
 }
 
 export async function getTokenWallet(userId: string) {
@@ -36,21 +55,35 @@ export async function getActionTokenCost(actionKey: string): Promise<number> {
   return row?.tokenCost ?? 0;
 }
 
+/** Reset wallet when billing period has expired */
+export async function ensureWalletPeriodFresh(userId: string) {
+  const wallet = await getTokenWallet(userId);
+  if (!wallet || wallet.unlimited) return wallet;
+
+  if (!wallet.periodEnd || wallet.periodEnd.getTime() > Date.now()) {
+    return wallet;
+  }
+
+  await resetPeriodTokens(userId, wallet.monthlyAllocation);
+  return getTokenWallet(userId);
+}
+
 export async function canUseAi(userId: string): Promise<boolean> {
   const role = await getUserRole(userId);
-  if (role === 'super_admin') return true;
+  if (hasUnlimitedAiAccess(role)) return true;
 
-  const wallet = await getTokenWallet(userId);
+  const wallet = await ensureWalletPeriodFresh(userId);
   if (!wallet) return false;
   if (wallet.unlimited) return true;
-  return wallet.balance > 0;
+
+  return getRemainingTokenAllowance(wallet) > 0;
 }
 
 export async function assertCanUseAi(userId: string) {
   const allowed = await canUseAi(userId);
   if (!allowed) {
     throw new TokenExhaustedError(
-      'Your monthly token limit has been exhausted. Upgrade your plan or purchase additional tokens.'
+      'Your monthly token limit has been exhausted. Contact an admin to request additional tokens.'
     );
   }
 }
@@ -94,14 +127,19 @@ export async function consumeTokens(params: {
   metadata?: Record<string, unknown>;
 }) {
   const role = await getUserRole(params.userId);
-  if (role === 'super_admin') return { consumed: 0, unlimited: true };
+  if (hasUnlimitedAiAccess(role)) return { consumed: 0, unlimited: true };
 
-  const wallet = await getTokenWallet(params.userId);
+  const wallet = await ensureWalletPeriodFresh(params.userId);
   if (!wallet) throw new TokenExhaustedError('No token wallet found');
   if (wallet.unlimited) return { consumed: 0, unlimited: true };
 
   const cost = await getActionTokenCost(params.actionKey);
   if (cost <= 0) return { consumed: 0, unlimited: false };
+
+  const effectiveLimit = getEffectiveTokenLimit(wallet);
+  if (wallet.usedThisPeriod + cost > effectiveLimit) {
+    throw new TokenExhaustedError();
+  }
 
   if (wallet.balance < cost) {
     throw new TokenExhaustedError();
@@ -153,9 +191,19 @@ export async function adjustTokens(params: {
     ? Math.max(0, previousBalance - absAmount)
     : previousBalance + absAmount;
 
+  const bonusDelta = isRemoval
+    ? -Math.min(absAmount, wallet.bonusAllocation ?? 0)
+    : absAmount;
+
+  const newBonusAllocation = Math.max(0, (wallet.bonusAllocation ?? 0) + bonusDelta);
+
   await db
     .update(tokenWallets)
-    .set({ balance: newBalance, updatedAt: new Date() })
+    .set({
+      balance: newBalance,
+      bonusAllocation: newBonusAllocation,
+      updatedAt: new Date(),
+    })
     .where(eq(tokenWallets.userId, params.userId));
 
   await writeLedgerEntry({
@@ -180,7 +228,7 @@ export async function adjustTokens(params: {
     });
   }
 
-  return { previousBalance, newBalance };
+  return { previousBalance, newBalance, bonusAllocation: newBonusAllocation };
 }
 
 export async function resetPeriodTokens(
@@ -203,6 +251,7 @@ export async function resetPeriodTokens(
     .set({
       balance: newBalance,
       monthlyAllocation,
+      bonusAllocation: 0,
       usedThisPeriod: 0,
       periodStart: now,
       periodEnd,

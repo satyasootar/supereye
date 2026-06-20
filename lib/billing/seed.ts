@@ -138,28 +138,38 @@ export async function bootstrapUserBilling(userId: string, email: string | null 
     .limit(1);
 
   if (!wallet) {
-    const [starter] = await db
+    const [proPlan] = await db
       .select()
       .from(plans)
-      .where(eq(plans.slug, 'starter'))
+      .where(eq(plans.slug, 'pro'))
       .limit(1);
 
     const now = new Date();
     const periodEnd = new Date(now);
     periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-    const allocation = starter?.monthlyTokens ?? DEFAULT_STARTER_TOKENS;
+    const allocation = proPlan?.monthlyTokens ?? DEFAULT_PRO_TOKENS;
 
     await db.insert(tokenWallets).values({
       userId,
       balance: allocation,
       monthlyAllocation: allocation,
+      bonusAllocation: 0,
       usedThisPeriod: 0,
       periodStart: now,
       periodEnd,
       unlimited: false,
     });
   }
+}
+
+export async function getProPlanId() {
+  const [pro] = await db
+    .select({ id: plans.id })
+    .from(plans)
+    .where(eq(plans.slug, 'pro'))
+    .limit(1);
+  return pro?.id ?? null;
 }
 
 export async function getStarterPlanId() {

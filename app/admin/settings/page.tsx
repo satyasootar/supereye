@@ -32,8 +32,9 @@ export default function AdminSettingsPage() {
               </dd>
             </div>
             <p className="text-text-muted">
-              These emails receive super admin role on sign-in. Role changes for other
-              accounts must be made manually from the Users panel.
+              These emails receive super admin role on sign-in (via SUPER_ADMIN_EMAILS or
+              ADMIN_EMAIL). Super admins can promote users to admin; admins can manage users and
+              decrease token usage but cannot grant additional tokens.
             </p>
           </dl>
         </AdminPanel>
@@ -49,7 +50,8 @@ export default function AdminSettingsPage() {
 
         <AdminPanel title="Plans & Subscriptions">
           <ul className="list-inside list-disc space-y-2 text-sm text-text-muted">
-            <li>Starter, Pro, and Enterprise tiers are seeded on first admin visit.</li>
+            <li>New users receive the Pro plan with plan-based token limits.</li>
+            <li>Super admins can grant bonus tokens; admins can only remove tokens.</li>
             <li>Unlimited enterprise plan variants can be created from the Plans page.</li>
             <li>Assign plans to users from the Users management panel.</li>
           </ul>

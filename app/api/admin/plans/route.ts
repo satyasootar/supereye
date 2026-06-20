@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdminSession } from '@/lib/billing/api-auth';
+import { requireAdminSession, requireSuperAdminSession } from '@/lib/billing/api-auth';
 import {
   listPlans,
   createEnterprisePlan,
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const authResult = await requireAdminSession();
+  const authResult = await requireSuperAdminSession();
   if ('error' in authResult) return authResult.error;
 
   const parsed = await parseJsonBody(req, adminPlanCreateSchema);
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  const authResult = await requireAdminSession();
+  const authResult = await requireSuperAdminSession();
   if ('error' in authResult) return authResult.error;
 
   const parsed = await parseJsonBody(req, adminPlanPatchSchema);

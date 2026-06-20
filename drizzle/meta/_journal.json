@@ -155,6 +155,13 @@
       "when": 1782200000000,
       "tag": "0022_platform_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1782250000000,
+      "tag": "0023_admin_role_bonus_allocation",
+      "breakpoints": true
     }
   ]
 }
