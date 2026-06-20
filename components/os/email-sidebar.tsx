@@ -16,7 +16,7 @@ import { useTheme } from 'next-themes';
 import { NotificationBell } from './notification-bell';
 
 const basePrimaryNav = [
-  { icon: Inbox, label: 'Inbox', id: 'ALL' },
+  { icon: Inbox, label: 'Inbox', id: 'INBOX' },
   { icon: FileText, label: 'Drafts', id: 'DRAFT' },
   { icon: Send, label: 'Sent', id: 'SENT' },
   { icon: Archive, label: 'Archive', id: 'ARCHIVE' },
@@ -155,7 +155,7 @@ export function EmailSidebar() {
     }
     
     let active = false;
-    if (item.id === 'ALL' && (emailCategory === 'ALL' || emailCategory === 'INBOX' || emailCategory.startsWith('CATEGORY_'))) {
+    if (item.id === 'INBOX' && (emailCategory === 'ALL' || emailCategory === 'INBOX' || emailCategory.startsWith('CATEGORY_'))) {
       active = true;
     } else if (item.id === emailCategory) {
       active = true;
