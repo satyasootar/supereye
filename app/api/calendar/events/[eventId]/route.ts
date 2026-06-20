@@ -7,6 +7,7 @@ import { getTenant } from '@/lib/corsair';
 import { parseJsonBody } from '@/lib/validation/http';
 import { updateCalendarEventSchema } from '@/lib/validation/calendar';
 import { googleEventIdSchema } from '@/lib/validation/common';
+import { isCalendarEventEditable } from '@/lib/calendar/event-utils';
 
 export async function GET(req: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const authResult = await requireActiveUserSession();
@@ -44,6 +45,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ eventI
     if ('error' in parsed) return parsed.error;
 
     const t = getTenant(session.user.id);
+    const existingEvent = await t.googlecalendar.api.events.get({
+      calendarId: 'primary',
+      id: eventId,
+    });
+
+    if (!isCalendarEventEditable(existingEvent)) {
+      return NextResponse.json(
+        { error: 'Past events cannot be edited' },
+        { status: 403 }
+      );
+    }
+
     const updatedEvent = await t.googlecalendar.api.events.update({
       calendarId: 'primary',
       id: eventId,

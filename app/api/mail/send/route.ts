@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       return validationErrorResponse(parsed.error);
     }
 
-    const { to, subject, text, html, scheduleAt, isDraft } = parsed.data;
+    const { to, cc, bcc, subject, text, html, scheduleAt, isDraft } = parsed.data;
     const t = getTenant(userId);
 
     const attachments = await Promise.all(
@@ -43,6 +43,8 @@ export async function POST(req: Request) {
 
     const mail = new MailComposer({
       to,
+      cc: cc || undefined,
+      bcc: bcc || undefined,
       subject,
       text,
       html: html || undefined,

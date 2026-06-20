@@ -312,6 +312,12 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
       }
       if (threadId) formData.append('threadId', threadId);
       formData.append('to', toRecipients.join(', '));
+      if (ccRecipients.length > 0) {
+        formData.append('cc', ccRecipients.join(', '));
+      }
+      if (bccRecipients.length > 0) {
+        formData.append('bcc', bccRecipients.join(', '));
+      }
       formData.append('subject', subject || '');
       if (scheduleAt) {
         formData.append('scheduleAt', scheduleAt.toISOString());
@@ -403,7 +409,7 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
       {showCcBcc && (
         <div className="flex flex-col px-6 pb-2">
           <div className="flex items-center gap-4 py-2 min-h-[40px]">
-            <span className="text-[14px] text-text-muted w-8 flex-shrink-0 font-medium">Cc</span>
+            <span className="text-[14px] text-text-muted w-10 flex-shrink-0 font-medium">Cc</span>
             <RecipientInput 
               recipients={ccRecipients} 
               onChange={setCcRecipients} 
@@ -411,7 +417,7 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
             />
           </div>
           <div className="flex items-center gap-4 py-2 min-h-[40px]">
-            <span className="text-[14px] text-text-muted w-8 flex-shrink-0 font-medium">Bcc</span>
+            <span className="text-[14px] text-text-muted w-10 flex-shrink-0 font-medium">Bcc</span>
             <RecipientInput 
               recipients={bccRecipients} 
               onChange={setBccRecipients} 

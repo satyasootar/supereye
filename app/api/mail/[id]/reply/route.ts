@@ -37,7 +37,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return validationErrorResponse(parsed.error);
     }
 
-    const { replyText, html, threadId, to, subject, scheduleAt } = parsed.data;
+    const { replyText, html, threadId, to, cc, bcc, subject, scheduleAt } = parsed.data;
     const t = getTenant(userId);
 
     const originalMsg = await t.gmail.api.messages.get({
@@ -68,6 +68,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const mailOptions: Record<string, unknown> = {
       to,
+      cc: cc || undefined,
+      bcc: bcc || undefined,
       subject: subject.toLowerCase().startsWith('re:') ? subject : `Re: ${subject}`,
       text: replyText,
       html: html || undefined,

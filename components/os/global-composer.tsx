@@ -43,6 +43,12 @@ export function GlobalComposer() {
   
   const [toRecipients, setToRecipients] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const [ccRecipients, setCcRecipients] = useState<string[]>([]);
+  const [ccInputValue, setCcInputValue] = useState('');
+  const [bccRecipients, setBccRecipients] = useState<string[]>([]);
+  const [bccInputValue, setBccInputValue] = useState('');
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
   const [subject, setSubject] = useState('');
   const [bodyText, setBodyText] = useState('');
   const [htmlBody, setHtmlBody] = useState('');
@@ -61,6 +67,8 @@ export function GlobalComposer() {
   const [isExpanded, setIsExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toInputRef = useRef<HTMLInputElement>(null);
+  const ccInputRef = useRef<HTMLInputElement>(null);
+  const bccInputRef = useRef<HTMLInputElement>(null);
   const dragControls = useDragControls();
 
   const [selectedText, setSelectedText] = useState('');
@@ -191,18 +199,29 @@ export function GlobalComposer() {
 
   const saveDraftSilently = useCallback(async (
     currentTo: string[],
+    currentCc: string[],
+    currentBcc: string[],
     currentSubject: string,
     currentBody: string,
     currentHtml: string,
     currentIsHtml: boolean
   ) => {
-    if (currentTo.length === 0 && !currentSubject.trim() && !currentBody.trim() && !currentHtml.trim()) {
+    if (
+      currentTo.length === 0 &&
+      currentCc.length === 0 &&
+      currentBcc.length === 0 &&
+      !currentSubject.trim() &&
+      !currentBody.trim() &&
+      !currentHtml.trim()
+    ) {
       return;
     }
     setDraftStatus('saving');
     try {
       const formData = new FormData();
       formData.append('to', currentTo.join(', '));
+      if (currentCc.length > 0) formData.append('cc', currentCc.join(', '));
+      if (currentBcc.length > 0) formData.append('bcc', currentBcc.join(', '));
       formData.append('subject', currentSubject);
       const finalText = currentIsHtml ? currentHtml.replace(/<[^>]*>/g, ' ') : currentBody;
       formData.append('text', finalText);
@@ -224,15 +243,22 @@ export function GlobalComposer() {
   }, []);
 
   useEffect(() => {
-    if (toRecipients.length === 0 && !subject.trim() && !bodyText.trim() && !htmlBody.trim()) {
+    if (
+      toRecipients.length === 0 &&
+      ccRecipients.length === 0 &&
+      bccRecipients.length === 0 &&
+      !subject.trim() &&
+      !bodyText.trim() &&
+      !htmlBody.trim()
+    ) {
       setDraftStatus('idle');
       return;
     }
     const timer = setTimeout(() => {
-      saveDraftSilently(toRecipients, subject, bodyText, htmlBody, isHtmlMode);
+      saveDraftSilently(toRecipients, ccRecipients, bccRecipients, subject, bodyText, htmlBody, isHtmlMode);
     }, 1500);
     return () => clearTimeout(timer);
-  }, [toRecipients, subject, bodyText, htmlBody, isHtmlMode, saveDraftSilently]);
+  }, [toRecipients, ccRecipients, bccRecipients, subject, bodyText, htmlBody, isHtmlMode, saveDraftSilently]);
 
   const queryClient = useQueryClient();
   const draftValue = isHtmlMode ? htmlBody : bodyText;
@@ -356,7 +382,17 @@ export function GlobalComposer() {
       finalTo.push(inputValue.trim().replace(/,/g, ''));
     }
 
-    if (finalTo.length === 0 && !isDraft) {
+    const finalCc = [...ccRecipients];
+    if (ccInputValue.trim()) {
+      finalCc.push(ccInputValue.trim().replace(/,/g, ''));
+    }
+
+    const finalBcc = [...bccRecipients];
+    if (bccInputValue.trim()) {
+      finalBcc.push(bccInputValue.trim().replace(/,/g, ''));
+    }
+
+    if (finalTo.length === 0 && finalCc.length === 0 && finalBcc.length === 0 && !isDraft) {
       toast.error('Please add at least one recipient');
       return;
     }
@@ -365,6 +401,12 @@ export function GlobalComposer() {
     try {
       const formData = new FormData();
       formData.append('to', finalTo.join(', '));
+      if (finalCc.length > 0) {
+        formData.append('cc', finalCc.join(', '));
+      }
+      if (finalBcc.length > 0) {
+        formData.append('bcc', finalBcc.join(', '));
+      }
       formData.append('subject', subject);
       const finalText = isHtmlMode ? htmlBody.replace(/<[^>]*>/g, ' ') : bodyText;
       formData.append('text', finalText);
@@ -397,11 +439,17 @@ export function GlobalComposer() {
       }
       setComposeOpen(false);
       setToRecipients([]);
+      setCcRecipients([]);
+      setBccRecipients([]);
+      setInputValue('');
+      setCcInputValue('');
+      setBccInputValue('');
+      setShowCc(false);
+      setShowBcc(false);
       setSubject('');
       setBodyText('');
       setHtmlBody('');
       setIsHtmlMode(false);
-      setInputValue('');
       setAttachments([]);
       setScheduleAt(null);
       setIsMinimized(false);
@@ -431,6 +479,40 @@ export function GlobalComposer() {
 
   const removeRecipient = (indexToRemove: number) => {
     setToRecipients(toRecipients.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleCcKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (['Enter', ' ', ','].includes(e.key)) {
+      e.preventDefault();
+      const val = ccInputValue.trim().replace(/,/g, '');
+      if (val && !ccRecipients.includes(val)) {
+        setCcRecipients([...ccRecipients, val]);
+        setCcInputValue('');
+      }
+    } else if (e.key === 'Backspace' && !ccInputValue && ccRecipients.length > 0) {
+      setCcRecipients(ccRecipients.slice(0, -1));
+    }
+  };
+
+  const removeCcRecipient = (indexToRemove: number) => {
+    setCcRecipients(ccRecipients.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleBccKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (['Enter', ' ', ','].includes(e.key)) {
+      e.preventDefault();
+      const val = bccInputValue.trim().replace(/,/g, '');
+      if (val && !bccRecipients.includes(val)) {
+        setBccRecipients([...bccRecipients, val]);
+        setBccInputValue('');
+      }
+    } else if (e.key === 'Backspace' && !bccInputValue && bccRecipients.length > 0) {
+      setBccRecipients(bccRecipients.slice(0, -1));
+    }
+  };
+
+  const removeBccRecipient = (indexToRemove: number) => {
+    setBccRecipients(bccRecipients.filter((_, idx) => idx !== indexToRemove));
   };
 
   const userName = session?.user?.name?.toUpperCase() || 'NEW MESSAGE';
@@ -600,10 +682,104 @@ export function GlobalComposer() {
               onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-3 text-[13px] text-text-muted mt-1"
             >
-              <button className="hover:text-text-primary transition-colors font-medium">Cc</button>
-              <button className="hover:text-text-primary transition-colors font-medium">Bcc</button>
+              <button 
+                type="button"
+                onClick={() => setShowCc(!showCc)}
+                className={cn("hover:text-text-primary transition-colors font-medium", showCc && "text-accent-blue")}
+              >
+                Cc
+              </button>
+              <button 
+                type="button"
+                onClick={() => setShowBcc(!showBcc)}
+                className={cn("hover:text-text-primary transition-colors font-medium", showBcc && "text-accent-blue")}
+              >
+                Bcc
+              </button>
             </div>
           </div>
+
+          {/* Cc Field */}
+          {showCc && (
+            <div 
+              onClick={() => ccInputRef.current?.focus()}
+              className="flex items-start px-4 min-h-[44px] py-2 border-b border-border-subtle flex-shrink-0 cursor-text"
+            >
+              <div className="flex items-center gap-2 flex-wrap flex-1">
+                {ccRecipients.map((recipient, idx) => (
+                  <div 
+                    key={idx} 
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-bg-overlay text-[13px] text-text-primary border border-border-subtle max-w-full"
+                  >
+                    <span className="truncate">{recipient}</span>
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeCcRecipient(idx);
+                      }}
+                      className="text-text-muted hover:text-text-primary transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex-1 min-w-[120px] mt-0.5" onClick={(e) => e.stopPropagation()}>
+                  <input 
+                    ref={ccInputRef}
+                    type="text"
+                    placeholder={ccRecipients.length === 0 ? "Cc" : ""}
+                    value={ccInputValue}
+                    onChange={(e) => setCcInputValue(e.target.value)}
+                    onKeyDown={handleCcKeyDown}
+                    className="w-full bg-transparent text-[14px] text-text-primary placeholder:text-text-muted outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bcc Field */}
+          {showBcc && (
+            <div 
+              onClick={() => bccInputRef.current?.focus()}
+              className="flex items-start px-4 min-h-[44px] py-2 border-b border-border-subtle flex-shrink-0 cursor-text"
+            >
+              <div className="flex items-center gap-2 flex-wrap flex-1">
+                {bccRecipients.map((recipient, idx) => (
+                  <div 
+                    key={idx} 
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-bg-overlay text-[13px] text-text-primary border border-border-subtle max-w-full"
+                  >
+                    <span className="truncate">{recipient}</span>
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeBccRecipient(idx);
+                      }}
+                      className="text-text-muted hover:text-text-primary transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex-1 min-w-[120px] mt-0.5" onClick={(e) => e.stopPropagation()}>
+                  <input 
+                    ref={bccInputRef}
+                    type="text"
+                    placeholder={bccRecipients.length === 0 ? "Bcc" : ""}
+                    value={bccInputValue}
+                    onChange={(e) => setBccInputValue(e.target.value)}
+                    onKeyDown={handleBccKeyDown}
+                    className="w-full bg-transparent text-[14px] text-text-primary placeholder:text-text-muted outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Subject Field */}
           <div className="flex items-center px-4 h-[44px] border-b border-border-subtle flex-shrink-0">

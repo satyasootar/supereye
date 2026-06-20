@@ -11,6 +11,8 @@ import {
 export const mailSendFieldsSchema = z
   .object({
     to: z.string().max(5000).default(''),
+    cc: z.string().max(5000).optional(),
+    bcc: z.string().max(5000).optional(),
     subject: z.string().max(998).default(''),
     text: z.string().max(500_000).default(''),
     html: z.string().max(1_000_000).optional(),
@@ -20,10 +22,20 @@ export const mailSendFieldsSchema = z
   .refine(
     (data) => {
       if (!data.isDraft) {
-        return recipientsSchema.safeParse(data.to).success;
+        const hasTo = data.to.trim() !== '';
+        const hasCc = data.cc && data.cc.trim() !== '';
+        const hasBcc = data.bcc && data.bcc.trim() !== '';
+        if (!hasTo && !hasCc && !hasBcc) return false;
+
+        if (hasTo && !recipientsSchema.safeParse(data.to).success) return false;
+        if (hasCc && !recipientsSchema.safeParse(data.cc).success) return false;
+        if (hasBcc && !recipientsSchema.safeParse(data.bcc).success) return false;
+        return true;
       }
-      if (data.to.trim() === '') return true;
-      return recipientsSchema.safeParse(data.to).success;
+      if (data.to.trim() !== '' && !recipientsSchema.safeParse(data.to).success) return false;
+      if (data.cc && data.cc.trim() !== '' && !recipientsSchema.safeParse(data.cc).success) return false;
+      if (data.bcc && data.bcc.trim() !== '' && !recipientsSchema.safeParse(data.bcc).success) return false;
+      return true;
     },
     {
       message: 'Invalid or missing recipient',
@@ -31,14 +43,34 @@ export const mailSendFieldsSchema = z
     }
   );
 
-export const mailReplyFieldsSchema = z.object({
-  replyText: nonEmptyStringSchema.max(500_000),
-  html: z.string().max(1_000_000).optional(),
-  threadId: googleMessageIdSchema,
-  to: recipientsSchema,
-  subject: z.string().trim().min(1).max(998),
-  scheduleAt: futureIsoDateTimeSchema.optional(),
-});
+export const mailReplyFieldsSchema = z
+  .object({
+    replyText: nonEmptyStringSchema.max(500_000),
+    html: z.string().max(1_000_000).optional(),
+    threadId: googleMessageIdSchema,
+    to: z.string().max(5000).default(''),
+    cc: z.string().max(5000).optional(),
+    bcc: z.string().max(5000).optional(),
+    subject: z.string().trim().min(1).max(998),
+    scheduleAt: futureIsoDateTimeSchema.optional(),
+  })
+  .refine(
+    (data) => {
+      const hasTo = data.to.trim() !== '';
+      const hasCc = data.cc && data.cc.trim() !== '';
+      const hasBcc = data.bcc && data.bcc.trim() !== '';
+      if (!hasTo && !hasCc && !hasBcc) return false;
+
+      if (hasTo && !recipientsSchema.safeParse(data.to).success) return false;
+      if (hasCc && !recipientsSchema.safeParse(data.cc).success) return false;
+      if (hasBcc && !recipientsSchema.safeParse(data.bcc).success) return false;
+      return true;
+    },
+    {
+      message: 'Invalid or missing recipient',
+      path: ['to'],
+    }
+  );
 
 export const mailSearchQuerySchema = z.object({
   q: z.string().trim().min(1, 'Search query is required').max(500),
@@ -114,6 +146,8 @@ export function parseMailFormFields(
   formData: FormData,
   schema: z.ZodType<{
     to: string;
+    cc?: string;
+    bcc?: string;
     subject: string;
     text: string;
     html?: string;
@@ -124,6 +158,8 @@ export function parseMailFormFields(
   const scheduleRaw = formData.get('scheduleAt');
   return schema.safeParse({
     to: String(formData.get('to') ?? ''),
+    cc: formData.get('cc') ? String(formData.get('cc')) : undefined,
+    bcc: formData.get('bcc') ? String(formData.get('bcc')) : undefined,
     subject: String(formData.get('subject') ?? ''),
     text: String(formData.get('text') ?? ''),
     html: formData.get('html') ? String(formData.get('html')) : undefined,
@@ -147,6 +183,8 @@ export function parseReplyPayload(
       html: formData.get('html') ? String(formData.get('html')) : undefined,
       threadId: String(formData.get('threadId') ?? ''),
       to: String(formData.get('to') ?? ''),
+      cc: formData.get('cc') ? String(formData.get('cc')) : undefined,
+      bcc: formData.get('bcc') ? String(formData.get('bcc')) : undefined,
       subject: String(formData.get('subject') ?? ''),
       scheduleAt:
         typeof scheduleRaw === 'string' && scheduleRaw.trim()
@@ -155,5 +193,6 @@ export function parseReplyPayload(
     });
   }
 
+  // If JSON body, parse it using schema directly
   return mailReplyFieldsSchema.safeParse(body);
 }
