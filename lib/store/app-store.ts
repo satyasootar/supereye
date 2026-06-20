@@ -206,7 +206,7 @@ export const useAppStore = create<AppState>()(
       currentEmailIds: [],
       isCommandPaletteOpen: false,
       isComposeOpen: false,
-      emailCategory: 'ALL',
+      emailCategory: 'INBOX',
       emailPriorityFilter: 'all',
       workspaceMode: 'email',
       primaryPluginId: 'email',

@@ -55,11 +55,11 @@ type EmailMessage = {
 export type FilterCategory = 'INBOX' | 'SENT' | 'CATEGORY_PROMOTIONS' | 'CATEGORY_SOCIAL' | 'CATEGORY_UPDATES' | 'ALL';
 
 const CATEGORY_TABS: { id: FilterCategory; label: string }[] = [
-  { id: 'ALL', label: 'All Mail' },
   { id: 'INBOX', label: 'Primary' },
   { id: 'CATEGORY_PROMOTIONS', label: 'Promotions' },
   { id: 'CATEGORY_SOCIAL', label: 'Social' },
   { id: 'CATEGORY_UPDATES', label: 'Updates' },
+  { id: 'ALL', label: 'All Mail' },
 ];
 
 function buildPeekIframeHtml(body: string, isDark: boolean): string {
