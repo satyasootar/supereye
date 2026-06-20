@@ -5,6 +5,7 @@ import {
   ensureWalletPeriodFresh,
   getEffectiveTokenLimit,
   getRemainingTokenAllowance,
+  getActionTokenCost,
 } from '@/lib/billing/tokens';
 import { getUserSubscription } from '@/lib/billing/admin';
 import { listTopUpPacks } from '@/lib/billing/plans';
@@ -40,6 +41,13 @@ export async function GET() {
 
   const plan = subscription?.plan ?? null;
 
+  const [chatCreditCost, agentActionCreditCost] = wallet
+    ? await Promise.all([
+        getActionTokenCost('ai_chat'),
+        getActionTokenCost('ai_agent_action'),
+      ])
+    : [0, 0];
+
   return NextResponse.json({
     wallet,
     subscription,
@@ -54,6 +62,10 @@ export async function GET() {
           effectiveLimit,
           remainingAllowance,
           aiEnabled: planIncludesAi(plan),
+          chatCreditCost,
+          agentActionCreditCost,
+          canAffordChat: remainingAllowance >= chatCreditCost,
+          canAffordAgentAction: remainingAllowance >= agentActionCreditCost,
         }
       : null,
   });

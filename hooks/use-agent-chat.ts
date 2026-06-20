@@ -6,6 +6,7 @@ import { useAppStore, type AgentPendingEmailReview, type AgentCalendarIntent } f
 import { useAgentContext } from '@/hooks/use-agent-context';
 import { inferCalendarIntentFromDraft } from '@/lib/agent/infer-calendar-intent';
 import { AGENT_THREADS_KEY } from '@/hooks/use-agent-threads';
+import { invalidateBillingWallet } from '@/hooks/use-billing-wallet';
 import type { AgentStreamEvent } from '@/lib/agent/stream-events';
 
 function makeId() {
@@ -204,12 +205,16 @@ export function useAgentChat() {
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: 'Request failed' }));
-          throw new Error(
-            typeof err.error === 'string' ? err.error : err.message ?? 'Request failed'
-          );
+          const message =
+            typeof err.error === 'string' ? err.error : err.message ?? 'Request failed';
+          if (res.status === 402) {
+            await invalidateBillingWallet(queryClient);
+          }
+          throw new Error(message);
         }
 
         assistantId = await processStream(res);
+        await invalidateBillingWallet(queryClient);
         queryClient.invalidateQueries({ queryKey: AGENT_THREADS_KEY });
       } catch (e) {
         setAgentSteps([]);
@@ -274,12 +279,16 @@ export function useAgentChat() {
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: 'Request failed' }));
-          throw new Error(
-            typeof err.error === 'string' ? err.error : err.message ?? 'Request failed'
-          );
+          const message =
+            typeof err.error === 'string' ? err.error : err.message ?? 'Request failed';
+          if (res.status === 402) {
+            await invalidateBillingWallet(queryClient);
+          }
+          throw new Error(message);
         }
 
         assistantId = await processStream(res);
+        await invalidateBillingWallet(queryClient);
         queryClient.invalidateQueries({ queryKey: AGENT_THREADS_KEY });
       } catch (e) {
         addAgentMessage({

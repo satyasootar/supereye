@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { WalletUsageSummary, AdminLlmTokenUsage } from '@/components/billing/usage-bar';
-import { formatDate, formatCredits } from '@/lib/billing/format';
+import { formatDate, formatCreditsExact } from '@/lib/billing/format';
 import { getWalletDisplayMetrics } from '@/lib/billing/wallet-math';
 import { formatDuration } from '@/lib/monitoring/format';
 import { cn } from '@/lib/utils';
@@ -111,6 +111,9 @@ export function ManageUserDialog({
 }: ManageUserDialogProps) {
   const [tokenAmount, setTokenAmount] = useState('10000');
   const [tokenReason, setTokenReason] = useState('Admin allocation');
+  const [periodAllocation, setPeriodAllocation] = useState(
+    String(user.monthlyAllocation ?? 0)
+  );
 
   const initials = (user.name ?? user.email ?? 'U')
     .split(' ')
@@ -194,24 +197,36 @@ export function ManageUserDialog({
                 unlimited: false,
               }}
               role={user.role}
-              effectiveLimit={walletMetrics.effectiveLimit}
-              remainingAllowance={walletMetrics.remaining}
+              showRemaining
             />
             <p className="mt-2 text-xs text-text-muted">
+              Period limit:{' '}
+              <span className="font-medium text-text-secondary">
+                {formatCreditsExact(user.monthlyAllocation ?? 0)}
+              </span>
+              {user.planName ? (
+                <span className="text-text-muted"> (assigned {user.planName} plan)</span>
+              ) : null}
+            </p>
+            <p className="mt-1 text-xs text-text-muted">
               Balance:{' '}
               <span className="font-medium text-text-secondary">
-                {formatCredits(user.balance ?? 0)}
+                {formatCreditsExact(user.balance ?? 0)}
               </span>
               {' · '}
               Remaining:{' '}
               <span className="font-medium text-text-secondary">
-                {formatCredits(walletMetrics.remaining)}
+                {formatCreditsExact(walletMetrics.remaining)}
               </span>
               {' · '}
               Used:{' '}
               <span className="font-medium text-text-secondary">
-                {formatCredits(user.usedThisPeriod ?? 0)}
+                {formatCreditsExact(walletMetrics.used)}
               </span>
+            </p>
+            <p className="mt-1 text-[11px] text-text-muted">
+              Add / Bonus / Remove only change balance. To set the monthly cap (e.g. 1,000 total),
+              use &quot;Set period allocation&quot; below.
             </p>
             {isSuperAdmin && (
               <AdminLlmTokenUsage aiTokensUsed={user.aiTokensUsed} className="mt-3" />
@@ -396,6 +411,56 @@ export function ManageUserDialog({
                     Remove
                   </Button>
                 </div>
+                {isSuperAdmin && (
+                  <div className="border-t border-border-subtle pt-3">
+                    <p className="mb-2 text-xs font-medium text-text-secondary">
+                      Set period allocation
+                    </p>
+                    <p className="mb-2 text-[11px] text-text-muted">
+                      Resets usage to 0 and sets balance to this amount for the current billing
+                      period. Use this to cap a user at a specific total (e.g. 1,000).
+                    </p>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <div className="min-w-[140px] flex-1">
+                        <label
+                          htmlFor="period-allocation"
+                          className="mb-1 block text-xs font-medium text-text-muted"
+                        >
+                          Monthly cap
+                        </label>
+                        <Input
+                          id="period-allocation"
+                          type="number"
+                          min={0}
+                          value={periodAllocation}
+                          onChange={(e) => setPeriodAllocation(e.target.value)}
+                          placeholder="1000"
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={
+                          isTokenPending ||
+                          periodAllocation === '' ||
+                          Number(periodAllocation) < 0
+                        }
+                        onClick={() =>
+                          onTokenAction({
+                            action: 'reset',
+                            monthlyAllocation: Number(periodAllocation),
+                          })
+                        }
+                      >
+                        {isTokenPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          'Set period allocation'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           )}

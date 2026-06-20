@@ -5,9 +5,11 @@ import { motion } from 'framer-motion';
 import { Mic, ArrowUp, Loader2, RefreshCw, Wand2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useAgentChat } from '@/hooks/use-agent-chat';
+import { useAiCreditsGate } from '@/hooks/use-ai-credits-gate';
 import { useVoiceInput } from '@/hooks/use-voice-input';
 import { InlineVoiceBar } from './inline-voice-bar';
 import { ThreadHistoryPopover } from './thread-history-popover';
+import { AgentCreditsNotice } from './agent-credits-notice';
 import { fillAgentInput, pickQuickSamples } from '@/lib/agent/sample-prompts';
 import { AgentServiceIcon } from './agent-service-icon';
 import { cn } from '@/lib/utils';
@@ -18,6 +20,7 @@ export function BottomInput() {
   const { isAgentExecuting, agentInteractiveMode, setAgentInteractiveMode, agentMessages } =
     useAppStore();
   const { sendMessage } = useAgentChat();
+  const { blocked: chatBlocked } = useAiCreditsGate();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleTranscript = useCallback((prefix: string, spoken: string) => {
@@ -59,6 +62,7 @@ export function BottomInput() {
   }, []);
 
   const handleVoiceStart = () => {
+    if (chatBlocked) return;
     if (!isListening && !isProcessing) start(input);
   };
 
@@ -74,7 +78,7 @@ export function BottomInput() {
 
   const handleSubmit = async (e?: FormEvent) => {
     e?.preventDefault();
-    if (!input.trim() || isAgentExecuting || isProcessing) return;
+    if (!input.trim() || isAgentExecuting || isProcessing || chatBlocked) return;
     if (isListening) confirm();
     const text = input;
     setInput('');
@@ -94,13 +98,17 @@ export function BottomInput() {
   const handleRefreshSamples = () => {
     setQuickSamples(pickQuickSamples(3, quickSamples.map((sample) => sample.id)));
   };
-  const placeholder = isProcessing
+  const placeholder = chatBlocked
+    ? 'AI chat disabled — add credits to continue'
+    : isProcessing
     ? 'Processing your voice…'
     : isListening
       ? mode === 'whisper'
         ? 'Recording… tap ✓ to transcribe into the box'
         : 'Speak now — words appear here as you talk…'
       : 'Ask eye...';
+
+  const inputDisabled = isAgentExecuting || isProcessing || chatBlocked;
 
   return (
     <motion.div
@@ -109,22 +117,24 @@ export function BottomInput() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
     >
+      <AgentCreditsNotice className="mb-3" />
       <form
         onSubmit={handleSubmit}
         className={cn(
           'overflow-hidden rounded-xl border border-border-default',
           'bg-bg-elevated/90 shadow-xl shadow-black/25 backdrop-blur-xl',
-          showVoiceBar && 'border-accent-blue/35 ring-1 ring-accent-blue/15'
+          showVoiceBar && 'border-accent-blue/35 ring-1 ring-accent-blue/15',
+          chatBlocked && 'opacity-80'
         )}
       >
-        {showInputSamples && (
+        {showInputSamples && !chatBlocked && (
           <div className="flex items-center gap-1.5 border-b border-border-subtle/60 px-3 py-2">
             <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
               {quickSamples.map((sample) => (
                 <button
                   key={sample.id}
                   type="button"
-                  disabled={isAgentExecuting}
+                  disabled={isAgentExecuting || chatBlocked}
                   onClick={() => fillAgentInput(sample.prompt)}
                   className={cn(
                     'inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-surface px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors',
@@ -139,7 +149,7 @@ export function BottomInput() {
             <button
               type="button"
               onClick={handleRefreshSamples}
-              disabled={isAgentExecuting}
+              disabled={isAgentExecuting || chatBlocked}
               title="Show different suggestions"
               aria-label="Refresh suggestions"
               className={cn(
@@ -165,7 +175,7 @@ export function BottomInput() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              disabled={isAgentExecuting || isProcessing}
+              disabled={inputDisabled}
               autoFocus
               className={cn(
                 'max-h-32 min-h-[40px] w-full resize-none bg-transparent px-3 py-2.5',
@@ -183,7 +193,7 @@ export function BottomInput() {
             <button
               type="button"
               onClick={() => setAgentInteractiveMode(!agentInteractiveMode)}
-              disabled={isAgentExecuting}
+              disabled={isAgentExecuting || chatBlocked}
               title="Guided mode: review and edit emails before sending"
               className={cn(
                 'flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold transition-all',
@@ -203,7 +213,7 @@ export function BottomInput() {
               <button
                 type="button"
                 onClick={handleVoiceStart}
-                disabled={isAgentExecuting}
+                disabled={isAgentExecuting || chatBlocked}
                 className={cn(
                   'flex h-9 w-9 items-center justify-center rounded-lg border transition-all',
                   'border-border-subtle bg-bg-surface text-text-muted',
@@ -218,7 +228,7 @@ export function BottomInput() {
 
             <button
               type="submit"
-              disabled={isAgentExecuting || isProcessing || !input.trim()}
+              disabled={inputDisabled || !input.trim()}
               className={cn(
                 'flex h-9 w-9 items-center justify-center rounded-lg transition-all',
                 'bg-accent-blue text-text-inverse hover:bg-accent-blue-dim',

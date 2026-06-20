@@ -6,6 +6,7 @@ import { AgentServiceIcon } from './agent-service-icon';
 import { Send, Sparkles, Video } from 'lucide-react';
 import { useAppStore, type AgentCalendarIntent } from '@/lib/store/app-store';
 import { useAgentChat } from '@/hooks/use-agent-chat';
+import { useAiCreditsGate } from '@/hooks/use-ai-credits-gate';
 import { useAgentContext } from '@/hooks/use-agent-context';
 import { CalendarScheduleCard } from './actions/calendar-schedule-card';
 import { cn } from '@/lib/utils';
@@ -31,6 +32,7 @@ export function EmailReviewPanel() {
   const { agentPendingReview, updateAgentPendingReview, isAgentExecuting } = useAppStore();
   const { todayDate, timeZone } = useAgentContext();
   const { confirmEmailDraft, sendMessage } = useAgentChat();
+  const { agentActionBlocked } = useAiCreditsGate();
   const [sending, setSending] = useState(false);
 
   const defaultCalendar = useMemo<AgentCalendarIntent>(
@@ -77,7 +79,7 @@ export function EmailReviewPanel() {
   };
 
   const handleSend = async () => {
-    if (sending || isAgentExecuting) return;
+    if (sending || isAgentExecuting || agentActionBlocked) return;
     setSending(true);
     try {
       await confirmEmailDraft({
@@ -259,9 +261,16 @@ export function EmailReviewPanel() {
         )}
 
         <div className="flex justify-end gap-2">
+          {agentActionBlocked && (
+            <p className="mr-auto text-xs text-amber-600">
+              Not enough credits to send or schedule. Add credits in billing.
+            </p>
+          )}
           <button
             type="button"
-            disabled={sending || isAgentExecuting || !subject.trim() || !body.trim()}
+            disabled={
+              sending || isAgentExecuting || agentActionBlocked || !subject.trim() || !body.trim()
+            }
             onClick={handleSend}
             className={cn(
               'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all',

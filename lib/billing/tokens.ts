@@ -97,6 +97,53 @@ export async function canUseAi(userId: string): Promise<boolean> {
   return getRemainingTokenAllowance(wallet) > 0;
 }
 
+export async function canAffordAiAction(
+  userId: string,
+  actionKey: string
+): Promise<boolean> {
+  const role = await getUserRole(userId);
+  if (hasUnlimitedAiAccess(role)) return true;
+
+  try {
+    await assertPlanAllowsAi(userId);
+  } catch {
+    return false;
+  }
+
+  const wallet = await ensureWalletPeriodFresh(userId);
+  if (!wallet || wallet.unlimited) return false;
+
+  const cost = await getActionTokenCost(actionKey);
+  if (cost <= 0) return true;
+
+  return getRemainingTokenAllowance(wallet) >= cost;
+}
+
+export async function assertCanAffordAiAction(userId: string, actionKey: string) {
+  await assertPlanAllowsAi(userId);
+
+  const role = await getUserRole(userId);
+  if (hasUnlimitedAiAccess(role)) return;
+
+  const wallet = await ensureWalletPeriodFresh(userId);
+  if (!wallet) {
+    throw new TokenExhaustedError('No token wallet found');
+  }
+  if (wallet.unlimited) return;
+
+  const cost = await getActionTokenCost(actionKey);
+  if (cost <= 0) return;
+
+  const remaining = getRemainingTokenAllowance(wallet);
+  if (remaining < cost) {
+    throw new TokenExhaustedError(
+      remaining <= 0
+        ? 'Your AI credits for this period are exhausted. Request more credits or upgrade your plan.'
+        : `This action needs ${cost} credits but you only have ${remaining} remaining. Request more credits or upgrade your plan.`
+    );
+  }
+}
+
 export async function assertCanUseAi(userId: string) {
   await assertPlanAllowsAi(userId);
   const allowed = await canUseAi(userId);

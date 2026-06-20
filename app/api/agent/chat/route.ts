@@ -16,8 +16,9 @@ import {
   getOrCreateThread,
   getThreadMessages,
 } from '@/lib/agent/threads';
-import { logAndConsumeAiUsage, checkAiAccess } from '@/lib/billing/usage';
+import { logAndConsumeAiUsage, checkAiAccessForAction } from '@/lib/billing/usage';
 import { tokenErrorResponse } from '@/lib/billing/errors';
+import { TokenExhaustedError } from '@/lib/billing/tokens';
 import { parseJsonBody, formatZodError } from '@/lib/validation/http';
 import { agentChatSchema } from '@/lib/validation/agent';
 import { getConnectedPluginIds } from '@/lib/plugins/integrations';
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
   const userId = session.user.id;
 
   try {
-    await checkAiAccess(userId);
+    await checkAiAccessForAction(userId, 'ai_chat');
   } catch (e) {
     const response = tokenErrorResponse(e);
     if (response) return response;
@@ -237,31 +238,23 @@ export async function POST(req: Request) {
           fullText = summary.text;
           steps.completeRunning('Summary ready');
 
-          try {
-            await logAndConsumeAiUsage(userId, {
-              feature: 'chat_summary',
-              usage: summary.usage,
-              metadata: { threadId: thread.id },
-            });
-          } catch {
-            /* usage logging is best-effort */
-          }
+          await logAndConsumeAiUsage(userId, {
+            feature: 'chat_summary',
+            usage: summary.usage,
+            metadata: { threadId: thread.id },
+          });
         } else {
           steps.completeRunning('Response ready');
         }
 
         await addMessageToThread(thread.id, 'assistant', fullText);
 
-        try {
-          const usage = await result.usage;
-          await logAndConsumeAiUsage(userId, {
-            feature: 'chat',
-            usage,
-            metadata: { threadId: thread.id },
-          });
-        } catch {
-          /* usage logging is best-effort */
-        }
+        const usage = await result.usage;
+        await logAndConsumeAiUsage(userId, {
+          feature: 'chat',
+          usage,
+          metadata: { threadId: thread.id },
+        });
 
         for (const char of fullText) {
           emit({ type: 'text-delta', delta: char });
@@ -272,6 +265,17 @@ export async function POST(req: Request) {
         emit({ type: 'done' });
         controller.close();
       } catch (e: unknown) {
+        const billingResponse = tokenErrorResponse(e);
+        if (billingResponse) {
+          const msg =
+            e instanceof TokenExhaustedError
+              ? e.message
+              : 'Your AI credits for this period are exhausted.';
+          steps.push(msg, 'error');
+          emit({ type: 'error', error: msg });
+          controller.close();
+          return;
+        }
         const msg = formatAgentError(e);
         steps.push(msg, 'error');
         emit({ type: 'error', error: msg });

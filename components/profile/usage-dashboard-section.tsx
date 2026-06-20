@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useBillingWallet } from '@/hooks/use-billing-wallet';
 import { format, formatDistanceToNow } from 'date-fns';
 import {
   MessageSquare,
@@ -111,15 +112,7 @@ export function UsageDashboardSection() {
     staleTime: 30_000,
   });
 
-  const { data: walletData } = useQuery({
-    queryKey: ['billing-wallet'],
-    queryFn: async () => {
-      const res = await fetch('/api/billing/wallet');
-      if (!res.ok) throw new Error('Failed to load credits');
-      return res.json();
-    },
-    staleTime: 30_000,
-  });
+  const { data: walletData } = useBillingWallet();
 
   if (isLoading) {
     return (
@@ -241,7 +234,6 @@ export function UsageDashboardSection() {
           <WalletUsageSummary
             wallet={walletData?.wallet ?? null}
             role={walletData?.role ?? 'user'}
-            effectiveLimit={walletData?.credits?.effectiveLimit}
           />
         </ProfileSection>
       </div>

@@ -1,11 +1,24 @@
 import { logAiUsage, type UsageFeature, normalizeUsage } from '@/lib/usage/log-usage';
-import { consumeTokens, assertCanUseAi } from '@/lib/billing/tokens';
+import {
+  consumeTokens,
+  assertCanUseAi,
+  assertCanAffordAiAction,
+} from '@/lib/billing/tokens';
 import { USAGE_FEATURE_TO_ACTION } from '@/lib/billing/constants';
 
-export { assertCanUseAi, TokenExhaustedError, PlanAiDisabledError } from '@/lib/billing/tokens';
+export {
+  assertCanUseAi,
+  assertCanAffordAiAction,
+  TokenExhaustedError,
+  PlanAiDisabledError,
+} from '@/lib/billing/tokens';
 
 export async function checkAiAccess(userId: string) {
   await assertCanUseAi(userId);
+}
+
+export async function checkAiAccessForAction(userId: string, actionKey: string) {
+  await assertCanAffordAiAction(userId, actionKey);
 }
 
 export async function logAndConsumeAiUsage(

@@ -83,4 +83,5 @@ export const USAGE_FEATURE_TO_ACTION: Record<string, string> = {
   daily_brief: 'ai_daily_brief',
   transcribe: 'ai_transcribe',
   agent_email_send: 'ai_email_draft',
+  agent_confirm: 'ai_agent_action',
 };

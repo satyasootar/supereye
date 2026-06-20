@@ -8,7 +8,8 @@ export type UsageFeature =
   | 'email_compose_enhance'
   | 'daily_brief'
   | 'transcribe'
-  | 'agent_email_send';
+  | 'agent_email_send'
+  | 'agent_confirm';
 
 type RawUsage = {
   inputTokens?: number;

@@ -5,8 +5,11 @@ import { Coins, CreditCard, Loader2, Mail, Sparkles, Clock, CheckCircle2 } from 
 import { ProfileSection, ProfileRow } from '@/components/profile/profile-section';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatCredits } from '@/lib/billing/format';
+import { formatCurrency, formatCredits, formatUsagePercent } from '@/lib/billing/format';
 import { getWalletDisplayMetrics } from '@/lib/billing/wallet-math';
+import { useBillingWallet } from '@/hooks/use-billing-wallet';
+import { WalletUsageRefreshButton } from '@/components/billing/wallet-refresh-button';
+import { UsageBar } from '@/components/billing/usage-bar';
 import { cn } from '@/lib/utils';
 import {
   hasUnlimitedAiAccess,
@@ -14,24 +17,6 @@ import {
   TOKEN_SUPPORT_X_URL,
 } from '@/lib/billing/constants';
 import { planAiLabel } from '@/lib/billing/plan-access';
-
-type WalletResponse = {
-  wallet: {
-    balance: number;
-    monthlyAllocation: number;
-    bonusAllocation?: number;
-    usedThisPeriod: number;
-    unlimited: boolean;
-    periodEnd: string | null;
-  } | null;
-  subscription: {
-    subscription: { status: string; currentPeriodEnd: string };
-    plan: { id: string; name: string; priceCents: number; monthlyTokens: number };
-  } | null;
-  packs: { id: string; name: string; tokenAmount: number; priceCents: number }[];
-  credits?: { aiEnabled: boolean; effectiveLimit: number; remainingAllowance: number } | null;
-  role: string;
-};
 
 type PlanOption = {
   id: string;
@@ -95,14 +80,7 @@ function RequestStatusBadge({ status }: { status: BillingRequest['status'] }) {
 export function BillingSection() {
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery<WalletResponse>({
-    queryKey: ['billing-wallet'],
-    queryFn: async () => {
-      const res = await fetch('/api/billing/wallet');
-      if (!res.ok) throw new Error('Failed to load billing');
-      return res.json();
-    },
-  });
+  const { data, isLoading, error, refetch, isFetching } = useBillingWallet();
 
   const { data: plansData } = useQuery<{ plans: PlanOption[] }>({
     queryKey: ['billing-plans'],
@@ -173,7 +151,6 @@ export function BillingSection() {
 
   const { wallet, subscription, packs, role } = data;
   const isUnlimited = hasUnlimitedAiAccess(role) || wallet?.unlimited;
-  const used = wallet?.usedThisPeriod ?? 0;
   const allocation = wallet?.monthlyAllocation ?? 0;
   const bonus = wallet?.bonusAllocation ?? 0;
   const walletMetrics = wallet
@@ -181,11 +158,12 @@ export function BillingSection() {
         balance: wallet.balance,
         monthlyAllocation: allocation,
         bonusAllocation: bonus,
-        usedThisPeriod: used,
+        usedThisPeriod: wallet.usedThisPeriod ?? 0,
       })
     : null;
-  const effectiveLimit = data.credits?.effectiveLimit ?? walletMetrics?.effectiveLimit ?? 0;
-  const remaining = data.credits?.remainingAllowance ?? walletMetrics?.remaining ?? 0;
+  const effectiveLimit = walletMetrics?.effectiveLimit ?? 0;
+  const remaining = walletMetrics?.remaining ?? 0;
+  const used = walletMetrics?.used ?? 0;
   const pct = walletMetrics?.pct ?? 0;
   const isExhausted = !isUnlimited && remaining === 0;
 
@@ -360,29 +338,49 @@ export function BillingSection() {
         ) : (
           <>
             <div className="rounded-lg border border-border-default bg-bg-elevated p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Coins className="h-4 w-4 text-text-muted" />
-                  <span className="text-2xl font-semibold text-text-primary">
-                    {formatCredits(remaining)}
-                  </span>
-                  <span className="text-sm text-text-muted">remaining</span>
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-semibold text-text-primary">
+                        {formatCredits(remaining)}
+                      </span>
+                      <span className="text-sm text-text-muted">remaining</span>
+                    </div>
+                    <p className="mt-0.5 text-sm text-text-muted">
+                      {formatUsagePercent(pct)} used · {formatCredits(used)} of{' '}
+                      {formatCredits(effectiveLimit)}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-sm text-text-muted">
-                  {formatCredits(used)} used of {formatCredits(effectiveLimit)}
-                </span>
+                <WalletUsageRefreshButton
+                  onClick={() => void refetch()}
+                  isFetching={isFetching}
+                  size="md"
+                />
               </div>
               {bonus > 0 && (
-                <p className="mt-1 text-xs text-text-muted">
+                <p className="mt-2 text-xs text-text-muted">
                   Includes {formatCredits(bonus)} bonus credits granted by admin
                 </p>
               )}
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-bg-surface">
-                <div
-                  className="h-full rounded-full bg-accent-blue transition-all"
-                  style={{ width: `${pct}%` }}
+              <div className="mt-4">
+                <UsageBar
+                  label="AI Credits"
+                  metrics={{
+                    effectiveLimit,
+                    remaining,
+                    used,
+                    pct,
+                  }}
+                  showRemaining={false}
+                  showPercent={false}
                 />
               </div>
+              <p className="mt-2 text-xs text-text-muted">
+                Updates automatically every minute. Use refresh for the latest balance.
+              </p>
               {isExhausted && (
                 <p className="mt-3 text-sm text-amber-600">
                   Your AI credits for this period are exhausted. Request a credit pack below.

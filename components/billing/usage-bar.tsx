@@ -1,17 +1,22 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { formatCredits } from '@/lib/billing/format';
+import { formatCreditsExact, formatUsagePercent } from '@/lib/billing/format';
 import { hasUnlimitedAiAccess } from '@/lib/billing/constants';
-import { getWalletDisplayMetrics } from '@/lib/billing/wallet-math';
+import {
+  getCreditStatus,
+  getWalletDisplayMetrics,
+  type WalletDisplayMetrics,
+} from '@/lib/billing/wallet-math';
 
 type UsageBarProps = {
   label: string;
-  used: number;
-  limit: number;
+  metrics: WalletDisplayMetrics;
   className?: string;
   compact?: boolean;
   showRemaining?: boolean;
+  showPercent?: boolean;
+  trailingAction?: React.ReactNode;
 };
 
 function usageBarColor(pct: number): string {
@@ -22,15 +27,14 @@ function usageBarColor(pct: number): string {
 
 export function UsageBar({
   label,
-  used,
-  limit,
-  remaining,
+  metrics,
   className,
   compact,
-  showRemaining,
-}: UsageBarProps & { remaining?: number }) {
-  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-  const remainingCredits = remaining ?? Math.max(0, limit - used);
+  showRemaining = true,
+  showPercent = true,
+  trailingAction,
+}: UsageBarProps) {
+  const { effectiveLimit: limit, remaining, used, pct } = metrics;
 
   return (
     <div className={cn('space-y-1', className)}>
@@ -38,20 +42,29 @@ export function UsageBar({
         <span className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
           {label}
         </span>
-        <span className="text-[10px] tabular-nums text-text-secondary">
-          {showRemaining ? (
-            <>
-              {formatCredits(remainingCredits)} left
-            </>
-          ) : (
-            <>
-              {formatCredits(used)}
-              {!compact && limit > 0 && (
-                <span className="text-text-muted"> / {formatCredits(limit)}</span>
-              )}
-            </>
-          )}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] tabular-nums text-text-secondary">
+            {showRemaining ? (
+              <>
+                {formatCreditsExact(remaining)} left
+                {showPercent && limit > 0 ? (
+                  <span className="text-text-muted"> · {formatUsagePercent(pct)} used</span>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {formatCreditsExact(used)}
+                {!compact && limit > 0 && (
+                  <span className="text-text-muted"> / {formatCreditsExact(limit)}</span>
+                )}
+                {showPercent && limit > 0 ? (
+                  <span className="text-text-muted"> · {formatUsagePercent(pct)} used</span>
+                ) : null}
+              </>
+            )}
+          </span>
+          {trailingAction}
+        </div>
       </div>
       <div
         className="h-1.5 overflow-hidden rounded-full bg-bg-overlay"
@@ -59,15 +72,17 @@ export function UsageBar({
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`${label}: ${pct}% used`}
+        aria-label={`${label}: ${formatUsagePercent(pct)} used, ${formatCreditsExact(remaining)} remaining`}
       >
         <div
           className={cn('h-full rounded-full transition-all duration-500', usageBarColor(pct))}
-          style={{ width: `${pct}%` }}
+          style={{ width: `${pct > 0 ? Math.max(pct, 2) : 0}%` }}
         />
       </div>
       {!compact && !showRemaining && limit > 0 && (
-        <p className="text-[10px] text-text-muted">{formatCredits(remainingCredits)} remaining</p>
+        <p className="text-[10px] text-text-muted">
+          {formatCreditsExact(remaining)} remaining
+        </p>
       )}
     </div>
   );
@@ -82,10 +97,10 @@ type WalletUsageSummaryProps = {
     unlimited: boolean;
   } | null;
   role: string;
-  effectiveLimit?: number;
-  remainingAllowance?: number;
   compact?: boolean;
   showRemaining?: boolean;
+  showPercent?: boolean;
+  headerAction?: React.ReactNode;
   className?: string;
 };
 
@@ -93,10 +108,10 @@ type WalletUsageSummaryProps = {
 export function WalletUsageSummary({
   wallet,
   role,
-  effectiveLimit,
-  remainingAllowance,
   compact,
   showRemaining,
+  showPercent = true,
+  headerAction,
   className,
 }: WalletUsageSummaryProps) {
   if (!wallet) return null;
@@ -120,11 +135,9 @@ export function WalletUsageSummary({
     bonusAllocation: wallet.bonusAllocation,
     usedThisPeriod: wallet.usedThisPeriod,
   });
-  const limit = effectiveLimit ?? metrics.effectiveLimit;
-  const remaining = remainingAllowance ?? metrics.remaining;
-  const creditsUsed = metrics.used;
+  const status = getCreditStatus(metrics);
 
-  if (limit <= 0) {
+  if (metrics.effectiveLimit <= 0) {
     return (
       <div
         className={cn(
@@ -140,17 +153,22 @@ export function WalletUsageSummary({
   return (
     <div
       className={cn(
-        'rounded-[var(--radius-md)] border border-border-subtle bg-bg-surface/60 px-2.5 py-2.5',
+        'rounded-[var(--radius-md)] border bg-bg-surface/60 px-2.5 py-2.5',
+        status === 'exhausted'
+          ? 'border-[color:var(--priority-urgent)]/35'
+          : status === 'low'
+            ? 'border-amber-500/35'
+            : 'border-border-subtle',
         className
       )}
     >
       <UsageBar
         label="AI Credits"
-        used={creditsUsed}
-        limit={limit}
-        remaining={remaining}
+        metrics={metrics}
         compact={compact}
         showRemaining={showRemaining ?? compact}
+        showPercent={showPercent}
+        trailingAction={headerAction}
       />
     </div>
   );
@@ -175,7 +193,7 @@ export function AdminLlmTokenUsage({
         LLM tokens (admin only)
       </p>
       <p className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
-        {formatCredits(aiTokensUsed)} total consumed
+        {formatCreditsExact(aiTokensUsed)} total consumed
       </p>
       <p className="mt-0.5 text-xs text-text-muted">
         Raw model input/output tokens — not shown to users.

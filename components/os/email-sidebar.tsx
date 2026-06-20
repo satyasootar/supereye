@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { NotificationBell } from './notification-bell';
 import { SidebarUsageBar } from '@/components/billing/sidebar-usage-bar';
+import { useBillingWallet } from '@/hooks/use-billing-wallet';
 import { hasAdminPanelAccess } from '@/lib/billing/constants';
 
 const basePrimaryNav = [
@@ -142,15 +143,7 @@ export function EmailSidebar() {
 
   const goToProfile = () => router.push('/workspace/profile');
 
-  const { data: billingData } = useQuery({
-    queryKey: ['billing-wallet'],
-    queryFn: async () => {
-      const res = await fetch('/api/billing/wallet');
-      if (!res.ok) throw new Error('Failed to fetch billing');
-      return res.json();
-    },
-    staleTime: 60000 * 5,
-  });
+  const { data: billingData } = useBillingWallet();
 
   const getPlanName = () => {
     if (session?.user?.role === 'super_admin') return 'Enterprise';

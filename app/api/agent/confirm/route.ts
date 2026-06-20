@@ -6,6 +6,9 @@ import { resolveTimeZone } from '@/lib/agent/datetime';
 import { parseJsonBody, formatZodError } from '@/lib/validation/http';
 import { agentConfirmDraftSchema } from '@/lib/validation/agent';
 import { addMessageToThread, getOrCreateThread } from '@/lib/agent/threads';
+import { logAndConsumeAiUsage, checkAiAccessForAction } from '@/lib/billing/usage';
+import { tokenErrorResponse } from '@/lib/billing/errors';
+import { TokenExhaustedError } from '@/lib/billing/tokens';
 
 export async function POST(req: Request) {
   const authResult = await requireActiveUserSession();
@@ -18,6 +21,14 @@ export async function POST(req: Request) {
   const { to, subject, body, calendarIntent, threadId, context } = parsed.data;
   const userId = session.user.id;
   const timeZone = resolveTimeZone(context?.timeZone);
+
+  try {
+    await checkAiAccessForAction(userId, 'ai_agent_action');
+  } catch (e) {
+    const response = tokenErrorResponse(e);
+    if (response) return response;
+    throw e;
+  }
 
   let thread;
   try {
@@ -56,6 +67,11 @@ export async function POST(req: Request) {
           timeZone
         );
 
+        await logAndConsumeAiUsage(userId, {
+          feature: 'agent_confirm',
+          metadata: { threadId: thread.id, hasCalendar: Boolean(calendarIntent) },
+        });
+
         const summary = calendarIntent
           ? `Done! Your email has been sent and the calendar event **${calendarIntent.summary}** is on the books.${
               result.meetLink ? `\n\nGoogle Meet: ${result.meetLink}` : ''
@@ -72,9 +88,16 @@ export async function POST(req: Request) {
         emit({ type: 'done' });
         controller.close();
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : 'Failed to send';
+        const billingResponse = tokenErrorResponse(e);
+        const msg =
+          e instanceof TokenExhaustedError
+            ? e.message
+            : e instanceof Error
+              ? e.message
+              : 'Failed to send';
         emit({ type: 'error', error: msg });
         controller.close();
+        if (billingResponse) return;
       }
     },
   });

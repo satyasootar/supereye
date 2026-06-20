@@ -26,12 +26,30 @@ export type WalletSnapshot = {
   unlimited?: boolean;
 };
 
-export function getWalletDisplayMetrics(wallet: WalletSnapshot) {
+export type WalletDisplayMetrics = {
+  effectiveLimit: number;
+  remaining: number;
+  used: number;
+  pct: number;
+};
+
+export function getWalletDisplayMetrics(wallet: WalletSnapshot): WalletDisplayMetrics {
   const effectiveLimit = getEffectiveTokenLimit(wallet);
   const remaining = getRemainingTokenAllowance(wallet);
-  const used = wallet.usedThisPeriod ?? 0;
+  const used =
+    effectiveLimit > 0
+      ? Math.min(effectiveLimit, Math.max(0, effectiveLimit - remaining))
+      : (wallet.usedThisPeriod ?? 0);
   const pct =
     effectiveLimit > 0 ? Math.min(100, Math.round((used / effectiveLimit) * 100)) : 0;
 
   return { effectiveLimit, remaining, used, pct };
+}
+
+export type CreditStatus = 'ok' | 'low' | 'exhausted';
+
+export function getCreditStatus(metrics: Pick<WalletDisplayMetrics, 'remaining' | 'pct'>): CreditStatus {
+  if (metrics.remaining <= 0) return 'exhausted';
+  if (metrics.pct >= 80) return 'low';
+  return 'ok';
 }

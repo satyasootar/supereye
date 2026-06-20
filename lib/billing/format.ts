@@ -5,6 +5,11 @@ export function formatTokens(value: number | null | undefined): string {
   return n.toLocaleString();
 }
 
+/** Exact credit count for admin views — avoids 1.0k vs 1.0M confusion */
+export function formatCreditsExact(value: number | null | undefined): string {
+  return (value ?? 0).toLocaleString();
+}
+
 /** User-facing label for billing credits (same numeric format as tokens) */
 export const formatCredits = formatTokens;
 
@@ -16,6 +21,10 @@ export function formatCurrency(cents: number | null | undefined): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(amount);
+}
+
+export function formatUsagePercent(pct: number): string {
+  return `${Math.min(100, Math.max(0, Math.round(pct)))}%`;
 }
 
 export function formatDate(value: string | Date | null | undefined): string {
