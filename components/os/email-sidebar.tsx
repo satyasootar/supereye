@@ -17,6 +17,7 @@ import { NotificationBell } from './notification-bell';
 
 const basePrimaryNav = [
   { icon: Inbox, label: 'Inbox', id: 'INBOX' },
+  { icon: Mail, label: 'All Mail', id: 'ALL' },
   { icon: FileText, label: 'Drafts', id: 'DRAFT' },
   { icon: Send, label: 'Sent', id: 'SENT' },
   { icon: Archive, label: 'Archive', id: 'ARCHIVE' },
@@ -363,23 +364,7 @@ export function EmailSidebar() {
                 )}
               </div>
               <div className="mt-1 flex flex-col gap-0.5">
-                <button
-                  onClick={() => {
-                    setEmailCategory('ALL');
-                    setEmailPriorityFilter('all');
-                  }}
-                  className={cn(
-                    'flex items-center justify-between rounded-md px-3 py-1.5 text-[13.5px] font-medium transition-colors',
-                    emailPriorityFilter === 'all'
-                      ? 'bg-bg-highlight text-text-primary border-l-2 border-accent-blue rounded-l-none'
-                      : 'text-text-secondary hover:bg-bg-overlay hover:text-text-primary border-l-2 border-transparent'
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <Inbox className="h-4 w-4" />
-                    All mail
-                  </div>
-                </button>
+
                 <button
                   onClick={() => {
                     setEmailCategory('ALL');

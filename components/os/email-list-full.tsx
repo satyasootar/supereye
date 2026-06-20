@@ -4,7 +4,7 @@ import {
   Menu, Filter, Tag, CheckCircle2, SlidersHorizontal, Square, 
   CheckSquare, Archive, Trash2, Calendar, MessageSquare, 
   MoreHorizontal, ChevronDown, Plus, Search, Send, X, FileText, Inbox,
-  AlertCircle
+  AlertCircle, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -59,7 +59,6 @@ const CATEGORY_TABS: { id: FilterCategory; label: string }[] = [
   { id: 'CATEGORY_PROMOTIONS', label: 'Promotions' },
   { id: 'CATEGORY_SOCIAL', label: 'Social' },
   { id: 'CATEGORY_UPDATES', label: 'Updates' },
-  { id: 'ALL', label: 'All Mail' },
 ];
 
 function buildPeekIframeHtml(body: string, isDark: boolean): string {
@@ -730,11 +729,16 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
             {selectedIds.length > 0 && (
               <button 
                 onClick={handleBulkDelete}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-destructive hover:bg-destructive/10 rounded-full cursor-pointer transition-colors"
+                disabled={bulkTrashMutation.isPending}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-destructive hover:bg-destructive/10 rounded-full cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Move selected to Trash"
               >
-                <Trash2 className="h-4 w-4" />
-                <span>Delete ({selectedIds.length})</span>
+                {bulkTrashMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                <span>{bulkTrashMutation.isPending ? 'Deleting...' : `Delete (${selectedIds.length})`}</span>
               </button>
             )}
           </div>
