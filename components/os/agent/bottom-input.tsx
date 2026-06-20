@@ -152,8 +152,8 @@ export function BottomInput() {
           </div>
         )}
 
-        <div className="flex items-end gap-2 p-2">
-          <div className="flex shrink-0 items-center pb-1 pl-1">
+        <div className="flex items-center gap-2 p-2">
+          <div className="flex shrink-0 items-center pl-1">
             {!showVoiceBar && <ThreadHistoryPopover />}
           </div>
 
@@ -168,8 +168,8 @@ export function BottomInput() {
               disabled={isAgentExecuting || isProcessing}
               autoFocus
               className={cn(
-                'max-h-32 min-h-[44px] w-full resize-none bg-transparent px-3 py-2.5',
-                'text-[14px] leading-relaxed text-text-primary outline-none',
+                'max-h-32 min-h-[40px] w-full resize-none bg-transparent px-3 py-2.5',
+                'text-[14px] leading-5 text-text-primary outline-none',
                 'placeholder:text-text-muted disabled:opacity-60',
                 showVoiceBar && 'caret-accent-blue'
               )}
@@ -179,7 +179,7 @@ export function BottomInput() {
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-1 pb-1 pr-1">
+          <div className="flex shrink-0 items-center gap-1 pr-1">
             <button
               type="button"
               onClick={() => setAgentInteractiveMode(!agentInteractiveMode)}

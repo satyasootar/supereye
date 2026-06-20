@@ -4,6 +4,8 @@ import {
   getTodayInTimezone,
   resolveTimeZone,
 } from '@/lib/agent/datetime';
+import { getPlugin } from '@/lib/plugins/registry';
+import type { PluginId } from '@/lib/plugins/types';
 
 export function buildAgentSystemPrompt(context: {
   userName?: string;
@@ -16,6 +18,7 @@ export function buildAgentSystemPrompt(context: {
   todayDate?: string;
   interactiveMode?: boolean;
   connectedPlugins?: string[];
+  accountSnapshot?: string | null;
 }): string {
   const timeZone = resolveTimeZone(context.timeZone);
   const nowLocal = context.nowLocal ?? formatNowInTimezone(timeZone);
@@ -52,10 +55,75 @@ For email + calendar + Google Meet requests: create the calendar event **first**
   const hasGithub = connected.includes('github');
   const hasDrive = connected.includes('drive');
 
+  const connectedLabels = connected
+    .map((id) => getPlugin(id as PluginId)?.label ?? id)
+    .join(', ');
+
   const connectedSummary =
     connected.length > 0
-      ? `Connected for this user: ${connected.join(', ')}.`
+      ? `Connected for this user: ${connectedLabels}.`
       : 'No Corsair integrations connected yet for this user.';
+
+  const availableToolLines: string[] = [
+    '- **get_account_summary** — Current Supereye plan, subscription, and AI token usage',
+  ];
+  if (hasGmail) {
+    availableToolLines.push(
+      '- **send_email** — Send email via Gmail',
+      ...(context.interactiveMode ? ['- **draft_email** — Draft email for review (guided mode)'] : [])
+    );
+  }
+  if (hasCalendar) {
+    availableToolLines.push(
+      '- **create_calendar_event** — Create a calendar event',
+      '- **list_calendar_events** — List events for a day',
+      '- **delete_calendar_event** — Delete one event by id',
+      '- **clear_calendar_schedule** — Clear all events on a day'
+    );
+  }
+  if (hasGithub) {
+    availableToolLines.push(
+      '- **list_github_pull_requests** — List pull requests',
+      '- **list_github_repos** — List repositories',
+      '- **list_github_issues** — List issues'
+    );
+  }
+  if (hasDrive) {
+    availableToolLines.push(
+      '- **list_drive_recent_files** — Recent Drive files',
+      '- **search_drive_files** — Search Drive by name'
+    );
+  }
+  if (connected.length > 0) {
+    availableToolLines.push(
+      '- **list_operations** / **get_schema** / **run_script** — Corsair reads (connected plugins only)'
+    );
+  }
+
+  const scopeBlock =
+    connected.length === 0
+      ? `## Scope (mandatory)
+
+You are **eye**, the Supereye assistant. The user has **no integrations connected**.
+
+**You MAY answer:** Supereye **plan**, **subscription**, **billing**, and **AI token** questions (use \`get_account_summary\` or the account snapshot below).
+
+**Refuse everything else**, including email, calendar, GitHub, Drive, coding, weather, and general knowledge. Tell them to connect plugins in **Settings → Connections**.`
+      : `## Scope (mandatory — highest priority)
+
+You are **eye**, the Supereye assistant. You help with:
+1. The user's **connected integrations**: **${connectedLabels}**
+2. Their **Supereye account**: plan, subscription, billing, AI tokens (use \`get_account_summary\` or account snapshot)
+
+**Refuse immediately (no tools, no long answers) if the user asks about:**
+- Writing or debugging code (any language)
+- Weather, news, sports, stocks, recipes, jokes, homework, translations
+- General knowledge unrelated to Supereye or connected integrations
+- Gmail, Calendar, GitHub, or Drive when that service is **not** connected
+
+**When refusing**, say briefly what eye can help with (connected plugins + account). Suggest **Settings → Connections** to add integrations.
+
+**Never** produce code blocks, tutorials, or answers outside Supereye account + connected plugin workflows.`;
 
   const integrationNote = [
     hasGmail || hasCalendar || hasGithub || hasDrive
@@ -73,7 +141,7 @@ For email + calendar + Google Meet requests: create the calendar event **first**
 
   return `You are eye, the AI assistant embedded in Supereye (email and calendar productivity app).
 
-You have access to the user's connected services through **Corsair** — integrations include **Gmail**, **Google Calendar**, **GitHub**, and **Google Drive** (when connected).
+${scopeBlock}
 
 ${connectedSummary}
 ${integrationNote ? `- ${integrationNote}` : ''}
@@ -87,28 +155,19 @@ ${integrationNote ? `- ${integrationNote}` : ''}
 - Compute relative phrases like "today", "tomorrow", and "next Monday" from today's date above. Never invent or guess the current date.
 - When creating events, pass times in the user's local timezone using the \`create_calendar_event\` fields below.
 
-## Your tools (Corsair MCP)
+## Your tools (connected plugins only)
 
-1. **send_email** — Send an email via Gmail (preferred for all outbound email).
-2. **draft_email** — Compose an email draft for user review (interactive mode only; does not send).
-3. **create_calendar_event** — Create a Google Calendar event (preferred for scheduling).
-4. **list_calendar_events** — List events for a day (live Google Calendar; returns \`id\` for deletes).
-5. **delete_calendar_event** — Delete one event by Google \`id\` from list_calendar_events.
-6. **clear_calendar_schedule** — Delete ALL events on a day. Use for "clear my schedule today".
-7. **list_github_pull_requests** — List PRs across repos (preferred for any pull request question).
-8. **list_github_repos** — List the user's GitHub repositories.
-9. **list_github_issues** — List GitHub issues across repos.
-10. **list_drive_recent_files** — List recent Google Drive files (preferred before emailing a Drive link).
-11. **search_drive_files** — Search Google Drive by file name.
-12. **list_operations** — Discover available operations. Filter with plugin: \`gmail\`, \`googlecalendar\`, \`github\`, or \`googledrive\`.
-13. **get_schema** — Get the exact input schema for an operation path before calling it.
-14. **run_script** — Low-level fallback only. Prefer the dedicated tools above.
+${availableToolLines.length > 0 ? availableToolLines.join('\n') : 'No tools available — user must connect integrations first.'}
+
+Do not call tools for disconnected services. Do not invent capabilities beyond this list.
 
 ${interactiveBlock}
 
 ## How to act
 
-- For reads: prefer \`tenant.gmail.api.*\`, \`tenant.googlecalendar.api.*\`, \`tenant.github.api.*\`, or \`tenant.googledrive.api.*\` for live data.
+- For **plan / subscription / token** questions: answer from the account snapshot or call \`get_account_summary\`. Do not guess.
+- Stay strictly within connected plugins (**${connectedLabels || 'none'}**) and Supereye account topics. Refuse everything else.
+- For reads: use tools and \`run_script\` only for connected plugins.
 - For GitHub PRs/issues/repos: **always use \`list_github_pull_requests\`, \`list_github_issues\`, or \`list_github_repos\` first** — do NOT use run_script for PR queries.
 - For Google Drive files: **always use \`list_drive_recent_files\` or \`search_drive_files\` first** when user asks for recent documents or Drive links before sending email.
 - For Google Drive: do NOT use run_script unless the dedicated tools fail.
@@ -222,5 +281,10 @@ return files.files;
 
 ${contextSummary}
 User name: ${context.userName ?? 'User'}
-Model provider: ${context.providerLabel}`;
+Model provider: ${context.providerLabel}
+${
+  context.accountSnapshot
+    ? `\n## Account snapshot (authoritative for plan & billing questions)\n\n${context.accountSnapshot}\n`
+    : ''
+}`;
 }

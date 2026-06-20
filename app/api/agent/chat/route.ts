@@ -21,6 +21,11 @@ import { tokenErrorResponse } from '@/lib/billing/errors';
 import { parseJsonBody, formatZodError } from '@/lib/validation/http';
 import { agentChatSchema } from '@/lib/validation/agent';
 import { getConnectedPluginIds } from '@/lib/plugins/integrations';
+import { evaluateAgentScope, isSupereyeAccountQuestion } from '@/lib/agent/scope';
+import {
+  getAccountSummaryForAgent,
+  formatAccountSummaryForPrompt,
+} from '@/lib/agent/account-summary';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
@@ -109,6 +114,18 @@ export async function POST(req: Request) {
   const encoder = new TextEncoder();
   const model = getAgentModel();
   const providerLabel = getAgentProviderLabel();
+  const connectedPlugins = await getConnectedPluginIds(userId);
+  const scopeResult = evaluateAgentScope(userMessage, connectedPlugins);
+
+  let accountSnapshot: string | null = null;
+  if (isSupereyeAccountQuestion(userMessage)) {
+    try {
+      const summary = await getAccountSummaryForAgent(userId);
+      accountSnapshot = formatAccountSummaryForPrompt(summary);
+    } catch (e) {
+      console.error('Failed to load account snapshot for agent:', e);
+    }
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -121,6 +138,25 @@ export async function POST(req: Request) {
       const steps = new AgentStepEmitter(emit);
       const actions = new AgentActionEmitter(emit);
 
+      const streamRefusal = async (text: string) => {
+        steps.push('Request outside scope', 'error');
+        await addMessageToThread(thread.id, 'assistant', text);
+        const messageId = `msg-${Date.now()}`;
+        emit({ type: 'text-start', messageId });
+        for (const char of text) {
+          emit({ type: 'text-delta', delta: char });
+          await new Promise((r) => setTimeout(r, 2));
+        }
+        emit({ type: 'text-end' });
+        emit({ type: 'done' });
+        controller.close();
+      };
+
+      if (!scopeResult.allowed) {
+        await streamRefusal(scopeResult.message);
+        return;
+      }
+
       try {
         steps.push('Connected to assistant', 'done');
         steps.push('Loading Corsair integration tools', 'running');
@@ -129,12 +165,11 @@ export async function POST(req: Request) {
           timeZone: context?.timeZone,
           actions,
           interactiveMode: context?.interactiveMode,
+          connectedPlugins,
         });
         steps.completeRunning(`Corsair tools ready (${Object.keys(agentTools).length})`);
 
         steps.push('Analyzing your request', 'running');
-
-        const connectedPlugins = await getConnectedPluginIds(userId);
 
         const result = streamText({
           model,
@@ -152,6 +187,7 @@ export async function POST(req: Request) {
             todayDate: context?.todayDate,
             interactiveMode: context?.interactiveMode,
             connectedPlugins,
+            accountSnapshot,
           }),
           messages,
           experimental_onToolCallStart: ({ toolCall }) => {
@@ -189,6 +225,7 @@ export async function POST(req: Request) {
             model,
             maxRetries: 1,
             prompt: `The user asked: "${userMessage}"\n\nHere is the data from Corsair tools:\n\n${contextData}\n\nRules:
+- Only summarize data from the user's connected integrations. Do not add coding, weather, or general knowledge.
 - If any tool output contains "error" or success is false, say the action FAILED and include the error.
 - Never claim an email was sent unless send_email returned success:true.
 - Never claim an event was created unless create_calendar_event returned success:true with an id.

@@ -26,6 +26,11 @@ import { createScriptTenant, getScriptHelpers } from '@/lib/agent/script-tenant'
 import { DEFAULT_TIMEZONE, resolveTimeZone, getTodayInTimezone } from '@/lib/agent/datetime';
 import type { AgentStepEmitter } from '@/lib/agent/stream-events';
 import { AgentActionEmitter } from '@/lib/agent/stream-events';
+import {
+  filterAgentToolSet,
+  assertRunScriptPluginAccess,
+} from '@/lib/agent/scope';
+import type { PluginId } from '@/lib/plugins/types';
 
 const TOOL_STEP_LABELS: Record<string, string> = {
   list_operations: 'Discovering available operations',
@@ -43,6 +48,7 @@ const TOOL_STEP_LABELS: Record<string, string> = {
   list_calendar_events: 'Loading calendar',
   delete_calendar_event: 'Removing event',
   clear_calendar_schedule: 'Clearing schedule',
+  get_account_summary: 'Loading account & billing',
 };
 
 function parseToolOutput(result: { content: { type: string; text?: string }[]; isError?: boolean }) {
@@ -75,7 +81,8 @@ function wrapHandler(
   userId: string,
   defaultTimeZone: string,
   steps?: AgentStepEmitter,
-  actions?: AgentActionEmitter
+  actions?: AgentActionEmitter,
+  connectedPlugins: PluginId[] = []
 ) {
   return async (args: Record<string, unknown>) => {
     const stepId = steps?.subStep(TOOL_STEP_LABELS[def.name] ?? `Running ${def.name}`);
@@ -96,6 +103,7 @@ function wrapHandler(
       let result;
 
       if (def.name === 'run_script' && typeof args.code === 'string') {
+        assertRunScriptPluginAccess(args.code, connectedPlugins);
         const tenant = createScriptTenant(userId, defaultTimeZone);
         const { createCalendarEvent, sendEmail, listGithubPullRequests } = getScriptHelpers(
           userId,
@@ -153,6 +161,32 @@ function wrapHandler(
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function createAccountTools(
+  userId: string,
+  steps?: AgentStepEmitter
+): ToolSet {
+  return {
+    get_account_summary: tool({
+      description:
+        'Get the current user Supereye plan, subscription status, and AI token usage. Use for plan, billing, subscription, or token balance questions.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        const stepId = steps?.subStep('Loading account & billing');
+        try {
+          const { getAccountSummaryForAgent } = await import('@/lib/agent/account-summary');
+          const summary = await getAccountSummaryForAgent(userId);
+          steps?.completeRunning('Account loaded');
+          return { success: true, account: summary };
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : 'Failed to load account';
+          if (stepId) steps?.update(stepId, { status: 'error', label: msg });
+          throw new Error(msg);
+        }
+      },
+    }),
+  };
 }
 
 function createWriteTools(
@@ -774,9 +808,15 @@ function createWriteTools(
 export function createCorsairAgentTools(
   userId: string,
   steps?: AgentStepEmitter,
-  options?: { timeZone?: string; actions?: AgentActionEmitter; interactiveMode?: boolean }
+  options?: {
+    timeZone?: string;
+    actions?: AgentActionEmitter;
+    interactiveMode?: boolean;
+    connectedPlugins?: PluginId[];
+  }
 ): ToolSet {
   const defaultTimeZone = resolveTimeZone(options?.timeZone ?? DEFAULT_TIMEZONE);
+  const connectedPlugins = options?.connectedPlugins ?? [];
   const defs = buildCorsairToolDefs({
     corsair,
     tenantId: userId,
@@ -784,6 +824,7 @@ export function createCorsairAgentTools(
   });
 
   const tools: ToolSet = {
+    ...createAccountTools(userId, steps),
     ...createWriteTools(userId, defaultTimeZone, steps, options?.actions, {
       interactiveMode: options?.interactiveMode,
     }),
@@ -793,11 +834,18 @@ export function createCorsairAgentTools(
     tools[def.name] = tool({
       description: def.description,
       inputSchema: zodShapeToInputSchema(def.shape),
-      execute: wrapHandler(def, userId, defaultTimeZone, steps, options?.actions),
+      execute: wrapHandler(
+        def,
+        userId,
+        defaultTimeZone,
+        steps,
+        options?.actions,
+        connectedPlugins
+      ),
     });
   }
 
-  return tools;
+  return filterAgentToolSet(tools, connectedPlugins, options?.interactiveMode) as ToolSet;
 }
 
 export function getToolStepLabel(toolName: string): string {

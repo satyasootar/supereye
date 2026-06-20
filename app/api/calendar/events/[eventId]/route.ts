@@ -8,6 +8,7 @@ import { parseJsonBody } from '@/lib/validation/http';
 import { updateCalendarEventSchema } from '@/lib/validation/calendar';
 import { googleEventIdSchema } from '@/lib/validation/common';
 import { isCalendarEventEditable } from '@/lib/calendar/event-utils';
+import { sseEmitter } from '@/lib/sse/emitter';
 
 export async function GET(req: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const authResult = await requireActiveUserSession();
@@ -60,8 +61,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ eventI
     const updatedEvent = await t.googlecalendar.api.events.update({
       calendarId: 'primary',
       id: eventId,
-      event: parsed.data
+      event: {
+        ...existingEvent,
+        ...parsed.data,
+      },
     });
+
+    const resolvedColorId =
+      updatedEvent.colorId ?? parsed.data.colorId ?? existingEvent.colorId ?? null;
 
     // Update local cache
     await db.update(calendarEvents)
@@ -71,11 +78,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ eventI
         location: updatedEvent.location,
         startTime: updatedEvent.start?.dateTime ? new Date(updatedEvent.start.dateTime) : (updatedEvent.start?.date ? new Date(updatedEvent.start.date) : null),
         endTime: updatedEvent.end?.dateTime ? new Date(updatedEvent.end.dateTime) : (updatedEvent.end?.date ? new Date(updatedEvent.end.date) : null),
+        colorId: resolvedColorId,
+        attendees: updatedEvent.attendees
+          ? updatedEvent.attendees
+              .filter((a): a is typeof a & { email: string } => typeof a.email === 'string')
+              .map((a) => ({
+                email: a.email,
+                displayName: a.displayName ?? undefined,
+                responseStatus: a.responseStatus ?? undefined,
+              }))
+          : undefined,
       })
       .where(and(
         eq(calendarEvents.userId, session.user.id),
         eq(calendarEvents.googleEventId, eventId)
       ));
+
+    sseEmitter.emit(session.user.id, { type: 'calendar:updated' });
 
     return NextResponse.json({ event: updatedEvent });
   } catch (error: any) {
