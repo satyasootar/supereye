@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Coins, Sparkles } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useAiCreditsGate } from '@/hooks/use-ai-credits-gate';
 import { formatCreditsExact } from '@/lib/billing/format';
 import { TOKEN_SUPPORT_EMAIL } from '@/lib/billing/constants';
@@ -11,63 +12,81 @@ export function AgentCreditsNotice({ className }: { className?: string }) {
   const { isLoading, blocked, exhausted, insufficient, remaining, chatCost, aiEnabled } =
     useAiCreditsGate();
 
-  if (isLoading || !blocked) return null;
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  useEffect(() => {
+    setIsDismissed(false);
+  }, [blocked, exhausted, insufficient]);
+
+  if (isLoading || !blocked || isDismissed) return null;
+
+  let message = '';
+  let actionText = '';
+  let actionHref = '';
+  let isMailto = false;
+
+  if (!aiEnabled) {
+    message = 'AI chat is not included on your plan.';
+    actionText = 'Upgrade plan';
+    actionHref = '/workspace/profile?tab=billing';
+  } else if (exhausted) {
+    message = 'AI credits exhausted.';
+    actionText = 'Top up';
+    actionHref = '/workspace/profile?tab=billing';
+  } else {
+    message = `Not enough credits (Requires ${formatCreditsExact(chatCost)} credits).`;
+    actionText = 'Request credits';
+    actionHref = `mailto:${TOKEN_SUPPORT_EMAIL}?subject=AI%20credit%20request`;
+    isMailto = true;
+  }
 
   return (
     <div
       className={cn(
-        'rounded-xl border px-4 py-3',
-        exhausted
-          ? 'border-[color:var(--priority-urgent)]/35 bg-[color:var(--priority-urgent)]/8'
-          : 'border-amber-500/35 bg-amber-500/10',
+        'flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2 text-xs transition-all duration-300',
+        'bg-bg-elevated/95 shadow-md backdrop-blur-xl',
+        exhausted || !aiEnabled
+          ? 'border-destructive/30 text-text-primary'
+          : 'border-amber-500/30 text-text-primary',
         className
       )}
       role="alert"
     >
-      <div className="flex items-start gap-3">
-        <Coins
+      <div className="flex items-center gap-2 min-w-0">
+        <span
           className={cn(
-            'mt-0.5 h-4 w-4 shrink-0',
-            exhausted ? 'text-[color:var(--priority-urgent)]' : 'text-amber-600'
+            'h-1.5 w-1.5 rounded-full shrink-0 animate-pulse',
+            exhausted || !aiEnabled ? 'bg-destructive' : 'bg-amber-500'
           )}
         />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-text-primary">
-            {!aiEnabled
-              ? 'AI chat is not included on your plan'
-              : exhausted
-                ? 'AI credits exhausted'
-                : 'Not enough credits for another message'}
-          </p>
-          <p className="mt-1 text-sm text-text-muted">
-            {!aiEnabled ? (
-              'Upgrade to a plan with AI features to use chat, scheduling, and other assistant tools.'
-            ) : exhausted ? (
-              'Chat is disabled until you get more credits. Top up credits, switch to a larger plan, or ask an admin to add credits to your account.'
-            ) : (
-              <>
-                Each chat message costs {formatCreditsExact(chatCost)} credits. You have{' '}
-                {formatCreditsExact(remaining)} left. Top up credits, upgrade your plan, or ask an
-                admin for more.
-              </>
-            )}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Link
-              href="/workspace/profile?tab=billing"
-              className="inline-flex items-center gap-1.5 rounded-md bg-accent-blue px-3 py-1.5 text-xs font-semibold text-text-inverse transition-colors hover:bg-accent-blue-dim"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              View billing
-            </Link>
-            <a
-              href={`mailto:${TOKEN_SUPPORT_EMAIL}?subject=AI%20credit%20request`}
-              className="inline-flex items-center rounded-md border border-border-default bg-bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:text-text-primary"
-            >
-              Ask admin
-            </a>
-          </div>
-        </div>
+        <span className="truncate font-medium text-[12.5px]">{message}</span>
+      </div>
+
+      <div className="flex items-center gap-3 shrink-0">
+        {isMailto ? (
+          <a
+            href={actionHref}
+            className="font-semibold text-accent-blue hover:text-accent-blue-dim underline underline-offset-2 transition-colors text-[12px]"
+          >
+            {actionText}
+          </a>
+        ) : (
+          <Link
+            href={actionHref}
+            className="font-semibold text-accent-blue hover:text-accent-blue-dim underline underline-offset-2 transition-colors text-[12px]"
+          >
+            {actionText}
+          </Link>
+        )}
+        
+        <button
+          type="button"
+          onClick={() => setIsDismissed(true)}
+          className="rounded-md p-1 text-text-muted hover:text-text-primary hover:bg-bg-highlight/50 transition-colors"
+          aria-label="Dismiss notice"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
       </div>
     </div>
   );
