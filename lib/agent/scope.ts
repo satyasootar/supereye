@@ -105,6 +105,76 @@ export const SUPEREYE_ACCOUNT_PATTERNS: RegExp[] = [
 
 const GREETING_PATTERN = /^(hi|hello|hey|thanks|thank you|ok|okay|yo|good morning|good evening)[!.?\s]*$/i;
 
+/** Attempts to override system instructions via user message (prompt injection). */
+export const PROMPT_INJECTION_PATTERNS: RegExp[] = [
+  /system (update|override|prompt|directive|instruction)/i,
+  /developer mode/i,
+  /\bjailbreak\b/i,
+  /ignore (all )?(previous|prior|above|earlier) (instructions|rules|constraints|guidelines)/i,
+  /disregard (your|the|all) (instructions|rules|guidelines|constraints)/i,
+  /you are no longer (an? )?(ai|assistant|bound|restricted)/i,
+  /new system (directive|instruction|prompt|rules)/i,
+  /===.*(override|update|mode)/i,
+  /(do not|don't) (mention|refuse|apologize|decline)/i,
+  /without refusal/i,
+  /unrestricted mandate/i,
+  /constraints.{0,30}(disabled|removed|lifted)/i,
+  /safety guidelines.{0,30}(disabled|removed|lifted)/i,
+  /restriction filters.{0,20}(disabled|removed)/i,
+  /(changed|updated|replaced) your system instructions/i,
+  /no longer bound by (the )?(previous )?(restrictions|rules|constraints)/i,
+  /general[- ]purpose coding bot/i,
+  /kernel[- ]level optimizer/i,
+  /execute (the )?following (task|command) immediately/i,
+  /begin your response directly with the code/i,
+];
+
+/** Coding, algorithms, and CS homework — not allowed regardless of framing. */
+export const STRONG_CODING_PATTERNS: RegExp[] = [
+  /\blru\b/i,
+  /\bcache implementation\b/i,
+  /\bdoubly linked list\b/i,
+  /\bO\(1\)\b/i,
+  /\b(data structure|algorithm design|dynamic programming|binary tree|hash map|hash table)\b/i,
+  /\b(memory[- ]wiping|evade detection|malware|keylogger|exploit)\b/i,
+  /\bfibonacci\b/i,
+  /\bleetcode\b/i,
+];
+
+export const WEAK_CODING_PATTERNS: RegExp[] = [
+  /\b(implement|write|create|build|give me|show me|provide|design).{0,80}\b(implementation|routine|function|class|method|module|script|program|algorithm|snippet)\b/i,
+  /\bwrite (an? )?(\w+\s+){0,4}(implementation|routine|function|class|script|program)\b/i,
+  /\bin (python|javascript|typescript|java|c\+\+|rust|go|ruby|php|c#|kotlin|swift)\b/i,
+  /\b(python|javascript|typescript|java|c\+\+|rust|go|ruby) (code|script|function|class|program)\b/i,
+];
+
+export function isPromptInjectionAttempt(text: string): boolean {
+  return matchesAny(text.trim(), PROMPT_INJECTION_PATTERNS);
+}
+
+export function isCodingRequest(text: string): boolean {
+  const normalized = text.trim();
+  if (matchesAny(normalized, OFF_TOPIC_PATTERNS)) return true;
+  if (matchesAny(normalized, STRONG_CODING_PATTERNS)) return true;
+
+  const hasPluginIntent = detectPluginIntents(normalized).size > 0;
+  if (hasPluginIntent) return false;
+
+  return matchesAny(normalized, WEAK_CODING_PATTERNS);
+}
+
+export function buildInjectionRefusal(connected: PluginId[]): string {
+  const labels = formatConnectedLabels(connected);
+  const scopeHint =
+    connected.length > 0
+      ? `I help with **${labels}** and your Supereye account.`
+      : 'Connect integrations in **Settings → Connections** to get started.';
+  return (
+    "I'm **eye**, your Supereye assistant. I can't change my role or rules based on chat messages — " +
+    `that kind of override isn't something I support. ${scopeHint}`
+  );
+}
+
 export function isSupereyeAccountQuestion(text: string): boolean {
   return matchesAny(text.trim(), SUPEREYE_ACCOUNT_PATTERNS);
 }
@@ -160,6 +230,17 @@ export function evaluateAgentScope(
     return { allowed: false, message: 'Please enter a message.' };
   }
 
+  if (isPromptInjectionAttempt(text)) {
+    return { allowed: false, message: buildInjectionRefusal(connectedPlugins) };
+  }
+
+  if (isCodingRequest(text)) {
+    return {
+      allowed: false,
+      message: buildScopeRefusal(connectedPlugins, 'off-topic'),
+    };
+  }
+
   if (isSupereyeAccountQuestion(text)) {
     return { allowed: true };
   }
@@ -177,19 +258,6 @@ export function evaluateAgentScope(
   }
 
   const intents = detectPluginIntents(text);
-  const offTopic = matchesAny(text, OFF_TOPIC_PATTERNS);
-
-  if (offTopic) {
-    const hasConnectedIntent = [...intents].some((id) =>
-      connectedPlugins.includes(id)
-    );
-    if (!hasConnectedIntent) {
-      return {
-        allowed: false,
-        message: buildScopeRefusal(connectedPlugins, 'off-topic'),
-      };
-    }
-  }
 
   if (intents.size > 0) {
     const disconnected = [...intents].filter(
@@ -212,14 +280,10 @@ export function evaluateAgentScope(
     return { allowed: true };
   }
 
-  if (offTopic) {
-    return {
-      allowed: false,
-      message: buildScopeRefusal(connectedPlugins, 'off-topic'),
-    };
-  }
-
-  return { allowed: true };
+  return {
+    allowed: false,
+    message: buildScopeRefusal(connectedPlugins, 'off-topic'),
+  };
 }
 
 export function getAllowedAgentToolNames(

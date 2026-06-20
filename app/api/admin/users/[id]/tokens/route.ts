@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
-import { requireAdminSession, requireSuperAdminSession } from '@/lib/billing/api-auth';
+import { eq } from 'drizzle-orm';
+import { requireAdminSession } from '@/lib/billing/api-auth';
 import { adjustTokens, resetPeriodTokens } from '@/lib/billing/tokens';
 import {
   assertCanModifyTargetUser,
   getUserRole,
   hasSuperAdminRole,
 } from '@/lib/billing/rbac';
+import { db } from '@/lib/db';
+import { users } from '@/lib/db/schema';
+import { sendAdminCreditAddedEmail } from '@/lib/email/admin-credit-notification';
 import { parseJsonBody } from '@/lib/validation/http';
 import { adminTokenPostSchema } from '@/lib/validation/admin';
 import { uuidSchema } from '@/lib/validation/common';
@@ -73,6 +77,33 @@ export async function POST(req: Request, context: RouteContext) {
     reason: body.reason,
     adminUserId: authResult.admin.id,
   });
+
+  if (!isRemoval) {
+    const [targetUser] = await db
+      .select({ email: users.email, name: users.name })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+
+    if (targetUser?.email) {
+      const [adminUser] = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, authResult.admin.id))
+        .limit(1);
+
+      const emailResult = await sendAdminCreditAddedEmail({
+        to: targetUser.email,
+        userName: targetUser.name,
+        creditedAmount: body.amount,
+        adminName: adminUser?.name ?? null,
+      });
+
+      if ('error' in emailResult) {
+        console.error('[admin-credit-email]', emailResult.error);
+      }
+    }
+  }
 
   return NextResponse.json(result);
 }
