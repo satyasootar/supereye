@@ -471,6 +471,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({ 
         activeTabs: state.activeTabs, 
         splitRatio: state.splitRatio, 
+        emailCategory: state.emailCategory,
         workspaceMode: state.workspaceMode,
         primaryPluginId: state.primaryPluginId,
         sidebarPluginId: state.sidebarPluginId,
