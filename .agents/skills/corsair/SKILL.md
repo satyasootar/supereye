@@ -19,16 +19,16 @@ description: Integrate apps and agents with Gmail, Slack, GitHub, Outlook, and h
 
 When writing code that uses Corsair:
 
-1. Run `pnpm corsair list` to discover available operations.
+1. Run `npm run corsair:list` (or `npx corsair list`) to discover available operations.
 
    Examples:
-   - `pnpm corsair list --plugin=slack`
-   - `pnpm corsair list --type=db`
+   - `npm run corsair:list -- --plugin=slack`
+   - `npx corsair list --type=db`
 
-2. Run `pnpm corsair schema <path>` before calling any operation.
+2. Run `npm run corsair:schema -- <path>` (or `npx corsair schema <path>`) before calling any operation.
 
    Example:
-   - `pnpm corsair schema slack.api.messages.post`
+   - `npx corsair schema slack.api.messages.post`
 
 Never infer endpoint names or argument shapes from source files.
 

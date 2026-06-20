@@ -47,6 +47,8 @@ import { toast } from 'sonner';
 import { hasAdminRole } from '@/lib/billing/constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { ACTIVE_PLUGINS_KEY } from '@/hooks/use-active-plugins';
+import { purgeIntegrationClientCache } from '@/lib/integrations/purge-client-cache';
+import { integrationsConnectSchema } from '@/lib/validation/integrations';
 
 type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security' | 'shortcuts' | 'dashboard' | 'bot' | 'billing';
 
@@ -134,6 +136,10 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(typeof data.error === 'string' ? data.error : 'Failed to disconnect');
+      }
+      const pluginParsed = integrationsConnectSchema.safeParse({ plugin: corsairPlugin });
+      if (pluginParsed.success) {
+        purgeIntegrationClientCache(queryClient, pluginParsed.data.plugin);
       }
       await queryClient.invalidateQueries({ queryKey: ACTIVE_PLUGINS_KEY });
       router.refresh();
@@ -310,6 +316,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                         <ProfileRow
                           key={integration.id}
                           label={integration.label}
+                          icon={<PluginBrandIcon pluginId={integration.id} size={20} />}
                           description={
                             integration.connected
                               ? `Connected · last synced ${integration.connectedAt ? format(new Date(integration.connectedAt), 'MMM d, yyyy') : 'recently'}`

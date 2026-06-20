@@ -12,6 +12,9 @@ import {
   GithubCommitRow,
   githubItemKey,
 } from './github-shared';
+import { GithubProfileSection } from './github-profile-section';
+import Link from 'next/link';
+import { AlertCircle } from 'lucide-react';
 
 export function GithubOverviewPanel() {
   const { openGithubRepo, openGithubItem, setGithubSection } = useAppStore();
@@ -58,6 +61,32 @@ export function GithubOverviewPanel() {
 
   return (
     <div ref={scrollRef} className="h-full min-h-0 w-full flex-1 overflow-y-auto custom-scrollbar">
+      {data.profile ? (
+        <GithubProfileSection bundle={data.profile} />
+      ) : (
+        <div className="border-b border-border-subtle bg-bg-surface/80 px-5 py-4">
+          <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium text-text-primary">
+                GitHub profile unavailable
+              </p>
+              <p className="mt-1 text-[12px] leading-relaxed text-text-muted">
+                {data.authReady === false
+                  ? 'Your GitHub session expired or was never fully connected. Reconnect to load your profile and contribution graph.'
+                  : 'We could not load your profile yet. Try syncing or reconnect GitHub in Settings.'}
+              </p>
+              <Link
+                href="/workspace/profile?tab=connections"
+                className="mt-2 inline-flex text-[12px] font-medium text-accent-blue hover:underline"
+              >
+                Open Connections →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="border-b border-border-subtle px-5 py-5">
         <h1 className="text-[20px] font-semibold text-text-primary">Overview</h1>
         <p className="mt-1 text-[13px] text-text-muted">

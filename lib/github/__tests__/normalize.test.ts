@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   isPullRequestIssue,
+  normalizeGithubProfile,
   normalizeIssue,
   normalizePullRequest,
   normalizeRepo,
@@ -30,6 +31,32 @@ describe('normalizeRepo', () => {
     assert.equal(repo.stargazersCount, 12);
     assert.equal(repo.forksCount, 3);
     assert.equal(repo.updatedAt, '2026-01-15T10:00:00.000Z');
+  });
+});
+
+describe('normalizeGithubProfile', () => {
+  it('maps authenticated user payload', () => {
+    const profile = normalizeGithubProfile({
+      id: 1,
+      login: 'octocat',
+      name: 'The Octocat',
+      avatar_url: 'https://github.com/octocat.png',
+      html_url: 'https://github.com/octocat',
+      bio: 'GitHub mascot',
+      company: '@github',
+      location: 'San Francisco',
+      followers: 9000,
+      following: 12,
+      public_repos: 8,
+      public_gists: 1,
+      created_at: '2011-01-25T18:44:36.000Z',
+      plan: { name: 'pro' },
+    });
+
+    assert.equal(profile.login, 'octocat');
+    assert.equal(profile.name, 'The Octocat');
+    assert.equal(profile.followers, 9000);
+    assert.equal(profile.planName, 'pro');
   });
 });
 

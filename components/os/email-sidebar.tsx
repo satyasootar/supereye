@@ -15,6 +15,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { NotificationBell } from './notification-bell';
+import { SidebarUsageBar } from '@/components/billing/sidebar-usage-bar';
+import { hasAdminPanelAccess } from '@/lib/billing/constants';
 
 const basePrimaryNav = [
   { icon: Inbox, label: 'Inbox', id: 'INBOX' },
@@ -42,7 +44,7 @@ export function EmailSidebar() {
   const pathname = usePathname();
   const isBriefPage = pathname === '/workspace/brief';
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === 'super_admin';
+  const isAdmin = hasAdminPanelAccess(session?.user?.role);
   const {
     activeTabs,
     emailCategory,
@@ -571,6 +573,8 @@ export function EmailSidebar() {
                 <NotificationBell align="end" side="top" />
               </div>
             </div>
+
+            <SidebarUsageBar />
 
             {/* Profile trigger card */}
             <div

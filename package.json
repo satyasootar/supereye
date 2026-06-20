@@ -3,7 +3,13 @@
   "version": "0.0.1",
   "type": "module",
   "private": true,
+  "packageManager": "npm@11.12.1",
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  },
   "scripts": {
+    "preinstall": "npx only-allow npm",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -16,6 +22,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:prod": "node scripts/migrate.mjs",
     "corsair:bootstrap": "node scripts/corsair-bootstrap.mjs",
+    "corsair:list": "npx corsair list",
+    "corsair:schema": "npx corsair schema",
     "docker:prod": "docker compose -f docker-compose.prod.yml up -d --build",
     "docker:prod:down": "docker compose -f docker-compose.prod.yml down",
     "db:studio": "drizzle-kit studio",

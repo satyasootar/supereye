@@ -4,6 +4,8 @@ import { handleCorsairError } from '@/lib/corsair-error';
 import { CACHE_KEYS } from '@/lib/cache/cache-keys';
 import { getIntegrationCache, isCacheFresh, setIntegrationCache } from '@/lib/cache/integration-cache';
 import { SYNC_STALE_MS } from '@/lib/cache/sync-policy';
+import { hasGithubAccessToken } from '@/lib/github/auth';
+import { getGithubStaleCache } from '@/lib/github/cache-policy';
 import { getGithubApi } from '@/lib/github/client';
 import { fetchGithubRepoBundle } from '@/lib/github/fetch';
 import type { GithubRepoBundle } from '@/lib/github/types';
@@ -23,6 +25,13 @@ export async function GET(request: NextRequest) {
 
   const cacheKey = CACHE_KEYS.githubRepo(owner, repo);
 
+  if (!(await hasGithubAccessToken(userId))) {
+    return NextResponse.json(
+      { error: 'GitHub is not connected', code: 'AUTH_EXPIRED' },
+      { status: 401 }
+    );
+  }
+
   try {
     const cached = await getIntegrationCache<GithubRepoBundle>(userId, cacheKey);
     if (cached && isCacheFresh(cached.updatedAt, SYNC_STALE_MS.github)) {
@@ -35,8 +44,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(bundle);
   } catch (error) {
-    const stale = await getIntegrationCache<GithubRepoBundle>(userId, cacheKey);
-    if (stale) return NextResponse.json(stale.payload);
+    const stale = await getGithubStaleCache<GithubRepoBundle>(userId, cacheKey);
+    if (stale) return NextResponse.json(stale);
 
     const handled = handleCorsairError(error);
     return NextResponse.json({ error: handled.error, code: handled.code }, { status: handled.status });

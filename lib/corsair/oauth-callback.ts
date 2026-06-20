@@ -1,10 +1,7 @@
-import { randomUUID } from 'node:crypto';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { encryptDEK, generateDEK } from 'corsair/core';
-import { createCorsairDatabase } from 'corsair/db';
 import { processOAuthCallback } from 'corsair/oauth';
-import { corsair, getTenant } from '@/lib/corsair';
-import { pool } from '@/lib/db/pool';
+import { corsair } from '@/lib/corsair';
+import { storeGithubOAuthTokens } from '@/lib/github/auth';
 
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 const OAUTH_STATE_MAX_AGE_MS = 600_000;
@@ -18,12 +15,6 @@ type OAuthCallbackOptions = {
 type OAuthCallbackResult = {
   plugin: string;
   tenantId: string;
-};
-
-type GitHubTenantKeys = {
-  set_access_token: (token: string) => Promise<void>;
-  set_refresh_token: (token: string) => Promise<void>;
-  set_expires_at: (timestamp: string) => Promise<void>;
 };
 
 export function getOAuthCallbackUri(): string {
@@ -75,48 +66,6 @@ function verifySignedOAuthState(
   } catch {
     return null;
   }
-}
-
-async function ensureCorsairOAuthAccount(
-  plugin: string,
-  tenantId: string
-): Promise<void> {
-  const kek = process.env.CORSAIR_KEK;
-  if (!kek) throw new Error('CORSAIR_KEK is not set');
-
-  const database = createCorsairDatabase(pool);
-  const integration = await database.db
-    .selectFrom('corsair_integrations')
-    .selectAll()
-    .where('name', '=', plugin)
-    .executeTakeFirst();
-
-  if (!integration) {
-    throw new Error(`Integration '${plugin}' not found. Run setupCorsair first.`);
-  }
-
-  const existing = await database.db
-    .selectFrom('corsair_accounts')
-    .select('id')
-    .where('tenant_id', '=', tenantId)
-    .where('integration_id', '=', integration.id)
-    .executeTakeFirst();
-
-  if (existing) return;
-
-  const now = new Date();
-  await database.db
-    .insertInto('corsair_accounts')
-    .values({
-      id: randomUUID(),
-      tenant_id: tenantId,
-      integration_id: integration.id,
-      config: {},
-      dek: await encryptDEK(generateDEK(), kek),
-      created_at: now,
-      updated_at: now,
-    })
-    .execute();
 }
 
 function parseGitHubTokenPayload(text: string): Record<string, string> {
@@ -185,29 +134,6 @@ async function exchangeGitHubOAuthCode(
   };
 }
 
-async function storeGitHubTokens(
-  tenantId: string,
-  tokens: {
-    access_token: string;
-    refresh_token?: string;
-    expires_in?: number;
-  }
-): Promise<void> {
-  const tenant = getTenant(tenantId) as {
-    github: { keys: GitHubTenantKeys };
-  };
-
-  await tenant.github.keys.set_access_token(tokens.access_token);
-  if (tokens.refresh_token) {
-    await tenant.github.keys.set_refresh_token(tokens.refresh_token);
-  }
-  if (tokens.expires_in) {
-    await tenant.github.keys.set_expires_at(
-      String(Math.floor(Date.now() / 1000) + tokens.expires_in)
-    );
-  }
-}
-
 async function completeGitHubOAuthCallback(
   options: OAuthCallbackOptions
 ): Promise<OAuthCallbackResult> {
@@ -219,9 +145,8 @@ async function completeGitHubOAuthCallback(
     throw new Error('Invalid or tampered state parameter');
   }
 
-  await ensureCorsairOAuthAccount('github', parsed.tenantId);
   const tokens = await exchangeGitHubOAuthCode(options.code, options.redirectUri);
-  await storeGitHubTokens(parsed.tenantId, tokens);
+  await storeGithubOAuthTokens(parsed.tenantId, tokens);
 
   return { plugin: 'github', tenantId: parsed.tenantId };
 }

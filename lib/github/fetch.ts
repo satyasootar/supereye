@@ -9,6 +9,7 @@ import {
   normalizeWorkflowRun,
   isPullRequestIssue,
 } from '@/lib/github/normalize';
+import { fetchGithubProfileBundle } from '@/lib/github/profile';
 import { countGithubRepositories } from '@/lib/github/repos-page';
 import type {
   GithubOverview,
@@ -26,15 +27,17 @@ function splitRepo(fullName: string) {
 
 export async function fetchGithubOverview(
   api: GithubApi,
-  repoLimit = 12
+  repoLimit = 12,
+  userId?: string
 ): Promise<GithubOverview> {
-  const [reposResult, totalRepoCount] = await Promise.all([
+  const [reposResult, totalRepoCount, profile] = await Promise.all([
     api.repositories.list({
       perPage: repoLimit,
       sort: 'updated',
       direction: 'desc',
     }),
     countGithubRepositories((input) => api.repositories.list(input)).catch(() => null),
+    userId ? fetchGithubProfileBundle(api, userId) : Promise.resolve(null),
   ]);
 
   const repos = Array.isArray(reposResult)
@@ -122,6 +125,7 @@ export async function fetchGithubOverview(
   const openIssues = Object.values(repoStats).reduce((n, s) => n + s.openIssues, 0);
 
   return {
+    profile,
     repos,
     stats: {
       repoCount: totalRepoCount ?? repos.length,

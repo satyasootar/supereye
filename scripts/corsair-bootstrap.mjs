@@ -2,6 +2,11 @@
  * Seed Corsair integration-level OAuth credentials from environment variables.
  * Idempotent — safe to run on every deploy.
  */
+import { config } from 'dotenv';
+
+config({ path: '.env' });
+config({ path: '.env.local' });
+
 import { createCorsair } from 'corsair';
 import { setupCorsair } from 'corsair/setup';
 import { gmail } from '@corsair-dev/gmail';

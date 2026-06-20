@@ -34,9 +34,10 @@ type ProfileRowProps = {
   description?: string;
   children: ReactNode;
   className?: string;
+  icon?: ReactNode;
 };
 
-export function ProfileRow({ label, description, children, className }: ProfileRowProps) {
+export function ProfileRow({ label, description, children, className, icon }: ProfileRowProps) {
   return (
     <div
       className={cn(
@@ -44,11 +45,14 @@ export function ProfileRow({ label, description, children, className }: ProfileR
         className
       )}
     >
-      <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-medium text-text-primary">{label}</p>
-        {description && (
-          <p className="mt-0.5 text-[12px] text-text-muted">{description}</p>
-        )}
+      <div className="flex min-w-0 flex-1 items-start gap-3.5">
+        {icon && <div className="mt-0.5 shrink-0">{icon}</div>}
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-medium text-text-primary">{label}</p>
+          {description && (
+            <p className="mt-0.5 text-[12px] text-text-muted">{description}</p>
+          )}
+        </div>
       </div>
       <div className="shrink-0">{children}</div>
     </div>

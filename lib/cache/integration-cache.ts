@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, like } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { integrationCache } from '@/lib/db/schema';
 
@@ -49,4 +49,21 @@ export async function setIntegrationCache<T>(
 
 export function isCacheFresh(updatedAt: Date, staleMs: number): boolean {
   return Date.now() - updatedAt.getTime() < staleMs;
+}
+
+export async function clearIntegrationCacheByPrefix(
+  userId: string,
+  cacheKeyPrefix: string
+): Promise<number> {
+  const deleted = await db
+    .delete(integrationCache)
+    .where(
+      and(
+        eq(integrationCache.userId, userId),
+        like(integrationCache.cacheKey, `${cacheKeyPrefix}%`)
+      )
+    )
+    .returning({ cacheKey: integrationCache.cacheKey });
+
+  return deleted.length;
 }

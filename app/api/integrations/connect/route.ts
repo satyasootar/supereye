@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
 import { generateOAuthUrl } from 'corsair/oauth';
 import { getOAuthCallbackUri } from '@/lib/corsair/oauth-callback';
+import {
+  ensureGithubOAuthAppConfigured,
+  getGithubOAuthAppConfigured,
+} from '@/lib/corsair/ensure-credentials';
 import { validationErrorResponse } from '@/lib/validation/http';
 import { integrationsConnectSchema } from '@/lib/validation/integrations';
 
@@ -15,8 +19,9 @@ function integrationSetupError(plugin: string): string {
   }
   if (plugin === 'github') {
     return (
-      'GitHub OAuth is not configured. Create a GitHub OAuth App and set ' +
-      'GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in your environment.'
+      'GitHub OAuth is not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET ' +
+      'in .env.local, then restart the dev server. Credentials are stored in the database ' +
+      'via Corsair — run `npm run corsair:bootstrap` if connect still fails.'
     );
   }
   return `${plugin} is not configured. Check your server environment and Corsair integration setup.`;
@@ -57,6 +62,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const { corsair } = await import('@/lib/corsair');
+
+    if (plugin === 'github') {
+      const seeded = await ensureGithubOAuthAppConfigured();
+      if (!seeded && !(await getGithubOAuthAppConfigured())) {
+        return NextResponse.json({ error: integrationSetupError('github') }, { status: 503 });
+      }
+    }
 
     const { url: authUrl } = await generateOAuthUrl(corsair, plugin, {
       tenantId: session.user.id,

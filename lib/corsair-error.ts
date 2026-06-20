@@ -25,6 +25,20 @@ export type CorsairErrorResult = {
 };
 
 export function handleCorsairError(error: unknown): CorsairErrorResult {
+  if (error instanceof Error) {
+    if (
+      error.name === 'AuthMissingError' ||
+      error.message.includes('auth-missing:')
+    ) {
+      return {
+        error: 'Your GitHub connection has expired. Please reconnect in Settings → Connections.',
+        code: 'AUTH_EXPIRED',
+        status: 401,
+        retryable: false,
+      };
+    }
+  }
+
   // Handle Corsair-specific errors (they have a status property)
   if (error && typeof error === 'object' && 'status' in error) {
     const err = error as { status: number; message?: string };

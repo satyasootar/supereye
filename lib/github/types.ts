@@ -120,6 +120,62 @@ export type GithubRepoStats = {
   openIssues: number;
 };
 
+export type GithubContributionDay = {
+  date: string;
+  count: number;
+};
+
+export type GithubContributionWeek = {
+  days: GithubContributionDay[];
+};
+
+export type GithubContributionsCalendar = {
+  totalContributions: number;
+  weeks: GithubContributionWeek[];
+};
+
+export type GithubProfile = {
+  login: string;
+  id: number;
+  name: string | null;
+  avatarUrl: string | null;
+  htmlUrl: string | null;
+  bio: string | null;
+  company: string | null;
+  blog: string | null;
+  location: string | null;
+  email: string | null;
+  twitterUsername: string | null;
+  hireable: boolean | null;
+  publicRepos: number;
+  publicGists: number;
+  followers: number;
+  following: number;
+  createdAt: string | null;
+  updatedAt: string | null;
+  planName: string | null;
+  totalPrivateRepos: number | null;
+  ownedPrivateRepos: number | null;
+};
+
+export type GithubStarredRepo = {
+  id: number;
+  fullName: string;
+  name: string;
+  owner: string;
+  description: string | null;
+  language: string | null;
+  stargazersCount: number;
+  htmlUrl: string | null;
+  starredAt: string | null;
+};
+
+export type GithubProfileBundle = {
+  profile: GithubProfile;
+  contributions: GithubContributionsCalendar | null;
+  starredRepos: GithubStarredRepo[];
+};
+
 export type GithubRepoBundle = {
   repo: GithubRepo;
   stats: GithubRepoStats;
@@ -132,6 +188,7 @@ export type GithubRepoBundle = {
 };
 
 export type GithubOverview = {
+  profile: GithubProfileBundle | null;
   repos: GithubRepo[];
   stats: {
     repoCount: number;

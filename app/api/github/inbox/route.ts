@@ -5,6 +5,8 @@ import { triggerBackgroundSyncIfStale } from '@/lib/cache/background-sync';
 import { CACHE_KEYS } from '@/lib/cache/cache-keys';
 import { getIntegrationCache, isCacheFresh, setIntegrationCache } from '@/lib/cache/integration-cache';
 import { SYNC_STALE_MS } from '@/lib/cache/sync-policy';
+import { hasGithubAccessToken } from '@/lib/github/auth';
+import { getGithubStaleCache } from '@/lib/github/cache-policy';
 import { getGithubApi } from '@/lib/github/client';
 import { fetchGithubOverview } from '@/lib/github/fetch';
 import { syncGithubForUser } from '@/lib/github/sync';
@@ -41,6 +43,10 @@ export async function GET(request: NextRequest) {
 
   triggerBackgroundSyncIfStale(userId, 'github', () => syncGithubForUser(userId));
 
+  if (!(await hasGithubAccessToken(userId))) {
+    return NextResponse.json({ items: [] });
+  }
+
   try {
     const cached = await getIntegrationCache<{ items: GithubInboxItem[] }>(userId, cacheKey);
     if (cached && isCacheFresh(cached.updatedAt, SYNC_STALE_MS.github)) {
@@ -68,8 +74,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ items });
   } catch (error) {
-    const stale = await getIntegrationCache<{ items: GithubInboxItem[] }>(userId, cacheKey);
-    if (stale) return NextResponse.json(stale.payload);
+    const stale = await getGithubStaleCache<{ items: GithubInboxItem[] }>(userId, cacheKey);
+    if (stale) return NextResponse.json(stale);
 
     const handled = handleCorsairError(error);
     return NextResponse.json({ error: handled.error, code: handled.code }, { status: handled.status });

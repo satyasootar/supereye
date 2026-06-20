@@ -4,11 +4,16 @@ import { sseEmitter } from '@/lib/sse/emitter';
 import { CACHE_KEYS } from '@/lib/cache/cache-keys';
 import { setIntegrationCache } from '@/lib/cache/integration-cache';
 import { GITHUB_REPOS_PAGE_SIZE } from '@/lib/github/types';
+import { hasGithubAccessToken, isAuthMissingError } from '@/lib/github/auth';
 import { getGithubApi } from '@/lib/github/client';
 import { fetchGithubOverview } from '@/lib/github/fetch';
 import { buildGithubReposPage } from '@/lib/github/repos-page';
 
 export async function syncGithubForUser(userId: string) {
+  if (!(await hasGithubAccessToken(userId))) {
+    return { success: false, skipped: true, reason: 'auth_missing' as const };
+  }
+
   const api = getGithubApi(userId);
 
   const [reposResult, overview] = await Promise.all([
@@ -19,7 +24,7 @@ export async function syncGithubForUser(userId: string) {
       sort: 'updated',
       direction: 'desc',
     }),
-    fetchGithubOverview(api, 8),
+    fetchGithubOverview(api, 8, userId),
   ]);
 
   const reposPage = buildGithubReposPage(reposResult, 1, GITHUB_REPOS_PAGE_SIZE);

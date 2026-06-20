@@ -2,9 +2,11 @@ import type {
   GithubBranch,
   GithubCommit,
   GithubIssue,
+  GithubProfile,
   GithubPullRequest,
   GithubRelease,
   GithubRepo,
+  GithubStarredRepo,
   GithubWorkflowRun,
 } from '@/lib/github/types';
 
@@ -207,4 +209,76 @@ export function normalizeBranch(raw: Record<string, unknown>): GithubBranch {
 
 export function isPullRequestIssue(raw: Record<string, unknown>) {
   return Boolean(raw.pull_request);
+}
+
+export function normalizeGithubProfile(raw: Record<string, unknown>): GithubProfile {
+  const plan =
+    raw.plan && typeof raw.plan === 'object'
+      ? (raw.plan as { name?: string })
+      : null;
+
+  return {
+    login: String(raw.login ?? ''),
+    id: Number(raw.id),
+    name: raw.name != null ? String(raw.name) : null,
+    avatarUrl: raw.avatarUrl
+      ? String(raw.avatarUrl)
+      : raw.avatar_url
+        ? String(raw.avatar_url)
+        : null,
+    htmlUrl: raw.htmlUrl
+      ? String(raw.htmlUrl)
+      : raw.html_url
+        ? String(raw.html_url)
+        : null,
+    bio: raw.bio != null ? String(raw.bio) : null,
+    company: raw.company != null ? String(raw.company) : null,
+    blog: raw.blog != null ? String(raw.blog) : null,
+    location: raw.location != null ? String(raw.location) : null,
+    email: raw.email != null ? String(raw.email) : null,
+    twitterUsername: raw.twitterUsername
+      ? String(raw.twitterUsername)
+      : raw.twitter_username
+        ? String(raw.twitter_username)
+        : null,
+    hireable: raw.hireable != null ? Boolean(raw.hireable) : null,
+    publicRepos: Number(raw.publicRepos ?? raw.public_repos ?? 0),
+    publicGists: Number(raw.publicGists ?? raw.public_gists ?? 0),
+    followers: Number(raw.followers ?? 0),
+    following: Number(raw.following ?? 0),
+    createdAt: parseDate(raw.createdAt ?? raw.created_at),
+    updatedAt: parseDate(raw.updatedAt ?? raw.updated_at),
+    planName: plan?.name ?? null,
+    totalPrivateRepos:
+      raw.totalPrivateRepos != null
+        ? Number(raw.totalPrivateRepos)
+        : raw.total_private_repos != null
+          ? Number(raw.total_private_repos)
+          : null,
+    ownedPrivateRepos:
+      raw.ownedPrivateRepos != null
+        ? Number(raw.ownedPrivateRepos)
+        : raw.owned_private_repos != null
+          ? Number(raw.owned_private_repos)
+          : null,
+  };
+}
+
+export function normalizeStarredRepo(raw: Record<string, unknown>): GithubStarredRepo {
+  const owner =
+    raw.owner && typeof raw.owner === 'object' && 'login' in raw.owner
+      ? String((raw.owner as { login?: string }).login ?? '')
+      : '';
+
+  return {
+    id: Number(raw.id),
+    name: String(raw.name ?? ''),
+    fullName: String(raw.fullName ?? raw.full_name ?? `${owner}/${raw.name ?? ''}`),
+    owner,
+    description: raw.description != null ? String(raw.description) : null,
+    language: raw.language != null ? String(raw.language) : null,
+    stargazersCount: Number(raw.stargazersCount ?? raw.stargazers_count ?? 0),
+    htmlUrl: raw.htmlUrl ? String(raw.htmlUrl) : raw.html_url ? String(raw.html_url) : null,
+    starredAt: parseDate(raw.starredAt ?? raw.starred_at),
+  };
 }

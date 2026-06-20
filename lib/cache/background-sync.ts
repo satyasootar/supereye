@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { syncState } from '@/lib/db/schema';
 import type { SyncProvider } from './sync-policy';
 import { SYNC_STALE_MS } from './sync-policy';
+import { isAuthMissingError } from '@/lib/github/auth';
 
 export async function getLastSyncedAt(
   userId: string,
@@ -34,6 +35,7 @@ export function triggerBackgroundSyncIfStale(
       if (!isSyncStale(lastSyncedAt, provider)) return;
       await syncFn();
     } catch (error) {
+      if (provider === 'github' && isAuthMissingError(error)) return;
       console.error(`[${provider}] background sync failed:`, error);
     }
   })();

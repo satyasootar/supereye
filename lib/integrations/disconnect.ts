@@ -9,6 +9,9 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { isValidCorsairPlugin } from '@/lib/plugins/registry';
 import { corsairPluginSchema } from '@/lib/validation/common';
 import type { z } from 'zod';
+import { syncState } from '@/lib/db/schema';
+import { clearIntegrationCacheByPrefix } from '@/lib/cache/integration-cache';
+import { getPluginDisconnectCleanup } from '@/lib/integrations/disconnect-cleanup';
 
 type CorsairPlugin = z.infer<typeof corsairPluginSchema>;
 
@@ -61,6 +64,18 @@ export async function disconnectIntegration(
       .delete(corsairAccounts)
       .where(inArray(corsairAccounts.id, accountIds));
   });
+
+  const cleanup = getPluginDisconnectCleanup(corsairPlugin);
+
+  if (cleanup.integrationCachePrefix) {
+    await clearIntegrationCacheByPrefix(userId, cleanup.integrationCachePrefix);
+  }
+
+  if (cleanup.syncProvider) {
+    await db
+      .delete(syncState)
+      .where(and(eq(syncState.userId, userId), eq(syncState.provider, cleanup.syncProvider)));
+  }
 
   return { disconnected: true };
 }
