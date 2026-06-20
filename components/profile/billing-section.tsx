@@ -1,11 +1,12 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Coins, CreditCard, Loader2, Mail, Sparkles, Clock } from 'lucide-react';
+import { Coins, CreditCard, Loader2, Mail, Sparkles, Clock, CheckCircle2 } from 'lucide-react';
 import { ProfileSection, ProfileRow } from '@/components/profile/profile-section';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatCredits } from '@/lib/billing/format';
+import { cn } from '@/lib/utils';
 import {
   hasUnlimitedAiAccess,
   TOKEN_SUPPORT_EMAIL,
@@ -256,39 +257,53 @@ export function BillingSection() {
         )}
       </ProfileSection>
 
-      {!isUnlimited && availablePlans.length > 0 && (
+      {!isUnlimited && plansData?.plans && plansData.plans.length > 0 && (
         <ProfileSection
           title="Change subscription"
           description="Request a plan change. An admin will review and approve before your subscription is updated."
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {availablePlans.map((plan) => {
+            {plansData.plans.map((plan) => {
+              const isCurrent = plan.id === currentPlanId;
               const isPending = pendingPlanIds.has(plan.id);
               return (
                 <div
                   key={plan.id}
-                  className="rounded-lg border border-border-default bg-bg-elevated p-4"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-medium text-text-primary">{plan.name}</p>
-                    <Badge variant="outline" className="shrink-0 text-[10px]">
-                      {planAiLabel(plan)}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-sm text-text-muted">
-                    {formatCurrency(plan.priceCents)}/mo · {formatCredits(plan.monthlyTokens)} credits/mo
-                  </p>
-                  {plan.description && (
-                    <p className="mt-2 text-xs text-text-muted line-clamp-2">{plan.description}</p>
+                  className={cn(
+                    "rounded-lg border bg-bg-elevated p-4 flex flex-col justify-between",
+                    isCurrent ? "border-accent-blue/30 ring-1 ring-accent-blue/15" : "border-border-default"
                   )}
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-text-primary">{plan.name}</p>
+                      <Badge variant={isCurrent ? 'default' : 'outline'} className="shrink-0 text-[10px]">
+                        {planAiLabel(plan)}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-text-muted">
+                      {formatCurrency(plan.priceCents)}/mo · {formatCredits(plan.monthlyTokens)} credits/mo
+                    </p>
+                    {plan.description && (
+                      <p className="mt-2 text-xs text-text-muted line-clamp-2">{plan.description}</p>
+                    )}
+                  </div>
                   <Button
-                    size="sm"
-                    variant={isPending ? 'outline' : 'default'}
-                    className="mt-3 w-full"
-                    disabled={isPending || planRequestMutation.isPending}
+                    variant={isCurrent || isPending ? 'outline' : 'default'}
+                    className={cn(
+                      "mt-4 w-full",
+                      isCurrent && "border-accent-blue/30 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/10 disabled:opacity-100 cursor-default",
+                      isPending && "border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/10 disabled:opacity-100 cursor-default"
+                    )}
+                    disabled={isCurrent || isPending || planRequestMutation.isPending}
                     onClick={() => planRequestMutation.mutate(plan.id)}
                   >
-                    {isPending ? (
+                    {isCurrent ? (
+                      <>
+                        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                        Current plan
+                      </>
+                    ) : isPending ? (
                       <>
                         <Clock className="mr-1.5 h-3.5 w-3.5" />
                         Request pending
@@ -384,7 +399,6 @@ export function BillingSection() {
                   <p className="font-medium text-text-primary">{pack.name}</p>
                   <p className="mt-1 text-sm text-text-muted">{formatCurrency(pack.priceCents)}</p>
                   <Button
-                    size="sm"
                     variant={isPending ? 'outline' : 'default'}
                     className="mt-3 w-full"
                     disabled={isPending || creditRequestMutation.isPending}
