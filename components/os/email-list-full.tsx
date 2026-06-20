@@ -33,6 +33,7 @@ import { EmailPriorityBadge } from '@/components/os/email-priority-badge';
 import { EmailFetchPatienceNotice } from '@/components/os/email-fetch-patience-notice';
 import type { EmailPriorityTier } from '@/lib/mail/priority';
 import { useSlowLoadingNotice } from '@/lib/hooks/use-slow-loading-notice';
+import { MAIL_THREADS_PAGE_SIZE } from '@/lib/mail/constants';
 
 type EmailMessage = {
   id: string;
@@ -247,7 +248,9 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
-      return lastPage?.length === 20 ? allPages.length * 20 : undefined;
+      return lastPage?.length === MAIL_THREADS_PAGE_SIZE
+        ? allPages.length * MAIL_THREADS_PAGE_SIZE
+        : undefined;
     }
   });
 

@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       );
     } else if (result.plugin === 'gmail') {
       const { syncGmailForUser } = await import('@/lib/mail/sync');
-      syncGmailForUser(result.tenantId).catch(err => 
+      syncGmailForUser(result.tenantId, { mode: 'initial' }).catch(err =>
         console.error('[OAuth Callback] Initial Gmail sync failed:', err)
       );
     } else if (result.plugin === 'github') {

@@ -6,7 +6,13 @@ import { emails, emailEventLinks } from '@/lib/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 import { triggerBackgroundSyncIfStale } from '@/lib/cache/background-sync';
 import { mapEmailRowToMessage } from '@/lib/mail/priority';
-import { syncGmailForUser } from '@/lib/mail/sync';
+import {
+  ensureInitialGmailBatch,
+  resolveGmailBackfillComplete,
+  syncGmailBackfillIfNeeded,
+  syncGmailForUser,
+} from '@/lib/mail/sync';
+import { MAIL_THREADS_PAGE_SIZE } from '@/lib/mail/constants';
 import { parseQuery } from '@/lib/validation/http';
 import { mailThreadsQuerySchema } from '@/lib/validation/mail';
 
@@ -14,10 +20,6 @@ export async function GET(req: Request) {
   const authResult = await requireActiveUserSession();
   if ('error' in authResult) return authResult.error;
   const { session } = authResult;
-
-  triggerBackgroundSyncIfStale(session.user.id, 'gmail', () =>
-    syncGmailForUser(session.user.id)
-  );
 
   const parsed = parseQuery(req.url, mailThreadsQuerySchema);
   if ('error' in parsed) return parsed.error;
@@ -28,10 +30,28 @@ export async function GET(req: Request) {
       : sql``;
 
   try {
-    let baseQuery = db.select({
-      email: emails,
-      linkId: emailEventLinks.id
-    })
+    if (offset === 0) {
+      await ensureInitialGmailBatch(session.user.id);
+    } else {
+      await syncGmailBackfillIfNeeded(session.user.id, offset);
+    }
+
+    const backfillComplete = await resolveGmailBackfillComplete(session.user.id);
+    if (backfillComplete) {
+      triggerBackgroundSyncIfStale(session.user.id, 'gmail', () =>
+        syncGmailForUser(session.user.id, { mode: 'incremental' })
+      );
+    } else {
+      void syncGmailForUser(session.user.id, { mode: 'backfill' }).catch((err) =>
+        console.error('[gmail] background backfill failed:', err)
+      );
+    }
+
+    let baseQuery = db
+      .select({
+        email: emails,
+        linkId: emailEventLinks.id,
+      })
       .from(emails)
       .leftJoin(emailEventLinks, eq(emails.id, emailEventLinks.emailId));
 
@@ -61,7 +81,7 @@ export async function GET(req: Request) {
 
     const cachedEmails = await baseQuery
       .orderBy(desc(emails.internalDate))
-      .limit(20)
+      .limit(MAIL_THREADS_PAGE_SIZE)
       .offset(offset);
 
     const uniqueMessagesMap = new Map();
@@ -76,7 +96,10 @@ export async function GET(req: Request) {
 
     const fullMessages = Array.from(uniqueMessagesMap.values());
 
-    return NextResponse.json({ messages: fullMessages });
+    return NextResponse.json({
+      messages: fullMessages,
+      pageSize: MAIL_THREADS_PAGE_SIZE,
+    });
   } catch (error: unknown) {
     return internalErrorResponse('Failed to fetch emails', error);
   }

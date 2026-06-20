@@ -5,6 +5,7 @@ import {
   corsairEntities,
   corsairEvents,
 } from '@/lib/db/schema/corsair';
+import { emails, notifications, syncState } from '@/lib/db/schema';
 import { eq, inArray } from 'drizzle-orm';
 
 export class DeleteAccountError extends Error {
@@ -50,6 +51,10 @@ export async function deleteUserAccount(
         .delete(corsairAccounts)
         .where(eq(corsairAccounts.tenantId, userId));
     }
+
+    await tx.delete(emails).where(eq(emails.userId, userId));
+    await tx.delete(notifications).where(eq(notifications.userId, userId));
+    await tx.delete(syncState).where(eq(syncState.userId, userId));
 
     const deleted = await tx
       .delete(users)

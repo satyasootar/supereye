@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
   if (connected.includes('email')) {
     void import('@/lib/mail/sync').then(({ syncGmailForUser }) =>
-      syncGmailForUser(userId).catch(console.error)
+      syncGmailForUser(userId, { mode: 'incremental' }).catch(console.error)
     );
   }
   if (connected.includes('calendar')) {

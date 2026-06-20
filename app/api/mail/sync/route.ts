@@ -10,7 +10,7 @@ export async function POST() {
   const userId = session.user.id;
 
   try {
-    const result = await syncGmailForUser(userId);
+    const result = await syncGmailForUser(userId, { mode: 'incremental' });
     return NextResponse.json(result);
   } catch (error: any) {
     console.error('Mail sync error:', error);

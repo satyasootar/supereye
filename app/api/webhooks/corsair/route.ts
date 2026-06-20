@@ -94,7 +94,7 @@ export async function POST(req: Request) {
 
     if (provider === 'gmail') {
       setTimeout(async () => {
-        await syncGmailForUser(userId!);
+        await syncGmailForUser(userId!, { mode: 'incremental' });
       }, 2500);
     } else if (provider === 'googlecalendar') {
       await syncCalendarForUser(userId, true);
