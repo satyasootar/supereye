@@ -8,14 +8,28 @@ import {
   recipientsSchema,
 } from './common';
 
-export const mailSendFieldsSchema = z.object({
-  to: recipientsSchema,
-  subject: z.string().max(998).default(''),
-  text: z.string().max(500_000).default(''),
-  html: z.string().max(1_000_000).optional(),
-  scheduleAt: futureIsoDateTimeSchema.optional(),
-  isDraft: z.boolean().default(false),
-});
+export const mailSendFieldsSchema = z
+  .object({
+    to: z.string().max(5000).default(''),
+    subject: z.string().max(998).default(''),
+    text: z.string().max(500_000).default(''),
+    html: z.string().max(1_000_000).optional(),
+    scheduleAt: futureIsoDateTimeSchema.optional(),
+    isDraft: z.boolean().default(false),
+  })
+  .refine(
+    (data) => {
+      if (!data.isDraft) {
+        return recipientsSchema.safeParse(data.to).success;
+      }
+      if (data.to.trim() === '') return true;
+      return recipientsSchema.safeParse(data.to).success;
+    },
+    {
+      message: 'Invalid or missing recipient',
+      path: ['to'],
+    }
+  );
 
 export const mailReplyFieldsSchema = z.object({
   replyText: nonEmptyStringSchema.max(500_000),

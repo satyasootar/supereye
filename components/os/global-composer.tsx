@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback, KeyboardEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, KeyboardEvent } from 'react';
 import { motion, useDragControls } from 'framer-motion';
 import { addDays, setHours, setMinutes, nextFriday, format } from 'date-fns';
 import { 
   X, Minus, Sparkles, Paperclip, Code, Calendar as CalendarIcon, 
-  Trash2, ChevronDown, Maximize2, Minimize2
+  Trash2, ChevronDown, Maximize2, Minimize2, MoreHorizontal,
+  Bold, Italic, Underline
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store/app-store';
 import { useSession } from 'next-auth/react';
@@ -12,6 +13,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { TemplatePickerModal } from './template-picker-modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 type ComposeTone =
   | 'professional'
@@ -58,7 +60,122 @@ export function GlobalComposer() {
   const [composeSize, setComposeSize] = useState(COMPOSE_SIZE_DEFAULT);
   const [isExpanded, setIsExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const toInputRef = useRef<HTMLInputElement>(null);
   const dragControls = useDragControls();
+
+  const [selectedText, setSelectedText] = useState('');
+  const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
+  const [floatingMenuCoords, setFloatingMenuCoords] = useState<{ x: number; y: number } | null>(null);
+  const [isEnhancingSelection, setIsEnhancingSelection] = useState(false);
+
+  const handleMouseUp = (e: React.MouseEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    if (start !== end) {
+      setFloatingMenuCoords({
+        x: e.clientX,
+        y: e.clientY - 15,
+      });
+      setSelectedText(textarea.value.substring(start, end));
+      setSelectionRange({ start, end });
+    } else {
+      setSelectedText('');
+      setSelectionRange(null);
+      setFloatingMenuCoords(null);
+    }
+  };
+
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    if (start !== end) {
+      const rect = textarea.getBoundingClientRect();
+      setFloatingMenuCoords({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10,
+      });
+      setSelectedText(textarea.value.substring(start, end));
+      setSelectionRange({ start, end });
+    } else {
+      setSelectedText('');
+      setSelectionRange(null);
+      setFloatingMenuCoords(null);
+    }
+  };
+
+  const applyFormat = (formatType: 'bold' | 'italic' | 'underline') => {
+    if (!selectionRange) return;
+    const val = isHtmlMode ? htmlBody : bodyText;
+    const selected = val.substring(selectionRange.start, selectionRange.end);
+    let formatted = selected;
+
+    if (isHtmlMode) {
+      if (formatType === 'bold') formatted = `<strong>${selected}</strong>`;
+      else if (formatType === 'italic') formatted = `<em>${selected}</em>`;
+      else if (formatType === 'underline') formatted = `<u>${selected}</u>`;
+    } else {
+      if (formatType === 'bold') formatted = `**${selected}**`;
+      else if (formatType === 'italic') formatted = `*${selected}*`;
+      else if (formatType === 'underline') formatted = `<u>${selected}</u>`;
+    }
+
+    const newVal = val.substring(0, selectionRange.start) + formatted + val.substring(selectionRange.end);
+    if (isHtmlMode) setHtmlBody(newVal);
+    else setBodyText(newVal);
+
+    setSelectedText('');
+    setSelectionRange(null);
+    setFloatingMenuCoords(null);
+  };
+
+  const handleEnhanceSelection = async () => {
+    if (!selectedText.trim()) return;
+    setIsEnhancingSelection(true);
+    try {
+      const res = await fetch('/api/mail/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          draft: selectedText,
+          tone,
+          isHtml: isHtmlMode,
+          subject: `Selection enhancement`,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to enhance');
+      const data = await res.json();
+      
+      if (selectionRange) {
+        const val = isHtmlMode ? htmlBody : bodyText;
+        const newVal = val.substring(0, selectionRange.start) + data.enhanced + val.substring(selectionRange.end);
+        if (isHtmlMode) setHtmlBody(newVal);
+        else setBodyText(newVal);
+      }
+      toast.success('Selection enhanced');
+    } catch (e) {
+      toast.error('Failed to enhance selection');
+    } finally {
+      setIsEnhancingSelection(false);
+      setSelectedText('');
+      setSelectionRange(null);
+      setFloatingMenuCoords(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!floatingMenuCoords) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.floating-format-menu')) return;
+      setSelectedText('');
+      setSelectionRange(null);
+      setFloatingMenuCoords(null);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [floatingMenuCoords]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -70,17 +187,64 @@ export function GlobalComposer() {
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  const saveDraftSilently = useCallback(async (
+    currentTo: string[],
+    currentSubject: string,
+    currentBody: string,
+    currentHtml: string,
+    currentIsHtml: boolean
+  ) => {
+    if (currentTo.length === 0 && !currentSubject.trim() && !currentBody.trim() && !currentHtml.trim()) {
+      return;
+    }
+    setDraftStatus('saving');
+    try {
+      const formData = new FormData();
+      formData.append('to', currentTo.join(', '));
+      formData.append('subject', currentSubject);
+      const finalText = currentIsHtml ? currentHtml.replace(/<[^>]*>/g, ' ') : currentBody;
+      formData.append('text', finalText);
+      if (currentIsHtml && currentHtml.trim()) {
+        formData.append('html', currentHtml);
+      }
+      formData.append('isDraft', 'true');
+
+      const res = await fetch('/api/mail/send', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Failed to save draft');
+      setDraftStatus('saved');
+    } catch (e) {
+      console.error('Auto-save draft failed:', e);
+      setDraftStatus('idle');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (toRecipients.length === 0 && !subject.trim() && !bodyText.trim() && !htmlBody.trim()) {
+      setDraftStatus('idle');
+      return;
+    }
+    const timer = setTimeout(() => {
+      saveDraftSilently(toRecipients, subject, bodyText, htmlBody, isHtmlMode);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [toRecipients, subject, bodyText, htmlBody, isHtmlMode, saveDraftSilently]);
+
   const queryClient = useQueryClient();
   const draftValue = isHtmlMode ? htmlBody : bodyText;
 
   const enhanceMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrideTone?: ComposeTone) => {
       const res = await fetch('/api/mail/enhance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           draft: draftValue,
-          tone,
+          tone: overrideTone || tone,
           isHtml: isHtmlMode,
           subject,
         }),
@@ -370,24 +534,35 @@ export function GlobalComposer() {
       {!isMinimized && (
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* To Field */}
-          <div className="flex items-start px-4 min-h-[44px] py-2 border-b border-border-subtle flex-shrink-0">
-            <span className="text-[14px] text-text-muted w-[50px] mt-1">To</span>
+          <div 
+            onClick={() => toInputRef.current?.focus()}
+            className="flex items-start px-4 min-h-[44px] py-2 border-b border-border-subtle flex-shrink-0 cursor-text"
+          >
             <div className="flex items-center gap-2 flex-wrap flex-1">
               {toRecipients.map((recipient, idx) => (
-                <div key={idx} className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-bg-overlay text-[13px] text-text-primary border border-border-subtle max-w-full">
+                <div 
+                  key={idx} 
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-bg-overlay text-[13px] text-text-primary border border-border-subtle max-w-full"
+                >
                   <span className="truncate">{recipient}</span>
                   <button 
                     type="button"
-                    onClick={() => removeRecipient(idx)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeRecipient(idx);
+                    }}
                     className="text-text-muted hover:text-text-primary transition-colors"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
               ))}
-              <div className="relative flex-1 min-w-[120px] mt-0.5">
+              <div className="relative flex-1 min-w-[120px] mt-0.5" onClick={(e) => e.stopPropagation()}>
                 <input 
+                  ref={toInputRef}
                   type="text"
+                  placeholder={toRecipients.length === 0 ? "To" : ""}
                   value={inputValue}
                   onChange={(e) => {
                     setInputValue(e.target.value);
@@ -396,7 +571,7 @@ export function GlobalComposer() {
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   onKeyDown={handleKeyDown}
-                  className="w-full bg-transparent text-[14px] text-text-primary outline-none"
+                  className="w-full bg-transparent text-[14px] text-text-primary placeholder:text-text-muted outline-none"
                 />
                 
                 {/* Suggestions Dropdown */}
@@ -421,7 +596,10 @@ export function GlobalComposer() {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-3 text-[13px] text-text-muted mt-1">
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-3 text-[13px] text-text-muted mt-1"
+            >
               <button className="hover:text-text-primary transition-colors font-medium">Cc</button>
               <button className="hover:text-text-primary transition-colors font-medium">Bcc</button>
             </div>
@@ -458,7 +636,7 @@ export function GlobalComposer() {
                   <button
                     type="button"
                     className="rounded border border-border-subtle px-2 py-1"
-                    onClick={() => enhanceMutation.mutate()}
+                    onClick={() => enhanceMutation.mutate(undefined)}
                   >
                     Regenerate
                   </button>
@@ -485,6 +663,8 @@ export function GlobalComposer() {
                 if (isHtmlMode) setHtmlBody(e.target.value);
                 else setBodyText(e.target.value);
               }}
+              onMouseUp={handleMouseUp}
+              onKeyUp={handleKeyUp}
               className="w-full h-full min-h-[150px] bg-transparent resize-none outline-none text-[14px] text-text-primary placeholder:text-text-muted no-scrollbar"
             />
           </div>
@@ -588,101 +768,192 @@ export function GlobalComposer() {
               )}
             </div>
             
-            <div className="flex flex-wrap items-center justify-end gap-2 text-text-muted">
-              <Select value={tone} onValueChange={(v) => setTone(v as ComposeTone)}>
-                <SelectTrigger className="h-9 min-w-[110px] bg-bg-elevated border-border-subtle text-xs text-text-primary rounded-md">
-                  <SelectValue placeholder="Tone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TONE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <button
-                type="button"
-                className="h-9 min-w-[92px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors"
-                onClick={() => {
-                  if (!draftValue.trim()) return toast.error('Draft is empty');
-                  setOriginalDraft(draftValue);
-                  enhanceMutation.mutate();
-                }}
-                disabled={enhanceMutation.isPending}
-              >
-                {enhanceMutation.isPending ? 'Enhancing...' : 'AI Enhance'}
-              </button>
-              <button
-                type="button"
-                className="h-9 min-w-[92px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors"
-                onClick={() => setTemplateModalOpen(true)}
-              >
-                Templates
-              </button>
-              <button
-                type="button"
-                className="h-9 min-w-[80px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors"
-                onClick={() => setIsHtmlMode((v) => !v)}
-                title="Toggle HTML mode"
-              >
-                {isHtmlMode ? 'HTML on' : 'HTML off'}
-              </button>
-              <button
-                type="button"
-                className="h-9 min-w-[84px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors"
-                onClick={openHtmlPreview}
-              >
-                Preview
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-text-muted">
+              <div className="flex items-center gap-2 select-none">
+                {draftStatus === 'saving' && (
+                  <span className="text-[11px] text-text-muted animate-pulse">Saving draft...</span>
+                )}
+                {draftStatus === 'saved' && (
+                  <span className="text-[11px] text-text-muted">Draft saved</span>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Select 
+                  value={tone} 
+                  onValueChange={(v) => {
+                    const newTone = v as ComposeTone;
+                    setTone(newTone);
+                    if (!draftValue.trim()) {
+                      toast.error('Draft is empty');
+                      return;
+                    }
+                    setOriginalDraft(draftValue);
+                    enhanceMutation.mutate(newTone);
+                  }}
+                >
+                  <SelectTrigger 
+                    className="h-9 w-14 bg-bg-elevated border border-border-subtle rounded-md flex items-center justify-center gap-1 hover:text-text-primary transition-colors cursor-pointer select-none"
+                    disabled={enhanceMutation.isPending}
+                    title="AI Enhance (Select Tone)"
+                  >
+                    <Sparkles className={cn("h-4 w-4 text-violet-400", enhanceMutation.isPending && "animate-pulse")} />
+                    <span className="hidden">
+                      <SelectValue placeholder="Tone" />
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent position="popper" className="z-[1001]">
+                    {TONE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              <input 
-                type="file" 
-                multiple 
-                className="hidden" 
-                ref={fileInputRef}
-                onChange={handleFileChange}
-              />
-              <button 
-                type="button" 
-                className="flex h-9 w-9 items-center justify-center rounded-md border border-border-subtle hover:text-text-primary transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Paperclip className="h-4 w-4" />
-              </button>
-              <button type="button" className="flex h-9 w-9 items-center justify-center rounded-md border border-border-subtle hover:text-text-primary transition-colors">
-                <Code className="h-4 w-4" />
-              </button>
-              <button type="button" className="flex h-9 w-9 items-center justify-center rounded-md border border-border-subtle hover:text-text-primary transition-colors">
-                <CalendarIcon className="h-4 w-4" />
-              </button>
-              <div className="w-[1px] h-4 bg-border-strong mx-1"></div>
-              <button 
-                type="button" 
-                onClick={() => handleSend(true)}
-                disabled={isSending}
-                className="h-9 min-w-[92px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors"
-              >
-                Save Draft
-              </button>
-              <button 
-                type="button"
-                onClick={() => {
-                  setComposeOpen(false);
-                  setIsMinimized(false);
-                  setEnhancedDraft(null);
-                  setOriginalDraft(null);
-                }}
-                className="h-9 min-w-[70px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors ml-1"
-              >
-                Close
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setTemplateModalOpen(true)}
+                  className="composer-shine-btn relative overflow-hidden h-9 px-3 text-xs font-semibold rounded-md border border-violet-500/35 bg-gradient-to-r from-violet-600/10 to-cyan-600/10 hover:from-violet-600/20 hover:to-cyan-600/20 text-violet-400 hover:text-violet-300 transition-colors shadow-sm cursor-pointer shrink-0"
+                >
+                  Templates
+                </button>
+
+                <input 
+                  type="file" 
+                  multiple 
+                  className="hidden" 
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                />
+                <button 
+                  type="button" 
+                  className="flex h-9 w-9 items-center justify-center rounded-md border border-border-subtle hover:text-text-primary transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Attach file"
+                >
+                  <Paperclip className="h-4 w-4 text-text-muted" />
+                </button>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button 
+                      type="button" 
+                      aria-label="More options"
+                      className="flex h-9 w-9 items-center justify-center rounded-md border border-border-subtle hover:text-text-primary transition-colors"
+                    >
+                      <MoreHorizontal className="h-4 w-4 text-text-muted" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-52 p-1.5 flex flex-col gap-1 z-[1000] bg-bg-elevated border border-border-subtle shadow-xl rounded-lg">
+                    <button 
+                      type="button"
+                      onClick={() => setIsHtmlMode((v) => !v)} 
+                      className="flex items-center gap-2 px-2.5 py-2 text-xs hover:bg-bg-surface rounded-md text-text-primary text-left font-medium transition-colors"
+                    >
+                      {isHtmlMode ? 'HTML mode: On' : 'HTML mode: Off'}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={openHtmlPreview} 
+                      className="flex items-center gap-2 px-2.5 py-2 text-xs hover:bg-bg-surface rounded-md text-text-primary text-left font-medium transition-colors"
+                    >
+                      Preview HTML
+                    </button>
+                    <div className="h-[1px] bg-border-subtle/60 my-0.5"></div>
+                    <button 
+                      type="button"
+                      className="flex items-center gap-2 px-2.5 py-2 text-xs hover:bg-bg-surface rounded-md text-text-primary text-left font-medium transition-colors"
+                    >
+                      <Code className="h-3.5 w-3.5 text-text-muted" />
+                      Insert code
+                    </button>
+                    <button 
+                      type="button"
+                      className="flex items-center gap-2 px-2.5 py-2 text-xs hover:bg-bg-surface rounded-md text-text-primary text-left font-medium transition-colors"
+                    >
+                      <CalendarIcon className="h-3.5 w-3.5 text-text-muted" />
+                      Insert calendar event
+                    </button>
+                    <div className="h-[1px] bg-border-subtle/60 my-0.5"></div>
+                    <button 
+                      type="button"
+                      onClick={() => handleSend(true)}
+                      disabled={isSending}
+                      className="flex items-center gap-2 px-2.5 py-2 text-xs hover:bg-bg-surface rounded-md text-text-primary text-left font-medium transition-colors disabled:opacity-50"
+                    >
+                      Save Draft
+                    </button>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <style>{`
+                @keyframes composer-shine {
+                  0% { transform: translateX(-150%); }
+                  50% { transform: translateX(150%); }
+                  100% { transform: translateX(150%); }
+                }
+                .composer-shine-btn::after {
+                  content: '';
+                  position: absolute;
+                  top: 0; left: 0; width: 100%; height: 100%;
+                  background: linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.25), transparent);
+                  transform: translateX(-150%);
+                  animation: composer-shine 4s infinite ease-in-out;
+                }
+              `}</style>
             </div>
             </div>
           </div>
         </div>
       )}
     </motion.div>
+
+    {floatingMenuCoords && (
+      <div 
+        style={{ 
+          left: `${floatingMenuCoords.x}px`, 
+          top: `${floatingMenuCoords.y}px`,
+          transform: 'translate(-50%, -100%)'
+        }}
+        className="floating-format-menu fixed z-[2000] flex items-center gap-1 bg-bg-elevated border border-border-subtle shadow-xl rounded-lg p-1 animate-in fade-in slide-in-from-bottom-2 duration-150"
+      >
+        <button
+          type="button"
+          onClick={() => applyFormat('bold')}
+          className="flex h-7 w-7 items-center justify-center text-text-primary hover:bg-bg-surface rounded transition-colors"
+          title="Bold"
+        >
+          <Bold className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => applyFormat('italic')}
+          className="flex h-7 w-7 items-center justify-center text-text-primary hover:bg-bg-surface rounded transition-colors"
+          title="Italic"
+        >
+          <Italic className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => applyFormat('underline')}
+          className="flex h-7 w-7 items-center justify-center text-text-primary hover:bg-bg-surface rounded transition-colors"
+          title="Underline"
+        >
+          <Underline className="h-3.5 w-3.5" />
+        </button>
+        <div className="w-[1px] h-4 bg-border-subtle mx-1"></div>
+        <button
+          type="button"
+          onClick={handleEnhanceSelection}
+          disabled={isEnhancingSelection}
+          className="flex h-7 px-2 items-center gap-1 text-[11px] font-semibold text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 rounded transition-colors disabled:opacity-50"
+        >
+          <Sparkles className="h-3 w-3" />
+          {isEnhancingSelection ? 'Enhancing...' : 'AI Enhance'}
+        </button>
+      </div>
+    )}
 
     <TemplatePickerModal
       open={templateModalOpen}

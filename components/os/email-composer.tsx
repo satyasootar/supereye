@@ -1,10 +1,12 @@
-import { useState, useRef, KeyboardEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, KeyboardEvent } from 'react';
 import { addDays, setHours, setMinutes, nextFriday, format } from 'date-fns';
 import { 
   CornerUpLeft, X, MoreHorizontal, ChevronDown,
-  Sparkles, Paperclip, Calendar as CalendarIcon, Trash2, Code
+  Sparkles, Paperclip, Calendar as CalendarIcon, Trash2, Code,
+  Bold, Italic, Underline
 } from 'lucide-react';
 
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -37,6 +39,7 @@ function RecipientInput({
   placeholder?: string
 }) {
   const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (['Enter', ' ', ','].includes(e.key)) {
@@ -56,14 +59,24 @@ function RecipientInput({
   };
 
   return (
-    <div className="flex items-center gap-2 flex-wrap flex-1">
+    <div 
+      onClick={() => inputRef.current?.focus()}
+      className="flex items-center gap-2 flex-wrap flex-1 cursor-text"
+    >
       {recipients.map((recipient, idx) => (
-        <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-bg-overlay text-[14px] text-text-primary border border-border-subtle">
+        <div 
+          key={idx} 
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-bg-overlay text-[14px] text-text-primary border border-border-subtle"
+        >
           <span>{recipient}</span>
           <button 
             type="button"
             aria-label="Remove recipient"
-            onClick={() => removeRecipient(idx)}
+            onClick={(e) => {
+              e.stopPropagation();
+              removeRecipient(idx);
+            }}
             className="text-text-muted hover:text-text-primary transition-colors"
           >
             <X className="h-3.5 w-3.5" />
@@ -71,6 +84,7 @@ function RecipientInput({
         </div>
       ))}
       <input 
+        ref={inputRef}
         type="text"
         aria-label="Recipient email address"
         value={inputValue}
@@ -102,6 +116,120 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
   const fileInputRef = useRef<HTMLInputElement>(null);
   const draftValue = isHtmlMode ? htmlBody : bodyText;
 
+  const [selectedText, setSelectedText] = useState('');
+  const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
+  const [floatingMenuCoords, setFloatingMenuCoords] = useState<{ x: number; y: number } | null>(null);
+  const [isEnhancingSelection, setIsEnhancingSelection] = useState(false);
+
+  const handleMouseUp = (e: React.MouseEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    if (start !== end) {
+      setFloatingMenuCoords({
+        x: e.clientX,
+        y: e.clientY - 15,
+      });
+      setSelectedText(textarea.value.substring(start, end));
+      setSelectionRange({ start, end });
+    } else {
+      setSelectedText('');
+      setSelectionRange(null);
+      setFloatingMenuCoords(null);
+    }
+  };
+
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    if (start !== end) {
+      const rect = textarea.getBoundingClientRect();
+      setFloatingMenuCoords({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10,
+      });
+      setSelectedText(textarea.value.substring(start, end));
+      setSelectionRange({ start, end });
+    } else {
+      setSelectedText('');
+      setSelectionRange(null);
+      setFloatingMenuCoords(null);
+    }
+  };
+
+  const applyFormat = (formatType: 'bold' | 'italic' | 'underline') => {
+    if (!selectionRange) return;
+    const val = isHtmlMode ? htmlBody : bodyText;
+    const selected = val.substring(selectionRange.start, selectionRange.end);
+    let formatted = selected;
+
+    if (isHtmlMode) {
+      if (formatType === 'bold') formatted = `<strong>${selected}</strong>`;
+      else if (formatType === 'italic') formatted = `<em>${selected}</em>`;
+      else if (formatType === 'underline') formatted = `<u>${selected}</u>`;
+    } else {
+      if (formatType === 'bold') formatted = `**${selected}**`;
+      else if (formatType === 'italic') formatted = `*${selected}*`;
+      else if (formatType === 'underline') formatted = `<u>${selected}</u>`;
+    }
+
+    const newVal = val.substring(0, selectionRange.start) + formatted + val.substring(selectionRange.end);
+    if (isHtmlMode) setHtmlBody(newVal);
+    else setBodyText(newVal);
+
+    setSelectedText('');
+    setSelectionRange(null);
+    setFloatingMenuCoords(null);
+  };
+
+  const handleEnhanceSelection = async () => {
+    if (!selectedText.trim()) return;
+    setIsEnhancingSelection(true);
+    try {
+      const res = await fetch('/api/mail/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          draft: selectedText,
+          tone,
+          isHtml: isHtmlMode,
+          subject: `Selection enhancement`,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to enhance');
+      const data = await res.json();
+      
+      if (selectionRange) {
+        const val = isHtmlMode ? htmlBody : bodyText;
+        const newVal = val.substring(0, selectionRange.start) + data.enhanced + val.substring(selectionRange.end);
+        if (isHtmlMode) setHtmlBody(newVal);
+        else setBodyText(newVal);
+      }
+      toast.success('Selection enhanced');
+    } catch (e) {
+      toast.error('Failed to enhance selection');
+    } finally {
+      setIsEnhancingSelection(false);
+      setSelectedText('');
+      setSelectionRange(null);
+      setFloatingMenuCoords(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!floatingMenuCoords) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.floating-format-menu')) return;
+      setSelectedText('');
+      setSelectionRange(null);
+      setFloatingMenuCoords(null);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [floatingMenuCoords]);
+
   const openHtmlPreview = () => {
     if (!isHtmlMode || !htmlBody.trim()) {
       toast.error('Switch to HTML mode and load template/content first');
@@ -122,13 +250,13 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
   };
 
   const enhanceMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrideTone?: ComposeTone) => {
       const res = await fetch('/api/mail/enhance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           draft: draftValue,
-          tone,
+          tone: overrideTone || tone,
           isHtml: isHtmlMode,
           subject,
         }),
@@ -310,7 +438,7 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
               >
                 Accept
               </button>
-              <button type="button" className="rounded border border-border-subtle px-2 py-1" onClick={() => enhanceMutation.mutate()}>
+              <button type="button" className="rounded border border-border-subtle px-2 py-1" onClick={() => enhanceMutation.mutate(undefined)}>
                 Regenerate
               </button>
               <button
@@ -337,6 +465,8 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
             if (isHtmlMode) setHtmlBody(e.target.value);
             else setBodyText(e.target.value);
           }}
+          onMouseUp={handleMouseUp}
+          onKeyUp={handleKeyUp}
           placeholder='Write, or press "space" for AI, "/" for commands...'
           className="w-full min-h-[250px] bg-transparent resize-none outline-none text-[15px] text-text-primary placeholder:text-text-muted leading-relaxed"
         />
@@ -441,11 +571,30 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
         </div>
         
         <div className="flex flex-wrap items-center justify-end gap-2 text-text-muted">
-          <Select value={tone} onValueChange={(v) => setTone(v as ComposeTone)}>
-            <SelectTrigger className="h-9 min-w-[110px] bg-bg-elevated border-border-subtle text-xs text-text-primary rounded-md">
-              <SelectValue placeholder="Tone" />
+          <Select 
+            value={tone} 
+            onValueChange={(v) => {
+              const newTone = v as ComposeTone;
+              setTone(newTone);
+              if (!draftValue.trim()) {
+                toast.error('Draft is empty');
+                return;
+              }
+              setOriginalDraft(draftValue);
+              enhanceMutation.mutate(newTone);
+            }}
+          >
+            <SelectTrigger 
+              className="h-9 w-14 bg-bg-elevated border border-border-subtle rounded-md flex items-center justify-center gap-1 hover:text-text-primary transition-colors cursor-pointer select-none"
+              disabled={enhanceMutation.isPending}
+              title="AI Enhance (Select Tone)"
+            >
+              <Sparkles className={cn("h-4 w-4 text-violet-400", enhanceMutation.isPending && "animate-pulse")} />
+              <span className="hidden">
+                <SelectValue placeholder="Tone" />
+              </span>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" className="z-[1001]">
               <SelectItem value="professional" className="text-xs">Professional</SelectItem>
               <SelectItem value="friendly" className="text-xs">Friendly</SelectItem>
               <SelectItem value="formal" className="text-xs">Formal</SelectItem>
@@ -454,19 +603,6 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
               <SelectItem value="empathetic" className="text-xs">Empathetic</SelectItem>
             </SelectContent>
           </Select>
-          <button
-            type="button"
-            aria-label="AI Enhance"
-            className="h-9 min-w-[92px] rounded-md border border-border-subtle px-3 text-xs font-medium hover:text-text-primary transition-colors flex items-center justify-center"
-            onClick={() => {
-              if (!draftValue.trim()) return toast.error('Draft is empty');
-              setOriginalDraft(draftValue);
-              enhanceMutation.mutate();
-            }}
-            disabled={enhanceMutation.isPending}
-          >
-            {enhanceMutation.isPending ? 'Enhancing...' : 'AI Enhance'}
-          </button>
           
           <input 
             type="file" 
@@ -492,6 +628,52 @@ export function EmailComposer({ onClose, defaultTo, emailId, threadId, subject }
           </button>
         </div>
       </div>
+
+      {floatingMenuCoords && (
+        <div 
+          style={{ 
+            left: `${floatingMenuCoords.x}px`, 
+            top: `${floatingMenuCoords.y}px`,
+            transform: 'translate(-50%, -100%)'
+          }}
+          className="floating-format-menu fixed z-[2000] flex items-center gap-1 bg-bg-elevated border border-border-subtle shadow-xl rounded-lg p-1 animate-in fade-in slide-in-from-bottom-2 duration-150"
+        >
+          <button
+            type="button"
+            onClick={() => applyFormat('bold')}
+            className="flex h-7 w-7 items-center justify-center text-text-primary hover:bg-bg-surface rounded transition-colors"
+            title="Bold"
+          >
+            <Bold className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => applyFormat('italic')}
+            className="flex h-7 w-7 items-center justify-center text-text-primary hover:bg-bg-surface rounded transition-colors"
+            title="Italic"
+          >
+            <Italic className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => applyFormat('underline')}
+            className="flex h-7 w-7 items-center justify-center text-text-primary hover:bg-bg-surface rounded transition-colors"
+            title="Underline"
+          >
+            <Underline className="h-3.5 w-3.5" />
+          </button>
+          <div className="w-[1px] h-4 bg-border-subtle mx-1"></div>
+          <button
+            type="button"
+            onClick={handleEnhanceSelection}
+            disabled={isEnhancingSelection}
+            className="flex h-7 px-2 items-center gap-1 text-[11px] font-semibold text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 rounded transition-colors disabled:opacity-50"
+          >
+            <Sparkles className="h-3 w-3" />
+            {isEnhancingSelection ? 'Enhancing...' : 'AI Enhance'}
+          </button>
+        </div>
+      )}
 
       <TemplatePickerModal
         open={templateModalOpen}

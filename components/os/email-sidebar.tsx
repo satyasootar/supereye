@@ -7,6 +7,7 @@ import {
   ChevronDown, Plus, Settings, HelpCircle, Edit, 
   BarChart, Flame, Paperclip, Users, Tag,   ChevronLeft, ChevronRight, Calendar,
   Sun, Moon, User, Archive, PanelLeftClose, PanelLeftOpen, ArrowLeftRight, LogOut,
+  ChevronsUpDown, Shield, ListFilter,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef } from 'react';
@@ -41,6 +42,7 @@ export function EmailSidebar() {
   const pathname = usePathname();
   const isBriefPage = pathname === '/workspace/brief';
   const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'super_admin';
   const {
     activeTabs,
     emailCategory,
@@ -136,9 +138,23 @@ export function EmailSidebar() {
     refetchInterval: 30000,
   });
 
-  const [viewsExpanded, setViewsExpanded] = useState(true);
-
   const goToProfile = () => router.push('/workspace/profile');
+
+  const { data: billingData } = useQuery({
+    queryKey: ['billing-wallet'],
+    queryFn: async () => {
+      const res = await fetch('/api/billing/wallet');
+      if (!res.ok) throw new Error('Failed to fetch billing');
+      return res.json();
+    },
+    staleTime: 60000 * 5,
+  });
+
+  const getPlanName = () => {
+    if (session?.user?.role === 'super_admin') return 'Enterprise';
+    if (session?.user?.role === 'enterprise_user') return 'Enterprise';
+    return billingData?.subscription?.plan?.name || 'Starter';
+  };
 
   const springTransition = {
     type: 'spring' as const,
@@ -544,46 +560,70 @@ export function EmailSidebar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="border-t border-border-subtle p-3 bg-bg-surface/30 flex items-center justify-between gap-2 flex-shrink-0"
+            className="border-t border-border-subtle p-3 bg-bg-surface/30 flex flex-col gap-2.5 flex-shrink-0"
           >
-            <button
-              type="button"
+            {/* Top row: Activity/Notifications */}
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                Activity
+              </span>
+              <div data-tour={TOUR_TARGETS.notifications}>
+                <NotificationBell align="end" side="top" />
+              </div>
+            </div>
+
+            {/* Profile trigger card */}
+            <div
               data-tour={TOUR_TARGETS.profile}
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
               data-menu-trigger="profile"
               className={cn(
-                "flex items-center gap-2 overflow-hidden rounded-md px-1 py-0.5 transition-colors hover:bg-bg-overlay text-left cursor-pointer",
-                isMenuOpen && "bg-bg-overlay"
+                "flex items-center gap-3 w-full rounded-[var(--radius-m)] border border-border-subtle bg-bg-highlight/40 p-2 text-left transition-all select-none",
+                isMenuOpen && "bg-bg-overlay border-border-default shadow-sm"
               )}
-              aria-label="Open profile menu"
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-subtle bg-bg-highlight">
-                {session?.user?.image ? (
-                  <img src={session.user.image} alt="User" className="h-full w-full object-cover" />
-                ) : (
-                  <User className="h-4 w-4" />
-                )}
-              </span>
-              <div className="flex flex-col text-left overflow-hidden max-w-[110px]">
-                <span className="text-[12px] font-semibold text-text-primary truncate">{session?.user?.name || 'User'}</span>
-                <span className="text-[10px] text-text-muted truncate">{session?.user?.email}</span>
-              </div>
-            </button>
-            <div className="flex items-center gap-1">
-              <div data-tour={TOUR_TARGETS.notifications}>
-                <NotificationBell align="start" side="right" />
-              </div>
-              <button 
+              <div 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                data-menu-trigger="profile"
-                className={cn(
-                  "text-text-secondary hover:text-text-primary transition-colors p-1.5 rounded-md hover:bg-bg-overlay cursor-pointer",
-                  isMenuOpen && "bg-bg-overlay text-text-primary"
-                )}
-                title="Open settings dropdown"
+                className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer hover:opacity-85 transition-opacity"
               >
-                <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isMenuOpen && "rotate-180")} />
-              </button>
+                <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[var(--radius-md)] border border-border-subtle bg-bg-highlight flex">
+                  {session?.user?.image ? (
+                    <img src={session.user.image} alt="User" className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="h-4 w-4 text-text-muted m-auto" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                  <span className="text-[13px] font-semibold text-text-primary truncate leading-tight">
+                    {session?.user?.name || 'User'}
+                  </span>
+                  <span className="text-[11px] font-medium text-accent-blue truncate mt-0.5 leading-none">
+                    {getPlanName()} Plan
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1 shrink-0 pr-1">
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className={cn(
+                    "p-1.5 rounded-[var(--radius-md)] text-text-secondary hover:text-text-primary hover:bg-bg-overlay transition-colors cursor-pointer",
+                    isMenuOpen && "bg-bg-overlay text-text-primary"
+                  )}
+                  title="Open menu"
+                >
+                  <ListFilter className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={goToProfile}
+                  className="p-1.5 rounded-[var(--radius-md)] text-text-secondary hover:text-text-primary hover:bg-bg-overlay transition-colors cursor-pointer"
+                  title="View Profile Settings"
+                >
+                  <Settings className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -599,37 +639,29 @@ export function EmailSidebar() {
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
             className={cn(
-              "absolute z-50 rounded-lg border border-border-subtle bg-bg-elevated p-1.5 shadow-xl flex flex-col min-w-[200px] select-none",
+              "absolute z-50 rounded-[var(--radius-lg)] border border-border-subtle bg-bg-elevated p-1.5 shadow-xl flex flex-col min-w-[200px] select-none",
               isSidebarCollapsed 
                 ? "left-14 bottom-4" 
-                : "left-3 right-3 bottom-14"
+                : "left-3 right-3 bottom-[72px]"
             )}
           >
-            <div className="px-2.5 py-1.5 border-b border-border-subtle/50 mb-1 flex flex-col">
-              <span className="text-[12px] font-semibold text-text-primary truncate">
-                {session?.user?.name || 'User'}
-              </span>
-              <span className="text-[10px] text-text-muted truncate mt-0.5">
-                {session?.user?.email}
-              </span>
-            </div>
-            
-            <button
-              type="button"
-              onClick={() => {
-                setIsMenuOpen(false);
-                goToProfile();
-              }}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-text-secondary hover:bg-bg-overlay hover:text-text-primary transition-colors cursor-pointer"
-            >
-              <User className="h-3.5 w-3.5 text-text-muted" />
-              View Profile
-            </button>
+
+
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2.5 py-1.5 text-left text-[12px] text-text-secondary hover:bg-bg-overlay hover:text-text-primary transition-colors cursor-pointer"
+              >
+                <Shield className="h-3.5 w-3.5 text-text-muted" />
+                Admin Panel
+              </Link>
+            )}
 
             <button
               type="button"
               onClick={() => void handleRestartTour()}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-text-secondary hover:bg-bg-overlay hover:text-text-primary transition-colors cursor-pointer"
+              className="flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2.5 py-1.5 text-left text-[12px] text-text-secondary hover:bg-bg-overlay hover:text-text-primary transition-colors cursor-pointer"
             >
               <HelpCircle className="h-3.5 w-3.5 text-text-muted" />
               App tour
@@ -671,7 +703,7 @@ export function EmailSidebar() {
                 setIsMenuOpen(false);
                 void signOut({ callbackUrl: '/' });
               }}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-text-secondary hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+              className="flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2.5 py-1.5 text-left text-[12px] text-text-secondary hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
             >
               <LogOut className="h-3.5 w-3.5" />
               Log out

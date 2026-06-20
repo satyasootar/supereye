@@ -213,22 +213,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
             })}
           </ul>
 
-          {isAdmin && (
-            <div className="mt-auto border-t border-border-subtle pt-4">
-              <Link
-                href="/admin"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-between gap-2.5 rounded-md px-3 py-2 text-left text-[13.5px] text-text-muted hover:bg-bg-overlay hover:text-text-primary transition-colors border-l-2 border-transparent"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Shield className="h-4 w-4 shrink-0" />
-                  Admin
-                </div>
-                <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
-              </Link>
-            </div>
-          )}
+
         </nav>
 
         {/* Mobile tab bar */}
@@ -254,18 +239,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                 </button>
               );
             })}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium text-text-muted hover:bg-bg-overlay transition-colors"
-              >
-                <Shield className="h-3.5 w-3.5" />
-                Admin
-                <ExternalLink className="ml-0.5 h-3 w-3 opacity-70" />
-              </Link>
-            )}
+
           </div>
 
           {/* Content */}
