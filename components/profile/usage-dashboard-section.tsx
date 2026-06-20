@@ -16,26 +16,15 @@ import {
 import { ProfileSection } from '@/components/profile/profile-section';
 import { cn } from '@/lib/utils';
 import type { UsageDashboard } from '@/lib/usage/dashboard';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
 
-const FEATURE_LABELS: Record<string, string> = {
-  chat: 'Assistant chat',
-  chat_summary: 'Chat summaries',
-  email_triage: 'Email triage',
-  transcribe: 'Voice transcription',
-  agent_email_send: 'AI emails sent',
-};
-
-function formatTokens(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
-  return String(value);
-}
+import { formatCredits } from '@/lib/billing/format';
+import { WalletUsageSummary } from '@/components/billing/usage-bar';
 
 function StatCard({
   label,
@@ -122,6 +111,16 @@ export function UsageDashboardSection() {
     staleTime: 30_000,
   });
 
+  const { data: walletData } = useQuery({
+    queryKey: ['billing-wallet'],
+    queryFn: async () => {
+      const res = await fetch('/api/billing/wallet');
+      if (!res.ok) throw new Error('Failed to load credits');
+      return res.json();
+    },
+    staleTime: 30_000,
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20 text-text-muted">
@@ -156,7 +155,7 @@ export function UsageDashboardSection() {
         <div>
           <h2 className="text-[20px] font-semibold text-text-primary">Usage dashboard</h2>
           <p className="mt-1 text-[13px] text-text-muted">
-            Track AI chat activity, token usage, email triage, and agent-generated mail.
+            Track AI chat activity, credit usage, email triage, and agent-generated mail.
           </p>
         </div>
         <button
@@ -179,11 +178,11 @@ export function UsageDashboardSection() {
           data={data.chat.last7Days}
         />
         <StatCard
-          label="Tokens used"
-          value={formatTokens(data.tokens.total)}
-          hint={`${formatTokens(data.tokens.input)} in · ${formatTokens(data.tokens.output)} out`}
+          label="Credits used"
+          value={formatCredits(walletData?.wallet?.usedThisPeriod ?? 0)}
+          hint={`${formatCredits(walletData?.wallet?.balance ?? 0)} remaining this period`}
           icon={Coins}
-          data={data.tokens.last7Days.map((d) => ({ date: d.date, value: d.totalTokens }))}
+          accent="blue"
         />
         <StatCard
           label="Emails classified"
@@ -236,52 +235,14 @@ export function UsageDashboardSection() {
         </ProfileSection>
 
         <ProfileSection
-          title="Token usage"
-          description="Breakdown by AI feature. Token tracking starts from when this dashboard was enabled."
+          title="AI credits"
+          description="Credits consumed by AI features this billing period."
         >
-          {data.tokens.byFeature.length === 0 ? (
-            <p className="text-[13px] text-text-muted">No token usage recorded yet.</p>
-          ) : (
-            <ChartContainer
-              config={{
-                totalTokens: {
-                  label: 'Tokens',
-                  color: 'var(--accent-blue)',
-                },
-              }}
-              className="h-[250px] w-full"
-            >
-              <BarChart
-                data={data.tokens.byFeature.map((row) => ({
-                  feature: FEATURE_LABELS[row.feature] ?? row.feature,
-                  totalTokens: row.totalTokens,
-                }))}
-                layout="vertical"
-                margin={{ left: -20, right: 0, top: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-subtle)" opacity={0.5} />
-                <YAxis
-                  dataKey="feature"
-                  type="category"
-                  tickLine={false}
-                  axisLine={false}
-                  width={140}
-                  tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
-                />
-                <XAxis type="number" hide />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent hideLabel />}
-                />
-                <Bar
-                  dataKey="totalTokens"
-                  fill="var(--color-totalTokens)"
-                  radius={[0, 4, 4, 0]}
-                  barSize={24}
-                />
-              </BarChart>
-            </ChartContainer>
-          )}
+          <WalletUsageSummary
+            wallet={walletData?.wallet ?? null}
+            role={walletData?.role ?? 'user'}
+            effectiveLimit={walletData?.credits?.effectiveLimit}
+          />
         </ProfileSection>
       </div>
 
@@ -322,33 +283,33 @@ export function UsageDashboardSection() {
         </ProfileSection>
 
         <ProfileSection
-          title="Token activity (7 days)"
-          description="Daily token consumption across all AI features."
+          title="Chat activity (7 days)"
+          description="Daily messages in assistant conversations."
         >
-          {data.tokens.last7Days.every((day) => day.totalTokens === 0) ? (
-            <p className="text-[13px] text-text-muted">No activity in the last 7 days.</p>
+          {data.chat.last7Days.every((day) => day.value === 0) ? (
+            <p className="text-[13px] text-text-muted">No chat activity in the last 7 days.</p>
           ) : (
             <ChartContainer
               config={{
-                totalTokens: {
-                  label: 'Tokens',
+                value: {
+                  label: 'Messages',
                   color: 'var(--accent-blue)',
                 },
               }}
               className="h-[250px] w-full"
             >
               <AreaChart
-                data={data.tokens.last7Days.map((day) => ({
+                data={data.chat.last7Days.map((day) => ({
                   date: format(new Date(`${day.date}T12:00:00`), 'EEE'),
                   fullDate: format(new Date(`${day.date}T12:00:00`), 'MMM d, yyyy'),
-                  totalTokens: day.totalTokens,
+                  value: day.value,
                 }))}
                 margin={{ left: 0, right: 0, top: 10, bottom: 0 }}
               >
                 <defs>
-                  <linearGradient id="fillTokens" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-totalTokens)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="var(--color-totalTokens)" stopOpacity={0} />
+                  <linearGradient id="fillChat" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-value)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--color-value)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-subtle)" opacity={0.5} />
@@ -360,16 +321,13 @@ export function UsageDashboardSection() {
                   tick={{ fontSize: 12, fill: 'var(--text-muted)' }}
                 />
                 <YAxis hide />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent labelKey="fullDate" />}
-                />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent labelKey="fullDate" />} />
                 <Area
                   type="monotone"
-                  dataKey="totalTokens"
-                  stroke="var(--color-totalTokens)"
+                  dataKey="value"
+                  stroke="var(--color-value)"
                   fillOpacity={1}
-                  fill="url(#fillTokens)"
+                  fill="url(#fillChat)"
                   strokeWidth={2}
                 />
               </AreaChart>

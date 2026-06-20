@@ -212,10 +212,10 @@ export default function AdminUsersPage() {
             { key: 'presence', label: 'Presence' },
             { key: 'role', label: 'Role' },
             { key: 'plan', label: 'Plan' },
-            { key: 'tokens', label: 'Tokens' },
+            { key: 'tokens', label: 'Credits' },
             { key: 'lastLogin', label: 'Last login' },
             { key: 'time', label: 'Time in app' },
-            { key: 'usage', label: 'Usage' },
+            ...(isSuperAdmin ? [{ key: 'usage', label: 'LLM tokens' as const }] : []),
             { key: 'status', label: 'Status' },
             { key: 'actions', label: 'Actions' },
           ]}
@@ -248,21 +248,24 @@ export default function AdminUsersPage() {
             role: <Badge variant="outline">{u.role}</Badge>,
             plan: u.planName ?? '—',
             tokens: (
-              <span>
+              <span className="text-sm">
                 {formatTokens(u.balance ?? 0)}
                 <span className="ml-1 text-text-muted">
-                  / {formatTokens((u.balance ?? 0) + (u.usedThisPeriod ?? 0))}
+                  left · {formatTokens(u.usedThisPeriod ?? 0)} used
                 </span>
               </span>
             ),
             lastLogin: formatDateTime(u.lastLoginAt),
             time: formatDuration(u.totalTimeSpentSeconds),
-            usage: (
-              <div className="text-xs">
-                <p>{formatTokens(u.usedThisPeriod ?? 0)} credits</p>
-                <p className="text-text-muted">{formatTokens(u.aiTokensUsed)} AI</p>
-              </div>
-            ),
+            ...(isSuperAdmin
+              ? {
+                  usage: (
+                    <span className="text-xs tabular-nums text-text-secondary">
+                      {formatTokens(u.aiTokensUsed)}
+                    </span>
+                  ),
+                }
+              : {}),
             status: (
               <Badge variant={u.status === 'active' ? 'default' : 'outline'}>{u.status}</Badge>
             ),

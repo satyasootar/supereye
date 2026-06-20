@@ -14,10 +14,35 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   admin_removal: 'Removed tokens',
   bonus_credits: 'Granted bonus credits',
   period_reset: 'Reset token period',
+  approve_credit_request: 'Approved credit request',
+  approve_subscription_request: 'Approved subscription request',
+  reject_billing_request: 'Rejected billing request',
+  user_login: 'User signed in',
+  user_logout: 'User signed out',
+  session_end: 'Session ended',
 };
 
 export function formatAuditAction(action: string): string {
   return AUDIT_ACTION_LABELS[action] ?? action.replace(/_/g, ' ');
+}
+
+function formatDuration(totalSeconds: number): string {
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes < 60) return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+export function formatAuditActor(params: {
+  actorType: 'admin' | 'user';
+  actorName?: string | null;
+  actorEmail?: string | null;
+}): string {
+  const label = params.actorName?.trim() || params.actorEmail || 'Unknown';
+  return params.actorType === 'admin' ? `${label} (admin)` : label;
 }
 
 export function formatAuditTarget(params: {
@@ -87,6 +112,13 @@ export function formatAuditMetadata(metadata: Record<string, unknown> | null | u
   }
   if (typeof metadata.demoLoginEnabled === 'boolean') {
     parts.push(`demo login: ${metadata.demoLoginEnabled ? 'enabled' : 'disabled'}`);
+  }
+  if (typeof metadata.method === 'string') parts.push(`method: ${metadata.method}`);
+  if (typeof metadata.durationSeconds === 'number') {
+    parts.push(`duration: ${formatDuration(metadata.durationSeconds)}`);
+  }
+  if (typeof metadata.endReason === 'string') {
+    parts.push(`reason: ${metadata.endReason.replace(/_/g, ' ')}`);
   }
 
   if (parts.length > 0) return parts.join(' · ');

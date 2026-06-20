@@ -17,21 +17,25 @@ export function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }
   const {
     workspaces,
     activeWorkspace,
+    activePlugins,
     switchWorkspace,
     isLoading,
   } = useWorkspaces();
 
   useEffect(() => {
     if (!activeWorkspace || isLoading) return;
+    const workspacePlugins = activeWorkspace.pluginIds.filter((id) =>
+      activePlugins.includes(id)
+    );
     useAppStore.getState().applyWorkspaceLayout(
       {
         primary: activeWorkspace.primaryPluginId,
         sidebar: activeWorkspace.sidebarPluginId,
       },
-      activeWorkspace.pluginIds
+      workspacePlugins.length > 0 ? workspacePlugins : activePlugins
     );
     useAppStore.getState().setActiveWorkspaceId(activeWorkspace.id);
-  }, [activeWorkspace?.id, isLoading]);
+  }, [activeWorkspace?.id, activePlugins, isLoading]);
 
   if (isLoading || workspaces.length === 0) return null;
 

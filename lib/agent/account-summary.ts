@@ -65,10 +65,10 @@ export function formatAccountSummaryForPrompt(summary: AgentAccountSummary): str
   }
 
   if (summary.unlimited) {
-    lines.push('AI tokens: **Unlimited**');
+    lines.push('AI credits: **Unlimited**');
   } else if (summary.monthlyAllocation != null) {
     lines.push(
-      `AI tokens this period: ${formatTokens(summary.tokensUsedThisPeriod)} used of ${formatTokens(summary.monthlyAllocation)} (${formatTokens(summary.tokensRemaining)} remaining)`
+      `AI credits this period: ${formatTokens(summary.tokensUsedThisPeriod)} used of ${formatTokens(summary.monthlyAllocation)} (${formatTokens(summary.tokensRemaining)} remaining)`
     );
   }
 

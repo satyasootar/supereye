@@ -37,7 +37,7 @@ async function closeStaleSessionsForUser(userId: string, now = new Date()) {
     );
 
   for (const session of openSessions) {
-    await finalizeSession(session.id, userId, session.startedAt, session.lastHeartbeatAt, now);
+    await finalizeSession(session.id, userId, session.startedAt, session.lastHeartbeatAt, now, 'idle');
   }
 }
 
@@ -46,7 +46,8 @@ async function finalizeSession(
   userId: string,
   startedAt: Date,
   endedReference: Date,
-  now = new Date()
+  now = new Date(),
+  endReason?: 'sign_out' | 'idle' | 'login' | 'manual'
 ) {
   const durationSeconds = sessionDurationSeconds(startedAt, endedReference, endedReference, now.getTime());
 
@@ -55,6 +56,7 @@ async function finalizeSession(
     .set({
       endedAt: endedReference,
       durationSeconds,
+      endReason: endReason ?? null,
     })
     .where(eq(userActivitySessions.id, sessionId));
 
@@ -72,7 +74,7 @@ async function finalizeSession(
 export async function recordUserLogin(userId: string, method: string) {
   const now = new Date();
   await closeStaleSessionsForUser(userId, now);
-  await endActiveUserSession(userId, now);
+  await endActiveUserSession(userId, now, 'login');
 
   await db.insert(userLoginEvents).values({
     userId,
@@ -92,7 +94,11 @@ export async function recordUserLogin(userId: string, method: string) {
   });
 }
 
-export async function endActiveUserSession(userId: string, now = new Date()) {
+export async function endActiveUserSession(
+  userId: string,
+  now = new Date(),
+  endReason: 'sign_out' | 'idle' | 'login' | 'manual' = 'manual'
+) {
   const [active] = await db
     .select({
       id: userActivitySessions.id,
@@ -107,7 +113,7 @@ export async function endActiveUserSession(userId: string, now = new Date()) {
     .limit(1);
 
   if (!active) return;
-  await finalizeSession(active.id, userId, active.startedAt, active.lastHeartbeatAt, now);
+  await finalizeSession(active.id, userId, active.startedAt, active.lastHeartbeatAt, now, endReason);
 }
 
 export async function recordUserHeartbeat(userId: string) {

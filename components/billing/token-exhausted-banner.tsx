@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowUpRight, Coins, Mail, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { formatTokens } from '@/lib/billing/format';
+import { formatCredits } from '@/lib/billing/format';
 import {
   hasUnlimitedAiAccess,
   TOKEN_SUPPORT_EMAIL,
@@ -52,10 +52,10 @@ export function TokenExhaustedBanner({ className }: { className?: string }) {
         </div>
         <div>
           <p className="text-sm font-medium text-text-primary">
-            Your monthly token limit has been exhausted.
+            Your AI credits for this period are exhausted.
           </p>
           <p className="mt-0.5 text-sm text-text-muted">
-            Contact an admin to request additional tokens for your account.
+            Contact an admin to request additional AI credits for your account.
           </p>
         </div>
       </div>
@@ -105,7 +105,7 @@ export function TokenBalancePill() {
 
   return (
     <span className="rounded-full border border-border-default bg-bg-surface px-2 py-0.5 text-[11px] text-text-muted">
-      {formatTokens(data.wallet.balance)} tokens
+      {formatCredits(data.wallet.balance)} credits
     </span>
   );
 }

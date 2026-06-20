@@ -6,7 +6,8 @@ import { AdminPageHeader, AdminPanel } from '@/components/admin/admin-shell';
 import { DataTable } from '@/components/admin/data-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { formatCurrency, formatTokens } from '@/lib/billing/format';
+import { formatCurrency, formatCredits } from '@/lib/billing/format';
+import { planAiLabel } from '@/lib/billing/plan-access';
 import { Badge } from '@/components/ui/badge';
 
 type Plan = {
@@ -18,11 +19,10 @@ type Plan = {
   monthlyTokens: number;
   isEnterprise: boolean;
   isActive: boolean;
+  featureFlags: Record<string, boolean> | null;
   pluginLimit: number | null;
   teamMemberLimit: number | null;
 };
-
-export default function AdminPlansPage() {
   const [editing, setEditing] = useState<Plan | null>(null);
   const queryClient = useQueryClient();
 
@@ -70,7 +70,7 @@ export default function AdminPlansPage() {
     <div>
       <AdminPageHeader
         title="Plans"
-        description="Configure subscription tiers, token allocations, and feature access."
+        description="Configure subscription tiers, monthly credit allocations, and AI access."
         actions={
           <Button
             size="sm"
@@ -94,7 +94,8 @@ export default function AdminPlansPage() {
           columns={[
             { key: 'name', label: 'Plan' },
             { key: 'price', label: 'Price' },
-            { key: 'tokens', label: 'Monthly Tokens' },
+            { key: 'tokens', label: 'Monthly credits' },
+            { key: 'ai', label: 'AI' },
             { key: 'limits', label: 'Limits' },
             { key: 'status', label: 'Status' },
             { key: 'actions', label: '' },
@@ -107,7 +108,12 @@ export default function AdminPlansPage() {
               </div>
             ),
             price: p.isEnterprise ? 'Custom' : formatCurrency(p.priceCents),
-            tokens: formatTokens(p.monthlyTokens),
+            tokens: formatCredits(p.monthlyTokens),
+            ai: (
+              <Badge variant="outline" className="text-xs">
+                {planAiLabel(p)}
+              </Badge>
+            ),
             limits: `${p.pluginLimit ?? '∞'} plugins · ${p.teamMemberLimit ?? '∞'} members`,
             status: (
               <Badge variant={p.isActive ? 'default' : 'outline'}>
@@ -131,6 +137,7 @@ export default function AdminPlansPage() {
               onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
+                const aiEnabled = fd.get('aiEnabled') === 'on';
                 updateMutation.mutate({
                   planId: editing.id,
                   name: fd.get('name'),
@@ -138,6 +145,11 @@ export default function AdminPlansPage() {
                   monthlyTokens: Number(fd.get('monthlyTokens')),
                   pluginLimit: Number(fd.get('pluginLimit')) || null,
                   teamMemberLimit: Number(fd.get('teamMemberLimit')) || null,
+                  featureFlags: {
+                    ...(editing.featureFlags ?? {}),
+                    ai_enabled: aiEnabled,
+                    plugins_only: !aiEnabled,
+                  },
                 });
               }}
             >
@@ -152,8 +164,20 @@ export default function AdminPlansPage() {
                 name="monthlyTokens"
                 type="number"
                 defaultValue={editing.monthlyTokens}
-                placeholder="Monthly tokens"
+                placeholder="Monthly credits"
               />
+              <label className="flex items-center gap-2 text-sm text-text-secondary">
+                <input
+                  type="checkbox"
+                  name="aiEnabled"
+                  defaultChecked={
+                    editing.featureFlags?.ai_enabled !== false &&
+                    editing.slug !== 'free'
+                  }
+                  className="rounded border-border-default"
+                />
+                Include AI features (chat, triage, summaries)
+              </label>
               <Input
                 name="pluginLimit"
                 type="number"

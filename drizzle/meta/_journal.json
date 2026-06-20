@@ -162,6 +162,27 @@
       "when": 1782250000000,
       "tag": "0023_admin_role_bonus_allocation",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1782300000000,
+      "tag": "0024_platform_default_plan",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1782350000000,
+      "tag": "0025_activity_session_end_reason",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1782400000000,
+      "tag": "0026_billing_requests",
+      "breakpoints": true
     }
   ]
 }

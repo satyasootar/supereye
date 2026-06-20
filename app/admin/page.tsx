@@ -10,12 +10,16 @@ import {
   Building2,
   CreditCard,
   Activity,
+  Inbox,
 } from 'lucide-react';
 import { AdminPageHeader, AdminPanel } from '@/components/admin/admin-shell';
 import { StatCard } from '@/components/admin/stat-card';
 import { SimpleBarChart, SimpleLineChart, toDayChartData } from '@/components/admin/simple-bar-chart';
 import { AdminTokenUsageCharts } from '@/components/admin/token-usage-charts';
-import { formatCurrency, formatTokens } from '@/lib/billing/format';
+import { formatCurrency, formatTokens, formatDateTime } from '@/lib/billing/format';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 type OverviewResponse = {
   overview: {
@@ -46,6 +50,17 @@ type OverviewResponse = {
     dailyAiUsage: { day: string; value: number }[];
     tokenByFeature: { label: string; value: number; requests?: number }[];
   };
+  pendingRequestsCount: number;
+  pendingRequests: {
+    id: string;
+    type: 'credit_top_up' | 'subscription_change';
+    userEmail: string | null;
+    userName: string | null;
+    packName: string | null;
+    planName: string | null;
+    currentPlanName: string | null;
+    createdAt: string;
+  }[];
 };
 
 export default function AdminOverviewPage() {
@@ -65,7 +80,7 @@ export default function AdminOverviewPage() {
     return <p className="text-sm text-[color:var(--priority-urgent)]">Failed to load dashboard.</p>;
   }
 
-  const { overview, planAnalytics, charts } = data;
+  const { overview, planAnalytics, charts, pendingRequestsCount, pendingRequests } = data;
 
   return (
     <div>
@@ -74,10 +89,53 @@ export default function AdminOverviewPage() {
         description="Platform health, growth, revenue, plan analytics, and AI usage in one place."
       />
 
+      {pendingRequestsCount > 0 && (
+        <AdminPanel title="Pending billing requests" className="mb-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-text-muted">
+              {pendingRequestsCount} request{pendingRequestsCount === 1 ? '' : 's'} awaiting
+              approval.
+            </p>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/requests">View all requests</Link>
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {pendingRequests.map((request) => (
+              <div
+                key={request.id}
+                className="flex flex-col gap-2 rounded-lg border border-border-subtle bg-bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="text-sm font-medium text-text-primary">
+                    {request.userName?.trim() || request.userEmail || 'Unknown user'}
+                  </p>
+                  <p className="text-xs text-text-muted">
+                    {request.type === 'credit_top_up'
+                      ? `Credit top-up · ${request.packName ?? 'Pack'}`
+                      : `Plan change · ${request.currentPlanName ?? 'Current'} → ${request.planName ?? 'Requested'}`}
+                    {' · '}
+                    {formatDateTime(request.createdAt)}
+                  </p>
+                </div>
+                <Badge variant="outline">Pending</Badge>
+              </div>
+            ))}
+          </div>
+        </AdminPanel>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total Users" value={overview.totalUsers} icon={Users} accent="blue" />
         <StatCard label="Active Users (30d)" value={overview.activeUsers} icon={Activity} />
         <StatCard label="New Users (30d)" value={overview.newUsers} icon={UserPlus} accent="green" />
+        <StatCard
+          label="Pending Requests"
+          value={pendingRequestsCount}
+          icon={Inbox}
+          accent={pendingRequestsCount > 0 ? 'green' : undefined}
+          hint="Credit & plan changes"
+        />
         <StatCard
           label="Monthly Revenue"
           value={formatCurrency(overview.monthlyRevenueCents)}

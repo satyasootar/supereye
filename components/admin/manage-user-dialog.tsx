@@ -17,8 +17,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { WalletUsageSummary } from '@/components/billing/usage-bar';
-import { formatDate, formatTokens } from '@/lib/billing/format';
+import { WalletUsageSummary, AdminLlmTokenUsage } from '@/components/billing/usage-bar';
+import { formatDate, formatCredits } from '@/lib/billing/format';
 import { formatDuration } from '@/lib/monitoring/format';
 import { cn } from '@/lib/utils';
 
@@ -187,14 +187,22 @@ export function ManageUserDialog({
                 unlimited: false,
               }}
               role={user.role}
-              aiTokensThisPeriod={user.aiTokensUsed}
               effectiveLimit={totalAllocation}
             />
             <p className="mt-2 text-xs text-text-muted">
-              Balance: <span className="font-medium text-text-secondary">{formatTokens(user.balance ?? 0)}</span>
+              Balance:{' '}
+              <span className="font-medium text-text-secondary">
+                {formatCredits(user.balance ?? 0)}
+              </span>
               {' · '}
-              AI tokens (all time): <span className="font-medium text-text-secondary">{formatTokens(user.aiTokensUsed)}</span>
+              Used:{' '}
+              <span className="font-medium text-text-secondary">
+                {formatCredits(user.usedThisPeriod ?? 0)}
+              </span>
             </p>
+            {isSuperAdmin && (
+              <AdminLlmTokenUsage aiTokensUsed={user.aiTokensUsed} className="mt-3" />
+            )}
           </section>
 
           {/* Activity */}

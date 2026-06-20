@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import {
   AUDIT_ACTION_LABELS,
   formatAuditAction,
+  formatAuditActor,
   formatAuditMetadata,
   formatAuditTarget,
 } from '@/lib/billing/audit-log-display';
@@ -20,13 +21,14 @@ type AuditRow = {
   log: {
     id: string;
     action: string;
+    actorType: 'admin' | 'user';
     targetType: string | null;
     targetId: string | null;
     metadata: Record<string, unknown> | null;
     createdAt: string;
   };
-  adminEmail: string | null;
-  adminName: string | null;
+  actorEmail: string | null;
+  actorName: string | null;
   targetUserName: string | null;
   targetUserEmail: string | null;
   targetPlanName: string | null;
@@ -39,10 +41,6 @@ type AuditResponse = {
 };
 
 const PAGE_SIZE = 50;
-
-function formatAdminLabel(row: AuditRow): string {
-  return row.adminName?.trim() || row.adminEmail || 'Unknown admin';
-}
 
 export default function AdminAuditPage() {
   const [search, setSearch] = useState('');
@@ -77,7 +75,11 @@ export default function AdminAuditPage() {
 
   const rows = (data?.logs ?? []).map((row) => ({
     date: formatDateTime(row.log.createdAt),
-    admin: formatAdminLabel(row),
+    actor: formatAuditActor({
+      actorType: row.log.actorType,
+      actorName: row.actorName,
+      actorEmail: row.actorEmail,
+    }),
     action: formatAuditAction(row.log.action),
     target: formatAuditTarget({
       targetType: row.log.targetType,
@@ -97,8 +99,8 @@ export default function AdminAuditPage() {
 
   const handleExport = () => {
     downloadCsv('audit-logs.csv', [
-      ['Date', 'Admin', 'Action', 'Target', 'Details'],
-      ...rows.map((row) => [row.date, row.admin, row.action, row.target, row.details]),
+      ['Date', 'Actor', 'Action', 'Target', 'Details'],
+      ...rows.map((row) => [row.date, row.actor, row.action, row.target, row.details]),
     ]);
   };
 
@@ -106,7 +108,7 @@ export default function AdminAuditPage() {
     <div>
       <AdminPageHeader
         title="Audit Logs"
-        description="Immutable record of every admin action — user changes, billing, tokens, plans, and enterprise setup."
+        description="Immutable record of admin actions and user activity — sign-ins, sessions, billing changes, and platform settings."
         actions={
           <Button variant="outline" size="sm" onClick={handleExport} disabled={rows.length === 0}>
             <Download className="mr-2 h-4 w-4" />
@@ -125,7 +127,7 @@ export default function AdminAuditPage() {
                 setSearch(e.target.value);
                 setPage(0);
               }}
-              placeholder="Search admin, target, action, or details…"
+              placeholder="Search actor, target, action, or details…"
               className="pl-9"
             />
           </div>
@@ -158,7 +160,7 @@ export default function AdminAuditPage() {
           <DataTable
             columns={[
               { key: 'date', label: 'Date', className: 'whitespace-nowrap' },
-              { key: 'admin', label: 'Admin' },
+              { key: 'actor', label: 'Actor' },
               { key: 'action', label: 'Action' },
               { key: 'target', label: 'Target' },
               { key: 'details', label: 'Details', className: 'max-w-[280px]' },

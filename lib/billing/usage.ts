@@ -2,7 +2,7 @@ import { logAiUsage, type UsageFeature, normalizeUsage } from '@/lib/usage/log-u
 import { consumeTokens, assertCanUseAi } from '@/lib/billing/tokens';
 import { USAGE_FEATURE_TO_ACTION } from '@/lib/billing/constants';
 
-export { assertCanUseAi, TokenExhaustedError } from '@/lib/billing/tokens';
+export { assertCanUseAi, TokenExhaustedError, PlanAiDisabledError } from '@/lib/billing/tokens';
 
 export async function checkAiAccess(userId: string) {
   await assertCanUseAi(userId);

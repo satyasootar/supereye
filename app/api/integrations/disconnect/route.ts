@@ -5,6 +5,7 @@ import {
   disconnectIntegration,
   DisconnectIntegrationError,
 } from '@/lib/integrations/disconnect';
+import { getWorkspaceContext } from '@/lib/workspaces/workspaces';
 import { parseJsonBody } from '@/lib/validation/http';
 import { integrationsConnectSchema } from '@/lib/validation/integrations';
 
@@ -29,7 +30,8 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ ok: true });
+    const workspace = await getWorkspaceContext(session.user.id);
+    return NextResponse.json({ ok: true, workspace });
   } catch (error) {
     if (error instanceof DisconnectIntegrationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });

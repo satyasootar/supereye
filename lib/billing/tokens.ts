@@ -9,6 +9,19 @@ import {
 import { getUserRole } from './rbac';
 import { hasUnlimitedAiAccess } from './constants';
 import { writeAdminAuditLog } from './audit-log';
+import { getUserSubscription } from './admin';
+import { planIncludesAi } from './plan-access';
+
+export class PlanAiDisabledError extends Error {
+  status = 403;
+  code = 'PLAN_AI_DISABLED';
+  constructor(
+    message = 'Your plan does not include AI features. Upgrade your plan or purchase credits.'
+  ) {
+    super(message);
+    this.name = 'PlanAiDisabledError';
+  }
+}
 
 export class TokenExhaustedError extends Error {
   status = 402;
@@ -68,9 +81,25 @@ export async function ensureWalletPeriodFresh(userId: string) {
   return getTokenWallet(userId);
 }
 
+export async function assertPlanAllowsAi(userId: string) {
+  const role = await getUserRole(userId);
+  if (hasUnlimitedAiAccess(role)) return;
+
+  const sub = await getUserSubscription(userId);
+  if (sub && !planIncludesAi(sub.plan)) {
+    throw new PlanAiDisabledError();
+  }
+}
+
 export async function canUseAi(userId: string): Promise<boolean> {
   const role = await getUserRole(userId);
   if (hasUnlimitedAiAccess(role)) return true;
+
+  try {
+    await assertPlanAllowsAi(userId);
+  } catch {
+    return false;
+  }
 
   const wallet = await ensureWalletPeriodFresh(userId);
   if (!wallet) return false;
@@ -80,6 +109,7 @@ export async function canUseAi(userId: string): Promise<boolean> {
 }
 
 export async function assertCanUseAi(userId: string) {
+  await assertPlanAllowsAi(userId);
   const allowed = await canUseAi(userId);
   if (!allowed) {
     throw new TokenExhaustedError(
@@ -128,6 +158,8 @@ export async function consumeTokens(params: {
 }) {
   const role = await getUserRole(params.userId);
   if (hasUnlimitedAiAccess(role)) return { consumed: 0, unlimited: true };
+
+  await assertPlanAllowsAi(params.userId);
 
   const wallet = await ensureWalletPeriodFresh(params.userId);
   if (!wallet) throw new TokenExhaustedError('No token wallet found');

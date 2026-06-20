@@ -47,6 +47,7 @@ import { toast } from 'sonner';
 import { hasAdminRole } from '@/lib/billing/constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { ACTIVE_PLUGINS_KEY } from '@/hooks/use-active-plugins';
+import { WORKSPACES_KEY, type WorkspaceContextResponse } from '@/hooks/use-workspaces';
 import { purgeIntegrationClientCache } from '@/lib/integrations/purge-client-cache';
 import { integrationsConnectSchema } from '@/lib/validation/integrations';
 
@@ -140,6 +141,16 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
       const pluginParsed = integrationsConnectSchema.safeParse({ plugin: corsairPlugin });
       if (pluginParsed.success) {
         purgeIntegrationClientCache(queryClient, pluginParsed.data.plugin);
+      }
+      const workspace = data.workspace as WorkspaceContextResponse | undefined;
+      if (workspace) {
+        queryClient.setQueryData(WORKSPACES_KEY, workspace);
+        useAppStore.getState().applyServerLayout(workspace.layout, workspace.activePlugins);
+        if (workspace.activeWorkspaceId) {
+          useAppStore.getState().setActiveWorkspaceId(workspace.activeWorkspaceId);
+        }
+      } else {
+        await queryClient.invalidateQueries({ queryKey: WORKSPACES_KEY });
       }
       await queryClient.invalidateQueries({ queryKey: ACTIVE_PLUGINS_KEY });
       router.refresh();

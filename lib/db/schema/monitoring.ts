@@ -29,4 +29,5 @@ export const userActivitySessions = pgTable('user_activity_sessions', {
     .defaultNow(),
   endedAt: timestamp('ended_at', { withTimezone: true }),
   durationSeconds: integer('duration_seconds'),
+  endReason: text('end_reason').$type<'sign_out' | 'idle' | 'login' | 'manual'>(),
 });

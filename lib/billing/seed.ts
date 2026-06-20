@@ -14,8 +14,27 @@ import {
   DEFAULT_PRO_TOKENS,
 } from './constants';
 import { isSuperAdminEmail } from './rbac';
+import { resolveDefaultSignupPlan } from '@/lib/platform/settings';
 
 const DEFAULT_PLANS = [
+  {
+    slug: 'free',
+    name: 'Free',
+    description: 'Connect plugins and use the workspace without AI features',
+    priceCents: 0,
+    monthlyTokens: 0,
+    featureFlags: {
+      ai_enabled: false,
+      plugins_only: true,
+      ai_chat: false,
+      ai_email_reply: false,
+      ai_email_draft: false,
+      ai_triage: false,
+    },
+    pluginLimit: 5,
+    teamMemberLimit: 1,
+    sortOrder: 0,
+  },
   {
     slug: 'starter',
     name: 'Starter',
@@ -65,17 +84,21 @@ const DEFAULT_PLANS = [
 ];
 
 export async function ensureBillingSeed() {
-  const [{ planCount }] = await db.select({ planCount: count() }).from(plans);
-  if (planCount === 0) {
-    await db.insert(plans).values(
-      DEFAULT_PLANS.map((p) => ({
-        ...p,
-        isEnterprise: p.isEnterprise ?? false,
+  for (const planDef of DEFAULT_PLANS) {
+    const existing = await db
+      .select({ id: plans.id })
+      .from(plans)
+      .where(eq(plans.slug, planDef.slug))
+      .limit(1);
+    if (existing.length === 0) {
+      await db.insert(plans).values({
+        ...planDef,
+        isEnterprise: 'isEnterprise' in planDef ? (planDef.isEnterprise ?? false) : false,
         isActive: true,
         billingInterval: 'month',
-        featureFlags: p.featureFlags as unknown as Record<string, boolean>,
-      }))
-    );
+        featureFlags: planDef.featureFlags as unknown as Record<string, boolean>,
+      });
+    }
   }
 
   for (const cost of DEFAULT_TOKEN_ACTION_COSTS) {
@@ -138,17 +161,21 @@ export async function bootstrapUserBilling(userId: string, email: string | null 
     .limit(1);
 
   if (!wallet) {
-    const [proPlan] = await db
+    const defaultPlan = await resolveDefaultSignupPlan();
+    const [fallback] = await db
       .select()
       .from(plans)
-      .where(eq(plans.slug, 'pro'))
+      .where(eq(plans.slug, 'starter'))
       .limit(1);
 
     const now = new Date();
     const periodEnd = new Date(now);
     periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-    const allocation = proPlan?.monthlyTokens ?? DEFAULT_PRO_TOKENS;
+    const allocation =
+      defaultPlan?.monthlyTokens ??
+      fallback?.monthlyTokens ??
+      DEFAULT_STARTER_TOKENS;
 
     await db.insert(tokenWallets).values({
       userId,

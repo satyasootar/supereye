@@ -5,6 +5,9 @@ export function formatTokens(value: number | null | undefined): string {
   return n.toLocaleString();
 }
 
+/** User-facing label for billing credits (same numeric format as tokens) */
+export const formatCredits = formatTokens;
+
 export function formatCurrency(cents: number | null | undefined): string {
   const amount = (cents ?? 0) / 100;
   return new Intl.NumberFormat('en-US', {

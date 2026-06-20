@@ -91,7 +91,7 @@ export default function AdminTokensPage() {
     <div>
       <AdminPageHeader
         title="Tokens"
-        description="Configure AI action costs, top-up packs, and view the token ledger."
+        description="Configure AI action credit costs, top-up packs, and view the credit ledger."
       />
 
       <div className="mb-4 flex gap-2">
@@ -112,7 +112,7 @@ export default function AdminTokensPage() {
           columns={[
             { key: 'action', label: 'Action' },
             { key: 'key', label: 'Key' },
-            { key: 'cost', label: 'Token Cost' },
+            { key: 'cost', label: 'Credit cost' },
             { key: 'edit', label: '' },
           ]}
           rows={(costsQuery.data?.costs ?? []).map((c) => ({

@@ -15,7 +15,7 @@ import { getPluginByCorsairName, PLUGIN_REGISTRY } from '@/lib/plugins/registry'
 import { ANALYTICS_WINDOW_DAYS, fillDailySeries } from './chart-series';
 import { resetPeriodTokens, adjustTokens } from './tokens';
 import { writeAdminAuditLog } from './audit-log';
-import { getProPlanId } from './seed';
+import { getDefaultSignupPlanId } from '@/lib/platform/settings';
 
 export async function assignPlanToUser(params: {
   userId: string;
@@ -56,9 +56,7 @@ export async function assignPlanToUser(params: {
   }
 
   const allocation = plan.monthlyTokens ?? 0;
-  if (allocation > 0) {
-    await resetPeriodTokens(params.userId, allocation);
-  }
+  await resetPeriodTokens(params.userId, allocation);
 
   if (params.adminUserId) {
     await db.insert(invoices).values({
@@ -103,10 +101,10 @@ export async function ensureUserHasSubscription(userId: string) {
   const existing = await getUserSubscription(userId);
   if (existing) return existing;
 
-  const proId = await getProPlanId();
-  if (!proId) return null;
+  const defaultPlanId = await getDefaultSignupPlanId();
+  if (!defaultPlanId) return null;
 
-  await assignPlanToUser({ userId, planId: proId });
+  await assignPlanToUser({ userId, planId: defaultPlanId });
   return getUserSubscription(userId);
 }
 

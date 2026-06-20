@@ -113,6 +113,9 @@ export const adminPlanPatchSchema = z
     monthlyTokens: z.number().int().min(0).optional(),
     priceCents: z.number().int().min(0).optional(),
     isActive: z.boolean().optional(),
+    featureFlags: z.record(z.string(), z.boolean()).optional(),
+    pluginLimit: z.number().int().min(0).nullable().optional(),
+    teamMemberLimit: z.number().int().min(0).nullable().optional(),
   })
   .refine((body) => Object.keys(body).length > 1, {
     message: 'At least one plan field is required',

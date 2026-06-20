@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/lib/store/app-store';
+import { resolveWorkspaceLayout } from '@/lib/plugins/layout';
 import type { PluginId, WorkspaceRecord } from '@/lib/plugins/types';
 import { ACTIVE_PLUGINS_KEY } from '@/hooks/use-active-plugins';
 
@@ -47,15 +48,25 @@ export function useWorkspaces() {
 
   const activePlugins = data?.activePlugins ?? [];
   const connectedPlugins = data?.connectedPlugins ?? [];
-  const layout = data?.layout ?? {
-    primary: activeWorkspace?.primaryPluginId ?? 'email',
-    sidebar: activeWorkspace?.sidebarPluginId ?? null,
-  };
+  const layout = useMemo(() => {
+    const serverLayout = data?.layout ?? {
+      primary: activeWorkspace?.primaryPluginId ?? 'email',
+      sidebar: activeWorkspace?.sidebarPluginId ?? null,
+    };
+    return resolveWorkspaceLayout(activePlugins, {
+      primaryPluginId: serverLayout.primary,
+      sidebarPluginId: serverLayout.sidebar,
+    });
+  }, [data?.layout, activePlugins, activeWorkspace?.primaryPluginId, activeWorkspace?.sidebarPluginId]);
 
   const switchWorkspace = useCallback(
     async (workspaceId: string) => {
       const target = workspaces.find((w) => w.id === workspaceId);
       if (!target) return;
+
+      const workspacePlugins = target.pluginIds.filter((id) =>
+        activePlugins.includes(id)
+      );
 
       setActiveWorkspaceId(workspaceId);
       applyWorkspaceLayout(
@@ -63,7 +74,7 @@ export function useWorkspaces() {
           primary: target.primaryPluginId,
           sidebar: target.sidebarPluginId,
         },
-        target.pluginIds
+        workspacePlugins.length > 0 ? workspacePlugins : activePlugins
       );
 
       await fetch('/api/user/preferences', {
@@ -75,7 +86,7 @@ export function useWorkspaces() {
       queryClient.invalidateQueries({ queryKey: WORKSPACES_KEY });
       queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_KEY });
     },
-    [workspaces, setActiveWorkspaceId, applyWorkspaceLayout, queryClient]
+    [workspaces, activePlugins, setActiveWorkspaceId, applyWorkspaceLayout, queryClient]
   );
 
   const updateWorkspaceMutation = useMutation({
@@ -114,16 +125,20 @@ export function useWorkspaces() {
       primary: PluginId,
       sidebar: PluginId | null
     ) => {
+      const resolved = resolveWorkspaceLayout(activePlugins, {
+        primaryPluginId: primary,
+        sidebarPluginId: sidebar,
+      });
       const result = await updateWorkspaceMutation.mutateAsync({
         workspaceId,
-        primary,
-        sidebar,
+        primary: resolved.primary,
+        sidebar: resolved.sidebar,
       });
       if (workspaceId === activeWorkspace?.id) {
         applyWorkspaceLayout(result.layout, result.activePlugins);
       }
     },
-    [activeWorkspace?.id, applyWorkspaceLayout, updateWorkspaceMutation]
+    [activeWorkspace?.id, activePlugins, applyWorkspaceLayout, updateWorkspaceMutation]
   );
 
   const createWorkspaceMutation = useMutation({
@@ -172,11 +187,22 @@ export function useWorkspaces() {
 
   const focusPlugin = useCallback(
     (pluginId: PluginId) => {
-      if (!activeWorkspace) return;
-      const other = activeWorkspace.pluginIds.find((id) => id !== pluginId) ?? null;
-      updateWorkspaceLayout(activeWorkspace.id, pluginId, other);
+      if (!activeWorkspace || !activePlugins.includes(pluginId)) return;
+      const other =
+        activeWorkspace.pluginIds.find(
+          (id) => id !== pluginId && activePlugins.includes(id)
+        ) ?? null;
+      const resolved = resolveWorkspaceLayout(activePlugins, {
+        primaryPluginId: pluginId,
+        sidebarPluginId: other,
+      });
+      updateWorkspaceLayout(
+        activeWorkspace.id,
+        resolved.primary,
+        resolved.sidebar
+      );
     },
-    [activeWorkspace, updateWorkspaceLayout]
+    [activeWorkspace, activePlugins, updateWorkspaceLayout]
   );
 
   return {

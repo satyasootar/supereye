@@ -13,12 +13,14 @@ import {
   Settings,
   ArrowLeft,
   Receipt,
+  Inbox,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hasSuperAdminRole } from '@/lib/billing/constants';
 
 const NAV = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true, superAdminOnly: false },
+  { href: '/admin/requests', label: 'Requests', icon: Inbox, superAdminOnly: false },
   { href: '/admin/users', label: 'Users', icon: Users, superAdminOnly: false },
   { href: '/admin/plans', label: 'Plans', icon: CreditCard, superAdminOnly: true },
   { href: '/admin/tokens', label: 'Tokens', icon: Coins, superAdminOnly: false },

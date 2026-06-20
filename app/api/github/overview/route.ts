@@ -24,7 +24,12 @@ export async function GET() {
   const cached = await getIntegrationCache<GithubOverview>(userId, CACHE_KEYS.githubOverview);
   const authReady = await hasGithubAccessToken(userId);
 
-  if (cached && isCacheFresh(cached.updatedAt, SYNC_STALE_MS.github) && cached.payload.profile) {
+  if (
+    authReady &&
+    cached &&
+    isCacheFresh(cached.updatedAt, SYNC_STALE_MS.github) &&
+    cached.payload.profile
+  ) {
     return NextResponse.json({ ...cached.payload, authReady });
   }
 

@@ -1,6 +1,7 @@
 import { SUPER_ADMIN_EMAILS } from '@/lib/billing/constants';
 import { AdminPageHeader, AdminPanel } from '@/components/admin/admin-shell';
 import { DemoLoginSettings } from '@/components/admin/demo-login-settings';
+import { DefaultSignupPlanSettings } from '@/components/admin/default-signup-plan-settings';
 
 export default function AdminSettingsPage() {
   return (
@@ -12,6 +13,7 @@ export default function AdminSettingsPage() {
 
       <div className="mb-4 grid gap-4 lg:grid-cols-2">
         <DemoLoginSettings />
+        <DefaultSignupPlanSettings />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -41,19 +43,19 @@ export default function AdminSettingsPage() {
 
         <AdminPanel title="Token System">
           <ul className="list-inside list-disc space-y-2 text-sm text-text-muted">
-            <li>All token balance changes are recorded in the token ledger.</li>
-            <li>AI action costs are configurable under Tokens → Action Costs.</li>
-            <li>Plan token allocations can be updated without code changes.</li>
-            <li>Top-up packs are simulated purchases until Stripe is connected.</li>
+            <li>Users see AI credits only; LLM token usage is visible to super admins.</li>
+            <li>All credit balance changes are recorded in the token ledger.</li>
+            <li>AI action credit costs are configurable under Tokens → Action Costs.</li>
+            <li>Top-up packs add purchasable credits until Stripe is connected.</li>
           </ul>
         </AdminPanel>
 
         <AdminPanel title="Plans & Subscriptions">
           <ul className="list-inside list-disc space-y-2 text-sm text-text-muted">
-            <li>New users receive the Pro plan with plan-based token limits.</li>
-            <li>Super admins can grant bonus tokens; admins can only remove tokens.</li>
-            <li>Unlimited enterprise plan variants can be created from the Plans page.</li>
-            <li>Assign plans to users from the Users management panel.</li>
+            <li>Set the default signup plan under Settings (Starter recommended).</li>
+            <li>Monthly credit allocations are editable on the Plans page.</li>
+            <li>Credit costs per AI action are editable under Tokens → Action Costs.</li>
+            <li>Free plan: plugins only, no AI — for zero AI cost accounts.</li>
           </ul>
         </AdminPanel>
 

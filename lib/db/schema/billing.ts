@@ -251,6 +251,43 @@ export const enterpriseAccounts = pgTable(
   ]
 );
 
+// ─── Billing requests (user → admin approval) ───────────────────────────
+export const billingRequestTypeEnum = ['credit_top_up', 'subscription_change'] as const;
+export type BillingRequestType = (typeof billingRequestTypeEnum)[number];
+
+export const billingRequestStatusEnum = ['pending', 'approved', 'rejected', 'cancelled'] as const;
+export type BillingRequestStatus = (typeof billingRequestStatusEnum)[number];
+
+export const billingRequests = pgTable(
+  'billing_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: text('type').$type<BillingRequestType>().notNull(),
+    status: text('status')
+      .$type<BillingRequestStatus>()
+      .notNull()
+      .default('pending'),
+    packId: uuid('pack_id').references(() => tokenTopUpPacks.id, { onDelete: 'set null' }),
+    planId: uuid('plan_id').references(() => plans.id, { onDelete: 'set null' }),
+    currentPlanId: uuid('current_plan_id').references(() => plans.id, { onDelete: 'set null' }),
+    userNote: text('user_note'),
+    adminUserId: text('admin_user_id').references(() => users.id, { onDelete: 'set null' }),
+    adminNote: text('admin_note'),
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('idx_billing_requests_user').on(t.userId),
+    index('idx_billing_requests_status').on(t.status),
+    index('idx_billing_requests_created').on(t.createdAt),
+  ]
+);
+
 // ─── Admin audit logs ───────────────────────────────────────────────────
 export const adminAuditLogs = pgTable(
   'admin_audit_logs',

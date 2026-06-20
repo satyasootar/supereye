@@ -153,7 +153,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const token = 'token' in message ? message.token : null;
       const userId = (token?.id as string | undefined) ?? token?.sub;
       if (userId) {
-        await endActiveUserSession(userId);
+        await endActiveUserSession(userId, new Date(), 'sign_out');
       }
     },
   },

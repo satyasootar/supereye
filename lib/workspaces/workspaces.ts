@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { workspaces, userPreferences } from '@/lib/db/schema/app';
 import { and, asc, eq } from 'drizzle-orm';
 import { getConnectedPluginIds } from '@/lib/plugins/integrations';
+import { resolveWorkspaceLayout } from '@/lib/plugins/layout';
 import {
   generateWorkspaceName,
   getPlugin,
@@ -157,7 +158,23 @@ export async function updateWorkspace(
       ? input.sidebarPluginId
       : existing.sidebarPluginId;
 
-  const validated = validateWorkspacePlugins(primary, sidebar, connected);
+  const requestedIds = workspacePluginIds(primary, sidebar).filter((id) =>
+    connected.includes(id)
+  );
+  const scopedPlugins =
+    requestedIds.length > 0
+      ? requestedIds
+      : existing.pluginIds.filter((id) => connected.includes(id));
+  const layout = resolveWorkspaceLayout(
+    scopedPlugins.length > 0 ? scopedPlugins : connected,
+    { primaryPluginId: primary, sidebarPluginId: sidebar }
+  );
+
+  const validated = validateWorkspacePlugins(
+    layout.primary,
+    layout.sidebar,
+    connected
+  );
   const pluginIds = workspacePluginIds(validated.primary, validated.sidebar);
 
   const pluginsChanged =
@@ -238,6 +255,61 @@ export async function deleteWorkspace(userId: string, workspaceId: string) {
   return true;
 }
 
+/** Drop disconnected plugins from workspace rows and redistribute connected ones. */
+export async function reconcileWorkspacesWithConnectedPlugins(
+  userId: string
+): Promise<WorkspaceRecord[]> {
+  const connected = await getConnectedPluginIds(userId);
+  const connectedSet = new Set(connected);
+  let all = await listWorkspacesForUser(userId);
+  let changed = false;
+
+  for (const ws of [...all]) {
+    const remaining = ws.pluginIds.filter((id) => connectedSet.has(id));
+    if (remaining.length === ws.pluginIds.length) continue;
+    changed = true;
+
+    if (remaining.length === 0) {
+      if (all.length > 1) {
+        await deleteWorkspace(userId, ws.id);
+        all = await listWorkspacesForUser(userId);
+      } else if (connected.length > 0) {
+        const next = connected.slice(0, MAX_PLUGINS_PER_WORKSPACE);
+        await db
+          .update(workspaces)
+          .set({
+            primaryPluginId: next[0],
+            sidebarPluginId: next[1] ?? null,
+            name: generateWorkspaceName(next),
+            updatedAt: new Date(),
+          })
+          .where(and(eq(workspaces.id, ws.id), eq(workspaces.userId, userId)));
+      }
+      continue;
+    }
+
+    await db
+      .update(workspaces)
+      .set({
+        primaryPluginId: remaining[0],
+        sidebarPluginId: remaining[1] ?? null,
+        name: generateWorkspaceName(remaining),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(workspaces.id, ws.id), eq(workspaces.userId, userId)));
+  }
+
+  return changed ? syncWorkspacesFromPlugins(userId) : all;
+}
+
+/** Remove a disconnected plugin from every workspace and promote remaining plugins. */
+export async function removePluginFromWorkspaces(
+  userId: string,
+  _pluginId: PluginId
+): Promise<WorkspaceRecord[]> {
+  return reconcileWorkspacesWithConnectedPlugins(userId);
+}
+
 /** Assign each connected plugin to a workspace (max 2 per workspace). */
 export async function syncWorkspacesFromPlugins(userId: string): Promise<WorkspaceRecord[]> {
   const connected = await getConnectedPluginIds(userId);
@@ -246,7 +318,9 @@ export async function syncWorkspacesFromPlugins(userId: string): Promise<Workspa
   let all = await listWorkspacesForUser(userId);
   const assigned = new Set<PluginId>();
   for (const ws of all) {
-    for (const id of ws.pluginIds) assigned.add(id);
+    for (const id of ws.pluginIds) {
+      if (connected.includes(id)) assigned.add(id);
+    }
   }
 
   const unassigned = connected.filter((id) => !assigned.has(id));
@@ -280,6 +354,7 @@ export async function ensureDefaultWorkspaces(userId: string) {
 }
 
 export async function getWorkspaceContext(userId: string) {
+  await reconcileWorkspacesWithConnectedPlugins(userId);
   await ensureDefaultWorkspaces(userId);
 
   const all = await listWorkspacesForUser(userId);
@@ -297,21 +372,19 @@ export async function getWorkspaceContext(userId: string) {
     ? active.pluginIds.filter((id) => connected.includes(id))
     : [];
 
+  const layout = active
+    ? resolveWorkspaceLayout(activePlugins, {
+        primaryPluginId: active.primaryPluginId,
+        sidebarPluginId: active.sidebarPluginId,
+      })
+    : { primary: 'email' as PluginId, sidebar: null };
+
   return {
     workspaces: all,
     activeWorkspace: active,
     activeWorkspaceId: active?.id ?? null,
     connectedPlugins: connected,
     activePlugins,
-    layout: active
-      ? {
-          primary: active.primaryPluginId,
-          sidebar:
-            active.sidebarPluginId &&
-            connected.includes(active.sidebarPluginId)
-              ? active.sidebarPluginId
-              : null,
-        }
-      : { primary: 'email' as PluginId, sidebar: null },
+    layout,
   };
 }

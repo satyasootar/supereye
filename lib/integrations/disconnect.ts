@@ -12,6 +12,8 @@ import type { z } from 'zod';
 import { syncState } from '@/lib/db/schema';
 import { clearIntegrationCacheByPrefix } from '@/lib/cache/integration-cache';
 import { getPluginDisconnectCleanup } from '@/lib/integrations/disconnect-cleanup';
+import { getPluginByCorsairName } from '@/lib/plugins/registry';
+import { removePluginFromWorkspaces } from '@/lib/workspaces/workspaces';
 
 type CorsairPlugin = z.infer<typeof corsairPluginSchema>;
 
@@ -75,6 +77,11 @@ export async function disconnectIntegration(
     await db
       .delete(syncState)
       .where(and(eq(syncState.userId, userId), eq(syncState.provider, cleanup.syncProvider)));
+  }
+
+  const plugin = getPluginByCorsairName(corsairPlugin);
+  if (plugin) {
+    await removePluginFromWorkspaces(userId, plugin.id);
   }
 
   return { disconnected: true };
