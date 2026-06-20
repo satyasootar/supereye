@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { requireActiveUserSession } from '@/lib/security/api-auth';
-import { createThreadForUser, listThreadsForUser } from '@/lib/agent/threads';
+import {
+  createThreadForUser,
+  deleteAllThreadsForUser,
+  listThreadsForUser,
+} from '@/lib/agent/threads';
 import { parseJsonBody, validationErrorResponse } from '@/lib/validation/http';
 import { agentThreadCreateSchema } from '@/lib/validation/agent';
 
@@ -35,4 +39,13 @@ export async function POST(req: Request) {
       lastMessageAt: thread.lastMessageAt.toISOString(),
     },
   });
+}
+
+export async function DELETE() {
+  const authResult = await requireActiveUserSession();
+  if ('error' in authResult) return authResult.error;
+  const { session } = authResult;
+
+  const deletedCount = await deleteAllThreadsForUser(session.user.id);
+  return NextResponse.json({ success: true, deletedCount });
 }

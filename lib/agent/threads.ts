@@ -169,6 +169,15 @@ export async function deleteThreadForUser(userId: string, threadId: string) {
   return true;
 }
 
+export async function deleteAllThreadsForUser(userId: string): Promise<number> {
+  const result = await db
+    .delete(agentThreads)
+    .where(eq(agentThreads.userId, userId))
+    .returning({ id: agentThreads.id });
+
+  return result.length;
+}
+
 export async function getOrCreateThread(
   userId: string,
   threadId?: string | null,

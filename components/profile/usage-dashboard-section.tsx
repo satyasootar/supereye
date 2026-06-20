@@ -13,10 +13,13 @@ import {
   Sparkles,
   AlertCircle,
   Clock3,
+  Trash2,
 } from 'lucide-react';
 import { ProfileSection } from '@/components/profile/profile-section';
 import { cn } from '@/lib/utils';
 import type { UsageDashboard } from '@/lib/usage/dashboard';
+import { useAgentThreads, AGENT_THREADS_KEY } from '@/hooks/use-agent-threads';
+import { useQueryClient } from '@tanstack/react-query';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
   ChartContainer,
@@ -102,6 +105,9 @@ function StatCard({
 
 
 export function UsageDashboardSection() {
+  const queryClient = useQueryClient();
+  const { deleteThread, isDeleting } = useAgentThreads();
+
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['user', 'usage'],
     queryFn: async () => {
@@ -113,6 +119,13 @@ export function UsageDashboardSection() {
   });
 
   const { data: walletData } = useBillingWallet();
+
+  const handleDeleteThread = async (threadId: string, title: string) => {
+    if (!confirm(`Delete "${title || 'this chat'}"? This cannot be undone.`)) return;
+    await deleteThread(threadId);
+    queryClient.invalidateQueries({ queryKey: ['user', 'usage'] });
+    queryClient.invalidateQueries({ queryKey: AGENT_THREADS_KEY });
+  };
 
   if (isLoading) {
     return (
@@ -339,9 +352,9 @@ export function UsageDashboardSection() {
             {data.recentThreads.map((thread) => (
               <li
                 key={thread.id}
-                className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                className="group flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
               >
-                <div className="flex min-w-0 items-center gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border-subtle bg-bg-surface text-text-muted">
                     <Bot className="h-4 w-4" />
                   </div>
@@ -355,9 +368,23 @@ export function UsageDashboardSection() {
                     </p>
                   </div>
                 </div>
-                <span className="shrink-0 text-[11px] text-text-muted">
-                  {format(new Date(thread.createdAt), 'MMM d')}
-                </span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="text-[11px] text-text-muted">
+                    {format(new Date(thread.createdAt), 'MMM d')}
+                  </span>
+                  <button
+                    type="button"
+                    title="Delete chat"
+                    disabled={isDeleting}
+                    onClick={() =>
+                      handleDeleteThread(thread.id, thread.title || 'New chat')
+                    }
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted opacity-0 transition-all hover:bg-red-500/10 hover:text-red-500 group-hover:opacity-100 disabled:opacity-40"
+                    aria-label={`Delete ${thread.title || 'chat'}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

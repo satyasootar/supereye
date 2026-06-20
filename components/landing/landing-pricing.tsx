@@ -1,29 +1,76 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatTokens } from '@/lib/billing/format';
-import {
-  DEFAULT_PRO_TOKENS,
-  DEFAULT_STARTER_TOKENS,
-} from '@/lib/billing/constants';
+import { formatCredits } from '@/lib/billing/format';
 import { LandingSection, SectionHeader } from './landing-section';
 
-const PLANS = [
+const USD_TO_INR = 96;
+
+type CurrencyMode = 'usd' | 'inr';
+
+type PlanDef = {
+  name: string;
+  monthlyUsdCents: number | null;
+  period: string;
+  description: string;
+  features: string[];
+  cta: string;
+  href: string;
+  highlighted: boolean;
+};
+
+function formatPlanPrice(monthlyUsdCents: number | null, currency: CurrencyMode): string {
+  if (monthlyUsdCents == null) return 'Custom';
+  if (currency === 'usd') {
+    const usd = monthlyUsdCents / 100;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(usd);
+  }
+
+  const inr = Math.round((monthlyUsdCents / 100) * USD_TO_INR);
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(inr);
+}
+
+const PLANS: PlanDef[] = [
+  {
+    name: 'Free',
+    monthlyUsdCents: 0,
+    period: '/month',
+    description: 'For plugin-first workflows with no AI features enabled.',
+    features: [
+      'Connect Gmail, Calendar, GitHub, and Drive plugins',
+      'Unlimited plugin connections',
+      'Unified split workspace',
+      'No AI chat, AI summary, AI triage, or AI drafting',
+      `${formatCredits(0)} AI credits / month`,
+    ],
+    cta: 'Start free',
+    href: '/login',
+    highlighted: false,
+  },
   {
     name: 'Starter',
-    price: formatCurrency(2000),
+    monthlyUsdCents: 2000,
     period: '/month',
-    description: 'For individuals who want a unified inbox, calendar, and AI workflow.',
+    description: 'Default plan for new users with AI access and full workspace features.',
     features: [
-      'Gmail + Calendar sync',
-      'Up to 2 integrations',
-      'Unified split workspace',
+      'Everything in Free',
+      'Unlimited plugin connections',
       'AI chat, triage & draft replies',
-      `${formatTokens(DEFAULT_STARTER_TOKENS)} AI tokens / month`,
+      `${formatCredits(10_000)} AI credits / month`,
       'Keyboard shortcuts & command palette',
     ],
     cta: 'Get started',
@@ -32,13 +79,13 @@ const PLANS = [
   },
   {
     name: 'Pro',
-    price: formatCurrency(10000),
+    monthlyUsdCents: 10000,
     period: '/month',
     description: 'For power users who need more AI capacity and integrations.',
     features: [
       'Everything in Starter',
-      `${formatTokens(DEFAULT_PRO_TOKENS)} AI tokens / month`,
-      'Up to 5 integrations',
+      `${formatCredits(100_000)} AI credits / month`,
+      'Unlimited plugin connections',
       'Priority AI processing',
       'Advanced automations',
       'Up to 3 team members',
@@ -49,14 +96,14 @@ const PLANS = [
   },
   {
     name: 'Enterprise',
-    price: 'Custom',
+    monthlyUsdCents: null,
     period: '',
     description: 'For teams that need custom limits, admin controls, and dedicated support.',
     features: [
       'Everything in Pro',
-      'Custom token allocation',
+      'Custom AI credit allocation',
       'Unlimited integrations & seats',
-      'Admin dashboard',
+      'Admin + super admin controls',
       'Shared workspaces',
       'Dedicated support',
     ],
@@ -68,17 +115,56 @@ const PLANS = [
 
 export function LandingPricing() {
   const reduceMotion = useReducedMotion();
+  const [currency, setCurrency] = useState<CurrencyMode>('usd');
+  const plans = useMemo(
+    () =>
+      PLANS.map((plan) => ({
+        ...plan,
+        price: formatPlanPrice(plan.monthlyUsdCents, currency),
+      })),
+    [currency]
+  );
 
   return (
     <LandingSection id="pricing" className="bg-bg-app">
       <SectionHeader
         eyebrow="Pricing"
         title="Simple, transparent pricing"
-        description="Every plan includes the full Supereye workspace. Pick the token and integration limits that fit your workflow."
+        description="Choose plugins-only or AI-enabled plans. AI usage is controlled with credits based on your selected plan."
       />
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {PLANS.map((plan, i) => (
+      <div className="mb-5 flex items-center justify-end">
+        <div className="inline-flex rounded-lg border border-border-default bg-bg-surface p-1">
+          <button
+            type="button"
+            onClick={() => setCurrency('usd')}
+            className={cn(
+              'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+              currency === 'usd'
+                ? 'bg-accent-blue text-text-inverse'
+                : 'text-text-secondary hover:text-text-primary'
+            )}
+          >
+            USD
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrency('inr')}
+            className={cn(
+              'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+              currency === 'inr'
+                ? 'bg-accent-blue text-text-inverse'
+                : 'text-text-secondary hover:text-text-primary'
+            )}
+          >
+            INR
+          </button>
+        </div>
+        <span className="ml-3 text-xs text-text-muted">1 USD = 96 INR</span>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        {plans.map((plan, i) => (
           <motion.div
             key={plan.name}
             initial={reduceMotion ? false : { opacity: 0, y: 24 }}

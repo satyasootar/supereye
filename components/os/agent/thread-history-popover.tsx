@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
 import {
   MessageSquarePlus,
-  MoreHorizontal,
   Pencil,
   Trash2,
   Loader2,
@@ -36,9 +34,9 @@ function formatRelativeTime(iso: string): string {
 
 export function ThreadHistoryPopover() {
   const [open, setOpen] = useState(false);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { isAgentExecuting } = useAppStore();
   const {
@@ -49,15 +47,9 @@ export function ThreadHistoryPopover() {
     startNewChat,
     renameThread,
     deleteThread,
+    deleteAllThreads,
     isDeleting,
   } = useAgentThreads();
-
-  useEffect(() => {
-    if (!menuOpenId) return;
-    const close = () => setMenuOpenId(null);
-    window.addEventListener('click', close);
-    return () => window.removeEventListener('click', close);
-  }, [menuOpenId]);
 
   const handleRename = async (threadId: string) => {
     const title = renameValue.trim();
@@ -67,13 +59,28 @@ export function ThreadHistoryPopover() {
     }
     await renameThread({ threadId, title });
     setRenamingId(null);
-    setMenuOpenId(null);
   };
 
   const handleDelete = async (threadId: string) => {
     if (!confirm('Delete this chat? This cannot be undone.')) return;
-    await deleteThread(threadId);
-    setMenuOpenId(null);
+    setDeletingId(threadId);
+    try {
+      await deleteThread(threadId);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (
+      !confirm(
+        'Delete all chat history? Every conversation will be permanently removed. This cannot be undone.'
+      )
+    ) {
+      return;
+    }
+    await deleteAllThreads();
+    setOpen(false);
   };
 
   return (
@@ -131,12 +138,19 @@ export function ThreadHistoryPopover() {
                 {threads.map((thread) => {
                   const isActive = agentThreadId === thread.id;
                   const isRenaming = renamingId === thread.id;
+                  const isDeletingThis = deletingId === thread.id;
 
                   return (
-                    <li key={thread.id} className="group relative">
+                    <li
+                      key={thread.id}
+                      className={cn(
+                        'group flex items-stretch gap-0.5 rounded-lg',
+                        isActive && 'bg-bg-highlight'
+                      )}
+                    >
                       {isRenaming ? (
                         <form
-                          className="px-1"
+                          className="flex-1 px-1"
                           onSubmit={(e) => {
                             e.preventDefault();
                             handleRename(thread.id);
@@ -162,76 +176,56 @@ export function ThreadHistoryPopover() {
                             setOpen(false);
                           }}
                           className={cn(
-                            'flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left transition-colors',
+                            'min-w-0 flex-1 rounded-lg px-2.5 py-2 text-left transition-colors',
                             isActive
-                              ? 'bg-bg-highlight text-text-primary'
-                              : 'text-text-muted hover:bg-bg-surface/60 hover:text-text-primary',
+                              ? 'text-text-primary'
+                              : 'text-text-muted hover:text-text-primary',
                             isAgentExecuting && 'cursor-not-allowed opacity-60'
                           )}
                         >
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-[13px] font-medium leading-snug">
-                              {thread.title}
+                          <p className="truncate pr-14 text-[13px] font-medium leading-snug">
+                            {thread.title}
+                          </p>
+                          {thread.preview && (
+                            <p className="mt-0.5 truncate pr-14 text-[11px] text-text-muted">
+                              {thread.preview}
                             </p>
-                            {thread.preview && (
-                              <p className="mt-0.5 truncate text-[11px] text-text-muted">
-                                {thread.preview}
-                              </p>
-                            )}
-                            <p className="mt-1 text-[10px] text-text-muted/80">
-                              {formatRelativeTime(thread.lastMessageAt)}
-                            </p>
-                          </div>
+                          )}
+                          <p className="mt-1 text-[10px] text-text-muted/80">
+                            {formatRelativeTime(thread.lastMessageAt)}
+                          </p>
                         </button>
                       )}
 
                       {!isRenaming && (
-                        <div className="absolute right-1 top-1.5">
+                        <div className="flex shrink-0 flex-col justify-center gap-0.5 pr-1">
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMenuOpenId(menuOpenId === thread.id ? null : thread.id);
+                            title="Rename chat"
+                            disabled={isAgentExecuting || isDeleting}
+                            onClick={() => {
+                              setRenamingId(thread.id);
+                              setRenameValue(thread.title);
                             }}
-                            className={cn(
-                              'flex h-6 w-6 items-center justify-center rounded-md text-text-muted opacity-0 transition-all hover:bg-bg-elevated hover:text-text-primary group-hover:opacity-100',
-                              menuOpenId === thread.id && 'opacity-100'
-                            )}
-                            aria-label="Thread options"
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted opacity-60 transition-all hover:bg-bg-surface hover:text-text-primary group-hover:opacity-100 disabled:opacity-30"
+                            aria-label={`Rename ${thread.title}`}
                           >
-                            <MoreHorizontal className="h-3.5 w-3.5" />
+                            <Pencil className="h-3.5 w-3.5" />
                           </button>
-
-                          {menuOpenId === thread.id && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="absolute right-0 top-7 z-20 min-w-[120px] rounded-lg border border-border-default bg-bg-elevated py-1 shadow-lg"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setRenamingId(thread.id);
-                                  setRenameValue(thread.title);
-                                  setMenuOpenId(null);
-                                }}
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-[12px] text-text-primary hover:bg-bg-surface"
-                              >
-                                <Pencil className="h-3 w-3" />
-                                Rename
-                              </button>
-                              <button
-                                type="button"
-                                disabled={isDeleting}
-                                onClick={() => handleDelete(thread.id)}
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-[12px] text-red-500 hover:bg-bg-surface disabled:opacity-50"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                                Delete
-                              </button>
-                            </motion.div>
-                          )}
+                          <button
+                            type="button"
+                            title="Delete chat"
+                            disabled={isAgentExecuting || isDeleting}
+                            onClick={() => handleDelete(thread.id)}
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-red-500/80 transition-all hover:bg-red-500/10 hover:text-red-500 group-hover:text-red-500 disabled:opacity-30"
+                            aria-label={`Delete ${thread.title}`}
+                          >
+                            {isDeletingThis ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </button>
                         </div>
                       )}
                     </li>
@@ -240,6 +234,20 @@ export function ThreadHistoryPopover() {
               </ul>
             )}
           </div>
+
+          {threads.length > 0 && (
+            <div className="shrink-0 border-t border-border-default px-3 py-2">
+              <button
+                type="button"
+                disabled={isAgentExecuting || isDeleting}
+                onClick={handleDeleteAll}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[12px] font-medium text-text-muted transition-colors hover:bg-bg-surface hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Clear all history
+              </button>
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>

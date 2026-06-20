@@ -120,6 +120,18 @@ export function useAgentThreads() {
     },
   });
 
+  const deleteAllThreadsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/agent/threads', { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to clear chat history');
+      return res.json() as Promise<{ success: boolean; deletedCount: number }>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AGENT_THREADS_KEY });
+      startNewAgentThread();
+    },
+  });
+
   const startNewChat = useCallback(() => {
     if (isAgentExecuting) return;
     startNewAgentThread();
@@ -138,8 +150,9 @@ export function useAgentThreads() {
     createThread: createThreadMutation.mutateAsync,
     renameThread: renameThreadMutation.mutateAsync,
     deleteThread: deleteThreadMutation.mutateAsync,
+    deleteAllThreads: deleteAllThreadsMutation.mutateAsync,
     refreshThreads,
-    isDeleting: deleteThreadMutation.isPending,
+    isDeleting: deleteThreadMutation.isPending || deleteAllThreadsMutation.isPending,
     isRenaming: renameThreadMutation.isPending,
   };
 }
