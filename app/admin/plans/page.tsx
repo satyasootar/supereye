@@ -23,6 +23,8 @@ type Plan = {
   pluginLimit: number | null;
   teamMemberLimit: number | null;
 };
+
+export default function AdminPlansPage() {
   const [editing, setEditing] = useState<Plan | null>(null);
   const queryClient = useQueryClient();
 
@@ -133,7 +135,7 @@ type Plan = {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <AdminPanel title={`Edit ${editing.name}`} className="w-full max-w-md">
             <form
-              className="space-y-3"
+              className="space-y-4"
               onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
@@ -153,44 +155,67 @@ type Plan = {
                 });
               }}
             >
-              <Input name="name" defaultValue={editing.name} placeholder="Name" />
-              <Input
-                name="priceCents"
-                type="number"
-                defaultValue={editing.priceCents}
-                placeholder="Price (cents)"
-              />
-              <Input
-                name="monthlyTokens"
-                type="number"
-                defaultValue={editing.monthlyTokens}
-                placeholder="Monthly credits"
-              />
-              <label className="flex items-center gap-2 text-sm text-text-secondary">
-                <input
-                  type="checkbox"
-                  name="aiEnabled"
-                  defaultChecked={
-                    editing.featureFlags?.ai_enabled !== false &&
-                    editing.slug !== 'free'
-                  }
-                  className="rounded border-border-default"
+              <div className="space-y-1">
+                <label className="text-[12px] font-semibold text-text-secondary">Plan name</label>
+                <Input name="name" defaultValue={editing.name} placeholder="e.g. Starter" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[12px] font-semibold text-text-secondary">Price (in cents)</label>
+                <Input
+                  name="priceCents"
+                  type="number"
+                  defaultValue={editing.priceCents}
+                  placeholder="e.g. 2000 for $20.00"
                 />
-                Include AI features (chat, triage, summaries)
-              </label>
-              <Input
-                name="pluginLimit"
-                type="number"
-                defaultValue={editing.pluginLimit ?? ''}
-                placeholder="Plugin limit"
-              />
-              <Input
-                name="teamMemberLimit"
-                type="number"
-                defaultValue={editing.teamMemberLimit ?? ''}
-                placeholder="Team member limit"
-              />
-              <div className="flex gap-2">
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[12px] font-semibold text-text-secondary">Monthly credits (tokens)</label>
+                <Input
+                  name="monthlyTokens"
+                  type="number"
+                  defaultValue={editing.monthlyTokens}
+                  placeholder="e.g. 100000"
+                />
+              </div>
+
+              <div className="py-1">
+                <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="aiEnabled"
+                    defaultChecked={
+                      editing.featureFlags?.ai_enabled !== false &&
+                      editing.slug !== 'free'
+                    }
+                    className="rounded border-border-default h-4 w-4"
+                  />
+                  Include AI features (chat, triage, summaries)
+                </label>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[12px] font-semibold text-text-secondary">Plugin limit (leave blank for unlimited)</label>
+                <Input
+                  name="pluginLimit"
+                  type="number"
+                  defaultValue={editing.pluginLimit ?? ''}
+                  placeholder="e.g. 5"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[12px] font-semibold text-text-secondary">Team member limit (leave blank for unlimited)</label>
+                <Input
+                  name="teamMemberLimit"
+                  type="number"
+                  defaultValue={editing.teamMemberLimit ?? ''}
+                  placeholder="e.g. 3"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
                 <Button type="submit" size="sm">
                   Save
                 </Button>

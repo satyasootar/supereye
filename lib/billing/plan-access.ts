@@ -24,7 +24,7 @@ export function planIncludesAi(
 
 /** Human-readable plan capability label */
 export function planAiLabel(
-  plan: Pick<PlanRow, 'featureFlags' | 'slug'> | null | undefined
+  plan: Pick<PlanRow, 'featureFlags' | 'monthlyTokens' | 'slug'> | null | undefined
 ): string {
   return planIncludesAi(plan) ? 'AI included' : 'Plugins only (no AI)';
 }

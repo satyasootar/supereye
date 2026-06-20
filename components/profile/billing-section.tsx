@@ -262,7 +262,7 @@ export function BillingSection() {
           title="Change subscription"
           description="Request a plan change. An admin will review and approve before your subscription is updated."
         >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-col gap-3 w-full">
             {plansData.plans.map((plan) => {
               const isCurrent = plan.id === currentPlanId;
               const isPending = pendingPlanIds.has(plan.id);
@@ -270,14 +270,14 @@ export function BillingSection() {
                 <div
                   key={plan.id}
                   className={cn(
-                    "rounded-lg border bg-bg-elevated p-4 flex flex-col justify-between",
+                    "rounded-lg border bg-bg-elevated p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full",
                     isCurrent ? "border-accent-blue/30 ring-1 ring-accent-blue/15" : "border-border-default"
                   )}
                 >
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
                       <p className="font-medium text-text-primary">{plan.name}</p>
-                      <Badge variant={isCurrent ? 'default' : 'outline'} className="shrink-0 text-[10px]">
+                      <Badge variant={isCurrent ? 'default' : 'outline'} className="text-[10px]">
                         {planAiLabel(plan)}
                       </Badge>
                     </div>
@@ -285,35 +285,37 @@ export function BillingSection() {
                       {formatCurrency(plan.priceCents)}/mo · {formatCredits(plan.monthlyTokens)} credits/mo
                     </p>
                     {plan.description && (
-                      <p className="mt-2 text-xs text-text-muted line-clamp-2">{plan.description}</p>
+                      <p className="mt-1.5 text-xs text-text-muted">{plan.description}</p>
                     )}
                   </div>
-                  <Button
-                    variant={isCurrent || isPending ? 'outline' : 'default'}
-                    className={cn(
-                      "mt-4 w-full",
-                      isCurrent && "border-accent-blue/30 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/10 disabled:opacity-100 cursor-default",
-                      isPending && "border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/10 disabled:opacity-100 cursor-default"
-                    )}
-                    disabled={isCurrent || isPending || planRequestMutation.isPending}
-                    onClick={() => planRequestMutation.mutate(plan.id)}
-                  >
-                    {isCurrent ? (
-                      <>
-                        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                        Current plan
-                      </>
-                    ) : isPending ? (
-                      <>
-                        <Clock className="mr-1.5 h-3.5 w-3.5" />
-                        Request pending
-                      </>
-                    ) : planRequestMutation.isPending ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      'Request plan change'
-                    )}
-                  </Button>
+                  <div className="shrink-0 w-full sm:w-auto">
+                    <Button
+                      variant={isCurrent || isPending ? 'outline' : 'default'}
+                      className={cn(
+                        "w-full sm:w-48",
+                        isCurrent && "border-accent-blue/30 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/10 disabled:opacity-100 cursor-default",
+                        isPending && "border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/10 disabled:opacity-100 cursor-default"
+                      )}
+                      disabled={isCurrent || isPending || planRequestMutation.isPending}
+                      onClick={() => planRequestMutation.mutate(plan.id)}
+                    >
+                      {isCurrent ? (
+                        <>
+                          <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                          Current plan
+                        </>
+                      ) : isPending ? (
+                        <>
+                          <Clock className="mr-1.5 h-3.5 w-3.5" />
+                          Request pending
+                        </>
+                      ) : planRequestMutation.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        'Request plan change'
+                      )}
+                    </Button>
+                  </div>
                 </div>
               );
             })}
