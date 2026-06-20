@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Loader2,
   LogOut,
+  Unlink2,
   Sun,
   Moon,
   Monitor,
@@ -44,6 +45,8 @@ import { useAppStore } from '@/lib/store/app-store';
 import type { UserProfile } from '@/lib/user/profile';
 import { toast } from 'sonner';
 import { hasAdminRole } from '@/lib/billing/constants';
+import { useQueryClient } from '@tanstack/react-query';
+import { ACTIVE_PLUGINS_KEY } from '@/hooks/use-active-plugins';
 
 type ProfileTab = 'account' | 'connections' | 'workspace' | 'appearance' | 'security' | 'shortcuts' | 'dashboard' | 'bot' | 'billing';
 
@@ -65,6 +68,7 @@ type ProfilePageClientProps = {
 
 export function ProfilePageClient({ profile }: ProfilePageClientProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { leftSidebarCollapsed, setLeftSidebarCollapsed } = useAppStore();
@@ -91,6 +95,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
   const activeTab = TABS.some((t) => t.id === tabParam) ? tabParam! : 'account';
 
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
 
   const setTab = useCallback(
     (tab: ProfileTab) => {
@@ -115,6 +120,28 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
     } catch (e) {
       setConnecting(null);
       toast.error(e instanceof Error ? e.message : 'Failed to connect');
+    }
+  };
+
+  const disconnectIntegration = async (corsairPlugin: string, label: string) => {
+    setDisconnecting(corsairPlugin);
+    try {
+      const res = await fetch('/api/integrations/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plugin: corsairPlugin }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to disconnect');
+      }
+      await queryClient.invalidateQueries({ queryKey: ACTIVE_PLUGINS_KEY });
+      router.refresh();
+      toast.success(`${label} disconnected`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to disconnect');
+    } finally {
+      setDisconnecting(null);
     }
   };
 
@@ -317,10 +344,34 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                         >
                           <div className="flex items-center gap-2">
                             {integration.connected ? (
-                              <Badge className="gap-1 bg-accent-blue/15 text-accent-blue hover:bg-accent-blue/15">
-                                <CheckCircle2 className="h-3 w-3" />
-                                Connected
-                              </Badge>
+                              <>
+                                <Badge className="gap-1 bg-accent-blue/15 text-accent-blue hover:bg-accent-blue/15">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Connected
+                                </Badge>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1.5 border-border-default text-text-secondary hover:text-destructive hover:border-destructive/40"
+                                  disabled={
+                                    disconnecting === integration.corsairPlugin ||
+                                    connecting === integration.corsairPlugin
+                                  }
+                                  onClick={() =>
+                                    disconnectIntegration(
+                                      integration.corsairPlugin,
+                                      integration.label
+                                    )
+                                  }
+                                >
+                                  {disconnecting === integration.corsairPlugin ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Unlink2 className="h-3.5 w-3.5" />
+                                  )}
+                                  Disconnect
+                                </Button>
+                              </>
                             ) : (
                               <Button
                                 size="sm"
@@ -350,7 +401,7 @@ export function ProfilePageClient({ profile }: ProfilePageClientProps) {
                     <p className="text-[13px] leading-relaxed text-text-secondary">
                       Your sign-in authenticates you into Supereye. Plugin connections grant the
                       permissions needed to read mail, manage calendar events, browse Drive files,
-                      and more. You can reconnect at any time if permissions change.
+                      and more. Disconnect removes stored access tokens; you can reconnect at any time.
                     </p>
                   </ProfileSection>
                 </div>
