@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Coins, Mail, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Coins, Mail, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatCreditsExact } from '@/lib/billing/format';
@@ -15,29 +16,43 @@ import {
 
 export function CreditStatusBanner({ className }: { className?: string }) {
   const { data } = useBillingWallet();
+  const [isDismissed, setIsDismissed] = useState(false);
 
-  if (!data?.wallet || hasUnlimitedAiAccess(data.role) || data.wallet.unlimited) {
-    return null;
-  }
-
-  if (data.credits && !data.credits.aiEnabled) return null;
+  const hasUnlimited = !data?.wallet || hasUnlimitedAiAccess(data.role) || data.wallet.unlimited;
+  const noAi = !!(data?.credits && !data.credits.aiEnabled);
 
   const metrics = getWalletDisplayMetrics({
-    balance: data.wallet.balance,
-    monthlyAllocation: data.wallet.monthlyAllocation,
-    bonusAllocation: data.wallet.bonusAllocation,
-    usedThisPeriod: data.wallet.usedThisPeriod,
+    balance: data?.wallet?.balance ?? 0,
+    monthlyAllocation: data?.wallet?.monthlyAllocation ?? 0,
+    bonusAllocation: data?.wallet?.bonusAllocation ?? 0,
+    usedThisPeriod: data?.wallet?.usedThisPeriod ?? 0,
   });
   const status = getCreditStatus(metrics);
 
-  if (status === 'ok') return null;
+  useEffect(() => {
+    if (status !== 'ok') {
+      const dismissed = localStorage.getItem(`dismissed-credit-banner-${status}`) === 'true';
+      setIsDismissed(dismissed);
+    } else {
+      setIsDismissed(false);
+    }
+  }, [status]);
+
+  if (hasUnlimited || noAi || status === 'ok' || isDismissed) {
+    return null;
+  }
 
   const exhausted = status === 'exhausted';
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    localStorage.setItem(`dismissed-credit-banner-${status}`, 'true');
+  };
 
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between',
+        'relative flex flex-col gap-3 border-b px-4 py-3 pr-12 sm:flex-row sm:items-center sm:justify-between sm:pr-14',
         exhausted
           ? 'border-amber-500/30 bg-amber-500/10'
           : 'border-amber-500/25 bg-amber-500/8',
@@ -89,6 +104,14 @@ export function CreditStatusBanner({ className }: { className?: string }) {
           </Button>
         )}
       </div>
+      <button
+        type="button"
+        onClick={handleDismiss}
+        className="absolute right-3 top-3 sm:top-1/2 sm:-translate-y-1/2 p-1.5 rounded-lg text-amber-800/60 hover:text-amber-800 dark:text-amber-400/60 dark:hover:text-amber-300 hover:bg-amber-500/15 transition-all hover:scale-105 active:scale-95"
+        aria-label="Dismiss banner"
+      >
+        <X className="h-4 w-4" />
+      </button>
     </div>
   );
 }

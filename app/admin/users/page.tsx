@@ -233,10 +233,13 @@ export default function AdminUsersPage() {
                   variant={u.isOnline ? 'default' : 'outline'}
                   className={
                     u.isOnline
-                      ? 'w-fit bg-[color:var(--priority-normal)] text-text-inverse'
+                      ? 'w-fit bg-[color:var(--priority-normal)] text-text-inverse flex items-center gap-1.5'
                       : 'w-fit'
                   }
                 >
+                  {u.isOnline && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  )}
                   {u.isOnline ? 'Online' : 'Offline'}
                 </Badge>
                 <span className="text-xs text-text-muted">

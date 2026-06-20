@@ -161,10 +161,13 @@ export function ManageUserDialog({
                 variant="outline"
                 className={
                   user.isOnline
-                    ? 'border-[color:var(--priority-normal)]/40 bg-[color:var(--priority-normal)]/10 text-[color:var(--priority-normal)]'
+                    ? 'border-[color:var(--priority-normal)]/40 bg-[color:var(--priority-normal)]/10 text-[color:var(--priority-normal)] flex items-center gap-1.5'
                     : ''
                 }
               >
+                {user.isOnline && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                )}
                 {user.isOnline ? 'Online' : 'Offline'}
               </Badge>
               {user.planName && (
