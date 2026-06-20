@@ -14,6 +14,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   admin_removal: 'Removed tokens',
   bonus_credits: 'Granted bonus credits',
   period_reset: 'Reset token period',
+  bulk_token_update: 'Bulk token update',
   approve_credit_request: 'Approved credit request',
   approve_subscription_request: 'Approved subscription request',
   reject_billing_request: 'Rejected billing request',
@@ -109,6 +110,9 @@ export function formatAuditMetadata(metadata: Record<string, unknown> | null | u
   if (typeof metadata.displayName === 'string') parts.push(`label: ${metadata.displayName}`);
   if (typeof metadata.isActive === 'boolean') {
     parts.push(metadata.isActive ? 'active' : 'inactive');
+  }
+  if (typeof metadata.userCount === 'number') {
+    parts.push(`users: ${metadata.userCount.toLocaleString()}`);
   }
   if (typeof metadata.demoLoginEnabled === 'boolean') {
     parts.push(`demo login: ${metadata.demoLoginEnabled ? 'enabled' : 'disabled'}`);

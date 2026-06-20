@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   getEffectiveTokenLimit,
   getRemainingTokenAllowance,
-} from '../tokens.ts';
+} from '../wallet-math.ts';
 
 describe('token limit enforcement helpers', () => {
   it('getEffectiveTokenLimit sums plan allocation and bonus', () => {
@@ -41,5 +41,15 @@ describe('token limit enforcement helpers', () => {
       balance: 100_000,
     });
     assert.equal(remaining, 100_000);
+  });
+
+  it('getRemainingTokenAllowance respects reduced balance after admin removal', () => {
+    const remaining = getRemainingTokenAllowance({
+      monthlyAllocation: 1_000_000,
+      bonusAllocation: 0,
+      usedThisPeriod: 0,
+      balance: 200_000,
+    });
+    assert.equal(remaining, 200_000);
   });
 });

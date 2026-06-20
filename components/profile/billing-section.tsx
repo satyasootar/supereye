@@ -6,6 +6,7 @@ import { ProfileSection, ProfileRow } from '@/components/profile/profile-section
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatCredits } from '@/lib/billing/format';
+import { getWalletDisplayMetrics } from '@/lib/billing/wallet-math';
 import { cn } from '@/lib/utils';
 import {
   hasUnlimitedAiAccess,
@@ -28,7 +29,7 @@ type WalletResponse = {
     plan: { id: string; name: string; priceCents: number; monthlyTokens: number };
   } | null;
   packs: { id: string; name: string; tokenAmount: number; priceCents: number }[];
-  credits?: { aiEnabled: boolean; effectiveLimit: number } | null;
+  credits?: { aiEnabled: boolean; effectiveLimit: number; remainingAllowance: number } | null;
   role: string;
 };
 
@@ -175,10 +176,18 @@ export function BillingSection() {
   const used = wallet?.usedThisPeriod ?? 0;
   const allocation = wallet?.monthlyAllocation ?? 0;
   const bonus = wallet?.bonusAllocation ?? 0;
-  const effectiveLimit = allocation + bonus;
-  const pct =
-    effectiveLimit > 0 ? Math.min(100, Math.round((used / effectiveLimit) * 100)) : 0;
-  const isExhausted = !isUnlimited && (wallet?.balance ?? 0) === 0;
+  const walletMetrics = wallet
+    ? getWalletDisplayMetrics({
+        balance: wallet.balance,
+        monthlyAllocation: allocation,
+        bonusAllocation: bonus,
+        usedThisPeriod: used,
+      })
+    : null;
+  const effectiveLimit = data.credits?.effectiveLimit ?? walletMetrics?.effectiveLimit ?? 0;
+  const remaining = data.credits?.remainingAllowance ?? walletMetrics?.remaining ?? 0;
+  const pct = walletMetrics?.pct ?? 0;
+  const isExhausted = !isUnlimited && remaining === 0;
 
   const requests = requestsData?.requests ?? [];
   const pendingCreditPackIds = new Set(
@@ -355,7 +364,7 @@ export function BillingSection() {
                 <div className="flex items-center gap-2">
                   <Coins className="h-4 w-4 text-text-muted" />
                   <span className="text-2xl font-semibold text-text-primary">
-                    {formatCredits(wallet?.balance ?? 0)}
+                    {formatCredits(remaining)}
                   </span>
                   <span className="text-sm text-text-muted">remaining</span>
                 </div>

@@ -15,7 +15,7 @@ import {
   organizations,
   enterpriseAccounts,
 } from '@/lib/db/schema';
-import { resetPeriodTokens, adjustTokens } from './tokens';
+import { resetPeriodTokens, adjustTokens, syncSubscriberWalletsToPlanTokens } from './tokens';
 import { writeAdminAuditLog } from './audit-log';
 import type { UserRole } from './constants';
 import {
@@ -55,6 +55,10 @@ export async function updatePlan(
     .set({ ...data, updatedAt: new Date() })
     .where(eq(plans.id, planId))
     .returning();
+
+  if (data.monthlyTokens != null) {
+    await syncSubscriberWalletsToPlanTokens(planId, data.monthlyTokens);
+  }
 
   await writeAdminAuditLog({
     adminUserId,

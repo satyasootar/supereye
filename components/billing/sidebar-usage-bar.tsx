@@ -14,6 +14,7 @@ type WalletResponse = {
   role: string;
   credits?: {
     effectiveLimit: number;
+    remainingAllowance: number;
     aiEnabled: boolean;
   } | null;
 };
@@ -44,6 +45,7 @@ export function SidebarUsageBar() {
       wallet={data.wallet}
       role={data.role}
       effectiveLimit={data.credits?.effectiveLimit}
+      remainingAllowance={data.credits?.remainingAllowance}
       compact
       showRemaining
     />

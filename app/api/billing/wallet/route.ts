@@ -4,6 +4,7 @@ import {
   getTokenWallet,
   ensureWalletPeriodFresh,
   getEffectiveTokenLimit,
+  getRemainingTokenAllowance,
 } from '@/lib/billing/tokens';
 import { getUserSubscription } from '@/lib/billing/admin';
 import { listTopUpPacks } from '@/lib/billing/plans';
@@ -28,6 +29,15 @@ export async function GET() {
       })
     : 0;
 
+  const remainingAllowance = wallet
+    ? getRemainingTokenAllowance({
+        monthlyAllocation: wallet.monthlyAllocation,
+        bonusAllocation: wallet.bonusAllocation ?? 0,
+        usedThisPeriod: wallet.usedThisPeriod,
+        balance: wallet.balance,
+      })
+    : 0;
+
   const plan = subscription?.plan ?? null;
 
   return NextResponse.json({
@@ -42,6 +52,7 @@ export async function GET() {
           monthlyAllocation: wallet.monthlyAllocation,
           bonusAllocation: wallet.bonusAllocation ?? 0,
           effectiveLimit,
+          remainingAllowance,
           aiEnabled: planIncludesAi(plan),
         }
       : null,

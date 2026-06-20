@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { WalletUsageSummary, AdminLlmTokenUsage } from '@/components/billing/usage-bar';
 import { formatDate, formatCredits } from '@/lib/billing/format';
+import { getWalletDisplayMetrics } from '@/lib/billing/wallet-math';
 import { formatDuration } from '@/lib/monitoring/format';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +31,7 @@ export type ManageUserRow = {
   status: string;
   createdAt: string;
   balance: number | null;
+  monthlyAllocation: number | null;
   usedThisPeriod: number | null;
   planName: string | null;
   isOnline: boolean;
@@ -117,7 +119,12 @@ export function ManageUserDialog({
     .slice(0, 2)
     .toUpperCase();
 
-  const totalAllocation = (user.balance ?? 0) + (user.usedThisPeriod ?? 0);
+  const walletMetrics = getWalletDisplayMetrics({
+    balance: user.balance ?? 0,
+    monthlyAllocation: user.monthlyAllocation ?? 0,
+    bonusAllocation: 0,
+    usedThisPeriod: user.usedThisPeriod ?? 0,
+  });
 
   return (
     <div
@@ -182,17 +189,23 @@ export function ManageUserDialog({
             <WalletUsageSummary
               wallet={{
                 balance: user.balance ?? 0,
-                monthlyAllocation: totalAllocation,
+                monthlyAllocation: user.monthlyAllocation ?? 0,
                 usedThisPeriod: user.usedThisPeriod ?? 0,
                 unlimited: false,
               }}
               role={user.role}
-              effectiveLimit={totalAllocation}
+              effectiveLimit={walletMetrics.effectiveLimit}
+              remainingAllowance={walletMetrics.remaining}
             />
             <p className="mt-2 text-xs text-text-muted">
               Balance:{' '}
               <span className="font-medium text-text-secondary">
                 {formatCredits(user.balance ?? 0)}
+              </span>
+              {' · '}
+              Remaining:{' '}
+              <span className="font-medium text-text-secondary">
+                {formatCredits(walletMetrics.remaining)}
               </span>
               {' · '}
               Used:{' '}

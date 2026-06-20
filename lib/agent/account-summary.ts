@@ -1,5 +1,5 @@
 import { getUserSubscription, ensureUserHasSubscription } from '@/lib/billing/admin';
-import { getTokenWallet } from '@/lib/billing/tokens';
+import { getTokenWallet, getRemainingTokenAllowance } from '@/lib/billing/tokens';
 import { getUserRole } from '@/lib/billing/rbac';
 import { hasUnlimitedAiAccess } from '@/lib/billing/constants';
 import { formatCurrency, formatDate, formatTokens } from '@/lib/billing/format';
@@ -44,7 +44,15 @@ export async function getAccountSummaryForAgent(
       : null,
     priceLabel: plan ? formatCurrency(plan.priceCents) : '—',
     monthlyTokens: plan?.monthlyTokens ?? null,
-    tokensRemaining: wallet?.balance ?? null,
+    tokensRemaining:
+      wallet && !unlimited
+        ? getRemainingTokenAllowance({
+            monthlyAllocation: wallet.monthlyAllocation,
+            bonusAllocation: wallet.bonusAllocation ?? 0,
+            usedThisPeriod: wallet.usedThisPeriod,
+            balance: wallet.balance,
+          })
+        : wallet?.balance ?? null,
     tokensUsedThisPeriod: wallet?.usedThisPeriod ?? null,
     monthlyAllocation: wallet?.monthlyAllocation ?? null,
     unlimited,

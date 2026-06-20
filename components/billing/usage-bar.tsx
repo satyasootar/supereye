@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils';
 import { formatCredits } from '@/lib/billing/format';
 import { hasUnlimitedAiAccess } from '@/lib/billing/constants';
+import { getWalletDisplayMetrics } from '@/lib/billing/wallet-math';
 
 type UsageBarProps = {
   label: string;
@@ -23,12 +24,13 @@ export function UsageBar({
   label,
   used,
   limit,
+  remaining,
   className,
   compact,
   showRemaining,
-}: UsageBarProps) {
+}: UsageBarProps & { remaining?: number }) {
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-  const remaining = Math.max(0, limit - used);
+  const remainingCredits = remaining ?? Math.max(0, limit - used);
 
   return (
     <div className={cn('space-y-1', className)}>
@@ -39,7 +41,7 @@ export function UsageBar({
         <span className="text-[10px] tabular-nums text-text-secondary">
           {showRemaining ? (
             <>
-              {formatCredits(remaining)} left
+              {formatCredits(remainingCredits)} left
             </>
           ) : (
             <>
@@ -65,7 +67,7 @@ export function UsageBar({
         />
       </div>
       {!compact && !showRemaining && limit > 0 && (
-        <p className="text-[10px] text-text-muted">{formatCredits(remaining)} remaining</p>
+        <p className="text-[10px] text-text-muted">{formatCredits(remainingCredits)} remaining</p>
       )}
     </div>
   );
@@ -81,6 +83,7 @@ type WalletUsageSummaryProps = {
   } | null;
   role: string;
   effectiveLimit?: number;
+  remainingAllowance?: number;
   compact?: boolean;
   showRemaining?: boolean;
   className?: string;
@@ -91,6 +94,7 @@ export function WalletUsageSummary({
   wallet,
   role,
   effectiveLimit,
+  remainingAllowance,
   compact,
   showRemaining,
   className,
@@ -110,9 +114,15 @@ export function WalletUsageSummary({
     );
   }
 
-  const limit =
-    effectiveLimit ?? wallet.monthlyAllocation + (wallet.bonusAllocation ?? 0);
-  const creditsUsed = wallet.usedThisPeriod ?? 0;
+  const metrics = getWalletDisplayMetrics({
+    balance: wallet.balance,
+    monthlyAllocation: wallet.monthlyAllocation,
+    bonusAllocation: wallet.bonusAllocation,
+    usedThisPeriod: wallet.usedThisPeriod,
+  });
+  const limit = effectiveLimit ?? metrics.effectiveLimit;
+  const remaining = remainingAllowance ?? metrics.remaining;
+  const creditsUsed = metrics.used;
 
   if (limit <= 0) {
     return (
@@ -138,6 +148,7 @@ export function WalletUsageSummary({
         label="AI Credits"
         used={creditsUsed}
         limit={limit}
+        remaining={remaining}
         compact={compact}
         showRemaining={showRemaining ?? compact}
       />

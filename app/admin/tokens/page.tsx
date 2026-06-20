@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader, AdminPanel } from '@/components/admin/admin-shell';
+import { BulkTokenUpdatePanel } from '@/components/admin/bulk-token-update';
 import { DataTable } from '@/components/admin/data-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,7 +39,7 @@ type LedgerRow = {
 };
 
 export default function AdminTokensPage() {
-  const [tab, setTab] = useState<'costs' | 'packs' | 'ledger'>('costs');
+  const [tab, setTab] = useState<'costs' | 'packs' | 'ledger' | 'bulk'>('costs');
   const queryClient = useQueryClient();
 
   const costsQuery = useQuery<{ costs: TokenCost[] }>({
@@ -91,18 +92,24 @@ export default function AdminTokensPage() {
     <div>
       <AdminPageHeader
         title="Tokens"
-        description="Configure AI action credit costs, top-up packs, and view the credit ledger."
+        description="Configure AI action credit costs, top-up packs, bulk user updates, and view the credit ledger."
       />
 
       <div className="mb-4 flex gap-2">
-        {(['costs', 'packs', 'ledger'] as const).map((t) => (
+        {(['costs', 'packs', 'ledger', 'bulk'] as const).map((t) => (
           <Button
             key={t}
             size="sm"
             variant={tab === t ? 'default' : 'outline'}
             onClick={() => setTab(t)}
           >
-            {t === 'costs' ? 'Action Costs' : t === 'packs' ? 'Top-up Packs' : 'Ledger'}
+            {t === 'costs'
+              ? 'Action Costs'
+              : t === 'packs'
+                ? 'Top-up Packs'
+                : t === 'ledger'
+                  ? 'Ledger'
+                  : 'Bulk Update'}
           </Button>
         ))}
       </div>
@@ -166,6 +173,8 @@ export default function AdminTokensPage() {
           }))}
         />
       )}
+
+      {tab === 'bulk' && <BulkTokenUpdatePanel />}
 
       {tab === 'ledger' && (
         <DataTable

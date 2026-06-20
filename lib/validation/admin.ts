@@ -40,6 +40,21 @@ export const adminTokenPostSchema = z.union([
   }),
 ]);
 
+export const adminBulkTokenSchema = z.union([
+  z.object({
+    userIds: z.array(uuidSchema).min(1).max(500),
+    action: z.literal('reset'),
+    monthlyAllocation: z.number().int().min(0),
+    reason: z.string().trim().min(1).max(500),
+  }),
+  z.object({
+    userIds: z.array(uuidSchema).min(1).max(500),
+    action: z.enum(['add', 'remove', 'bonus']),
+    amount: z.number().int().positive(),
+    reason: z.string().trim().min(1).max(500),
+  }),
+]);
+
 export const adminEnterpriseCreateSchema = z.object({
   organizationName: z.string().trim().min(1).max(200),
   userId: uuidSchema,
