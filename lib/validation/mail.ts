@@ -50,6 +50,7 @@ export const mailThreadsQuerySchema = z.object({
 
 export const mailTriagePostSchema = z.object({
   limit: z.number().int().min(1).max(20).optional(),
+  messageIds: z.array(z.string()).max(100).optional(),
 }).default({});
 
 export const mailEnhanceSchema = z.object({

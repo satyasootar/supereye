@@ -3,6 +3,7 @@ import { requireActiveUserSession } from '@/lib/security/api-auth';
 import {
   getTriageSummary,
   triagePendingEmailsForUser,
+  triageNewEmailsForUser,
 } from '@/lib/mail/triage';
 import { getTriageModel } from '@/lib/agent/triage-model';
 import { checkAiAccess } from '@/lib/billing/usage';
@@ -52,9 +53,16 @@ export async function POST(req: Request) {
   if ('error' in parsed) return parsed.error;
 
   const limit = parsed.data.limit ?? 10;
+  const messageIds = parsed.data.messageIds;
 
   try {
-    const result = await triagePendingEmailsForUser(session.user.id, limit);
+    let result;
+    if (messageIds && messageIds.length > 0) {
+      const classified = await triageNewEmailsForUser(session.user.id, messageIds);
+      result = { classified, pending: 0 };
+    } else {
+      result = await triagePendingEmailsForUser(session.user.id, limit);
+    }
     const summary = await getTriageSummary(session.user.id);
     return NextResponse.json({ ...result, ...summary });
   } catch (error: unknown) {

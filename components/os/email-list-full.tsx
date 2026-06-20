@@ -4,7 +4,7 @@ import {
   Menu, Filter, Tag, CheckCircle2, SlidersHorizontal, Square, 
   CheckSquare, Archive, Trash2, Calendar, MessageSquare, 
   MoreHorizontal, ChevronDown, Plus, Search, Send, X, FileText, Inbox,
-  AlertCircle, Loader2
+  AlertCircle, Loader2, Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -176,11 +176,11 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   });
 
   const triageMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (messageIds?: string[]) => {
       const res = await fetch('/api/mail/triage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 10 }),
+        body: JSON.stringify({ limit: 10, messageIds }),
       });
       if (!res.ok) throw new Error('Failed to classify emails');
       return res.json();
@@ -190,22 +190,6 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
       queryClient.invalidateQueries({ queryKey: ['emails', 'triage'] });
     },
   });
-
-  useEffect(() => {
-    if (
-      triageData?.pending &&
-      triageData.pending > 0 &&
-      !triageMutation.isPending &&
-      !triageRequestedRef.current
-    ) {
-      triageRequestedRef.current = true;
-      triageMutation.mutate(undefined, {
-        onSettled: () => {
-          triageRequestedRef.current = false;
-        },
-      });
-    }
-  }, [triageData?.pending, triageMutation.isPending]);
 
   const formatLabelName = (name: string) => {
     if (!name) return '';
@@ -726,21 +710,35 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
                 );
               })}
             </div>
-            {selectedIds.length > 0 && (
+            <div className="flex items-center gap-2">
               <button 
-                onClick={handleBulkDelete}
-                disabled={bulkTrashMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-destructive hover:bg-destructive/10 rounded-full cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Move selected to Trash"
+                onClick={() => {
+                  const unclassifiedIds = emails.filter(e => !e.priorityTier).map(e => e.id);
+                  if (unclassifiedIds.length > 0) triageMutation.mutate(unclassifiedIds);
+                }}
+                disabled={triageMutation.isPending || emails.filter(e => !e.priorityTier).length === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-text-secondary hover:bg-bg-elevated hover:text-text-primary rounded-full cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Run AI Triage on loaded emails"
               >
-                {bulkTrashMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-                <span>{bulkTrashMutation.isPending ? 'Deleting...' : `Delete (${selectedIds.length})`}</span>
+                {triageMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                <span>Run Triage</span>
               </button>
-            )}
+              {selectedIds.length > 0 && (
+                <button 
+                  onClick={handleBulkDelete}
+                  disabled={bulkTrashMutation.isPending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-destructive hover:bg-destructive/10 rounded-full cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Move selected to Trash"
+                >
+                  {bulkTrashMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  <span>{bulkTrashMutation.isPending ? 'Deleting...' : `Delete (${selectedIds.length})`}</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
