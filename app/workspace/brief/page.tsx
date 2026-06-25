@@ -6,7 +6,7 @@ import { BriefShell } from '@/components/brief/brief-shell';
 import { createPageMetadata } from '@/lib/site/metadata';
 
 export const metadata = createPageMetadata({
-  title: 'Today',
+  title: 'One View',
   description: 'Your AI daily command center — urgent mail, meetings, OTPs, and what to do next.',
   noIndex: true,
 });

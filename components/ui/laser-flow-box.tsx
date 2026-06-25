@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes';
 import LaserFlow from './LaserFlow';
 import { MockDashboard } from '@/components/landing/mock-dashboard';
 import { BackedByChaicode } from '@/components/landing/backed-by-chaicode';
+import { DemoLoginGate } from '@/components/auth/demo-login-gate';
 
 function useCssVar(name: string) {
   const { resolvedTheme } = useTheme();
@@ -173,7 +174,16 @@ export function LaserFlowBoxExample() {
           >
             Supereye brings your email, calendar, and favourite tools into one intelligent workspace. Plug in the apps you already use, let AI handle the rest, and run your entire workday from a single place.
           </p>
-          <div style={{ pointerEvents: 'auto' }}>
+          <div
+            style={{
+              pointerEvents: 'auto',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+              gap: '12px',
+            }}
+          >
             <Link
               href="/login"
               style={{
@@ -201,6 +211,7 @@ export function LaserFlowBoxExample() {
             >
               Get started
             </Link>
+            <DemoLoginGate variant="hero" />
           </div>
         </div>
       </div>

@@ -14,7 +14,13 @@ const DEMO_PASSWORD = 'Kollects@123';
 
 const DEMO_INFO = `By clicking you will be logged in with "${DEMO_EMAIL}" and password "${DEMO_PASSWORD}". This is a demo account for you to explore and experience the page without giving your credentials.`;
 
-export function DemoLoginButton() {
+export function DemoLoginButton({
+  variant = 'default',
+  className,
+}: {
+  variant?: 'default' | 'hero';
+  className?: string;
+} = {}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,11 +53,14 @@ export function DemoLoginButton() {
     }
   };
 
+  const isHero = variant === 'hero';
+
   return (
-    <div className="flex flex-col gap-2">
+    <div className={cn('flex flex-col gap-2', className)}>
       <div
         className={cn(
-          'relative w-full rounded-lg',
+          'relative rounded-lg',
+          isHero ? 'w-auto' : 'w-full',
           !loading && 'shadow-[0_0_20px_var(--accent-blue-glow)]'
         )}
       >
@@ -64,7 +73,8 @@ export function DemoLoginButton() {
           onClick={handleDemoLogin}
           disabled={loading}
           className={cn(
-            'relative z-10 flex h-10 w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-text-primary transition-all',
+            'relative z-10 flex items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-text-primary transition-all',
+            isHero ? 'h-auto px-6 py-3 text-[15px] font-semibold' : 'h-10 w-full',
             'border border-border-subtle bg-bg-surface',
             'hover:border-border-strong hover:bg-bg-highlight/50',
             'disabled:cursor-not-allowed disabled:opacity-50'

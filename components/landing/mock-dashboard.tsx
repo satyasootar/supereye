@@ -1196,8 +1196,8 @@ export function MockDashboard() {
             onClick={() => setIsBriefActive(false)}
           >
             <div className="rounded-xl border border-violet-500/30 bg-bg-elevated px-8 py-6 text-center shadow-xl max-w-sm" onClick={(e) => e.stopPropagation()}>
-              <Star className="h-8 w-8 mx-auto mb-3 fill-violet-400 text-violet-400" />
-              <h3 className="text-[15px] font-semibold text-text-primary">Today&apos;s Brief</h3>
+              <LayoutDashboard className="h-8 w-8 mx-auto mb-3 text-violet-400" />
+              <h3 className="text-[15px] font-semibold text-text-primary">One View</h3>
               <p className="mt-2 text-[12px] text-text-muted">3 urgent emails · 2 meetings · 1 PR to review</p>
               <button onClick={() => setIsBriefActive(false)} className="mt-4 rounded-md bg-accent-blue px-4 py-1.5 text-[12px] font-semibold text-white hover:opacity-90 transition-opacity">Got it</button>
             </div>
@@ -1300,8 +1300,8 @@ export function MockDashboard() {
                 : 'border-border-subtle bg-bg-highlight/60 text-text-secondary hover:border-border-default hover:bg-bg-highlight hover:text-text-primary'
             )}
           >
-            <Star className={cn('h-3.5 w-3.5', isBriefActive ? 'fill-violet-400 text-violet-400' : 'text-text-muted')} />
-            Today
+            <LayoutDashboard className={cn('h-3.5 w-3.5', isBriefActive ? 'text-violet-400' : 'text-text-muted')} />
+            One View
           </button>
         </div>
 

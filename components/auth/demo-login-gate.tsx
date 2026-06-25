@@ -3,7 +3,13 @@
 import { useEffect, useState } from 'react';
 import { DemoLoginButton } from '@/components/auth/demo-login-button';
 
-export function DemoLoginGate() {
+export function DemoLoginGate({
+  variant = 'default',
+  className,
+}: {
+  variant?: 'default' | 'hero';
+  className?: string;
+} = {}) {
   const [enabled, setEnabled] = useState(false);
   const [checked, setChecked] = useState(false);
 
@@ -34,5 +40,5 @@ export function DemoLoginGate() {
     return null;
   }
 
-  return <DemoLoginButton />;
+  return <DemoLoginButton variant={variant} className={className} />;
 }

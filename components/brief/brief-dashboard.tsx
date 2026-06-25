@@ -586,6 +586,9 @@ export function BriefDashboard() {
     { id: 'meeting', label: 'Invites', icon: Video },
   ];
 
+  const showAiSummaryButton =
+    Boolean(brief) && connected.size > 0 && !brief?.narrative && !generateMutation.isPending;
+
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-app">
       {/* Toolbar */}
@@ -598,7 +601,7 @@ export function BriefDashboard() {
             <ArrowLeft className="h-3 w-3" />
             <span className="hidden sm:inline">Workspace</span>
           </Link>
-          <h1 className="font-heading text-sm font-semibold text-text-primary">Today</h1>
+          <h1 className="font-heading text-sm font-semibold text-text-primary">One View</h1>
         </div>
         <div className="flex gap-1.5">
           <Button
@@ -610,19 +613,6 @@ export function BriefDashboard() {
           >
             <RefreshCw className={cn('h-3 w-3', isFetching && 'animate-spin')} />
             <span className="hidden sm:inline">Refresh</span>
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => generateMutation.mutate()}
-            disabled={generateMutation.isPending}
-            className="h-7 gap-1 bg-gradient-to-r from-violet-600 to-cyan-600 px-2.5 text-xs text-white hover:opacity-90"
-          >
-            {generateMutation.isPending ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Sparkles className="h-3 w-3" />
-            )}
-            AI summary
           </Button>
         </div>
       </header>
@@ -664,14 +654,33 @@ export function BriefDashboard() {
                         <Sparkles className="h-3.5 w-3.5 text-violet-400" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-400">
-                          AI briefing
-                        </p>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-400">
+                            AI briefing
+                          </p>
+                          {showAiSummaryButton && (
+                            <Button
+                              size="sm"
+                              onClick={() => generateMutation.mutate()}
+                              className="h-7 shrink-0 gap-1 bg-gradient-to-r from-violet-600 to-cyan-600 px-2.5 text-xs text-white hover:opacity-90"
+                            >
+                              <Sparkles className="h-3 w-3" />
+                              AI summary
+                            </Button>
+                          )}
+                        </div>
                         <p className="mt-1 text-sm leading-relaxed text-text-primary">
-                          {brief.narrative ??
+                          {generateMutation.isPending ? (
+                            <span className="inline-flex items-center gap-2 text-text-muted">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              Generating your briefing…
+                            </span>
+                          ) : (
+                            brief.narrative ??
                             (connected.size === 0
-                              ? 'Connect Gmail, Calendar, GitHub, or Drive in settings, then tap "AI summary" for a personalized plan.'
-                              : 'Tap "AI summary" to generate a personalized plan based on your connected plugins.')}
+                              ? 'Connect Gmail, Calendar, GitHub, or Drive in settings to unlock a personalized daily briefing.'
+                              : 'Generate a personalized plan from your connected plugins.')
+                          )}
                         </p>
                         {generateMutation.isError && (
                           <p className="mt-1.5 text-xs text-destructive">

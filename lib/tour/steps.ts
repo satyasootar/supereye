@@ -67,10 +67,10 @@ export const APP_TOUR_STEPS: AppTourStep[] = [
   },
   {
     id: 'brief',
-    title: 'Today brief',
+    title: 'One View',
     target: 'brief',
     placement: 'bottom',
-    body: 'Open Today for an AI-powered daily snapshot: urgent mail, schedule highlights, and what needs attention across your connected tools.',
+    body: 'Open One View for an AI-powered daily snapshot: urgent mail, schedule highlights, and what needs attention across your connected tools.',
   },
   {
     id: 'eye',

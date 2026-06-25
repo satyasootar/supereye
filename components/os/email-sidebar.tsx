@@ -7,7 +7,7 @@ import {
   ChevronDown, Plus, Settings, HelpCircle, Edit, 
   BarChart, Flame, Paperclip, Users, Tag,   ChevronLeft, ChevronRight, Calendar,
   Sun, Moon, User, Archive, PanelLeftClose, PanelLeftOpen, ArrowLeftRight, LogOut,
-  ChevronsUpDown, Shield, ListFilter,
+  ChevronsUpDown, Shield, ListFilter, LayoutDashboard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useRef } from 'react';
@@ -476,8 +476,8 @@ export function EmailSidebar() {
                 : 'border-border-subtle bg-bg-highlight/60 text-text-secondary hover:border-border-default hover:bg-bg-highlight hover:text-text-primary'
             )}
           >
-            <Star className={cn('h-4 w-4', isBriefPage ? 'fill-violet-400 text-violet-400' : 'text-text-muted')} />
-            Today
+            <LayoutDashboard className={cn('h-4 w-4', isBriefPage ? 'text-violet-400' : 'text-text-muted')} />
+            One View
           </Link>
         </div>
       )}
@@ -486,7 +486,7 @@ export function EmailSidebar() {
           <WorkspaceSwitcher collapsed />
           <Link
             href="/workspace/brief"
-            title="Today"
+            title="One View"
             className={cn(
               'flex h-8 w-8 items-center justify-center rounded-md border transition-colors',
               isBriefPage
@@ -494,7 +494,7 @@ export function EmailSidebar() {
                 : 'border-border-subtle bg-bg-highlight/60 text-text-muted hover:border-border-default hover:bg-bg-highlight hover:text-text-primary'
             )}
           >
-            <Star className={cn('h-4 w-4', isBriefPage && 'fill-current')} />
+            <LayoutDashboard className="h-4 w-4" />
           </Link>
         </div>
       )}
