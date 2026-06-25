@@ -460,7 +460,7 @@ export function EmailSidebar() {
                 data-tour={TOUR_TARGETS.pluginSwitch}
                 onClick={handleSwitchPlugin}
                 className="flex w-9 items-center justify-center rounded-md border border-border-subtle bg-bg-highlight/60 text-text-muted transition-colors hover:bg-bg-highlight hover:text-text-primary self-stretch shrink-0 cursor-pointer"
-                title="Switch Active Plugin"
+                title="Click tab"
               >
                 <ArrowLeftRight className="h-4 w-4" />
               </button>

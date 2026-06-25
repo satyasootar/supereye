@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { DEFAULT_KEYBINDINGS } from '@/lib/keyboard/default-bindings';
+import '@/lib/keyboard/bootstrap';
 import { keybindingRegistry } from '@/lib/keyboard/registry';
 import { FocusContextProvider } from '@/components/keyboard/focus-context-provider';
 import { CheatSheet } from '@/components/keyboard/cheat-sheet';
@@ -21,8 +21,6 @@ function KeyboardEngineInner() {
     useKeyboardStore();
 
   useEffect(() => {
-    keybindingRegistry.register(DEFAULT_KEYBINDINGS);
-
     void Promise.all([
       hydrateKeybindingsPreferenceFromServer(),
       hydrateOverridesFromServer(),

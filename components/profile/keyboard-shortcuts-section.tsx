@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import '@/lib/keyboard/bootstrap';
 import { keybindingRegistry } from '@/lib/keyboard/registry';
 import { sequenceToLabel } from '@/lib/keyboard/key-parser';
 import { useKeyboardStore } from '@/lib/keyboard/keyboard-store';
@@ -76,7 +77,10 @@ export function KeyboardShortcutsSection() {
     keybindingRegistry.setOverrides(overrides);
   }, [overrides]);
 
-  const conflicts = keybindingRegistry.getConflicts();
+  const conflicts = useMemo(
+    () => (mounted ? keybindingRegistry.getConflicts() : []),
+    [mounted, overrides, editingId]
+  );
 
   const startRemap = (id: string, current: string) => {
     setEditingId(id);
@@ -156,13 +160,14 @@ export function KeyboardShortcutsSection() {
             Remaps sync to your account. Open this page anytime to review or customize bindings.
           </p>
 
-          {conflicts.length > 0 && (
+          {mounted && conflicts.length > 0 && (
             <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-700 dark:text-amber-300">
               {conflicts.length} binding conflict(s) detected — resolve remaps below.
             </p>
           )}
 
-          {grouped.map(([group, bindings]) => (
+          {mounted &&
+            grouped.map(([group, bindings]) => (
             <div key={group} className="mb-6 last:mb-0">
               <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                 {group}

@@ -5,6 +5,7 @@ import { useWorkspaces } from '@/hooks/use-workspaces';
 import { useAppStore } from '@/lib/store/app-store';
 import { cn } from '@/lib/utils';
 import { ChevronDown, LayoutGrid, Plus } from 'lucide-react';
+import { PluginBrandIcon } from '@/components/onboarding/plugin-brand-icon';
 import { getPlugin, generateWorkspaceName } from '@/lib/plugins/registry';
 import type { PluginId } from '@/lib/plugins/types';
 import { TOUR_TARGETS } from '@/lib/tour/targets';
@@ -54,7 +55,15 @@ export function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }
             title={label}
             className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-overlay hover:text-text-primary"
           >
-            <LayoutGrid className="h-4 w-4" />
+            {activeWorkspace ? (
+              <WorkspacePluginIcons
+                primaryPluginId={activeWorkspace.primaryPluginId}
+                sidebarPluginId={activeWorkspace.sidebarPluginId}
+                size="sm"
+              />
+            ) : (
+              <LayoutGrid className="h-4 w-4" />
+            )}
           </button>
         </PopoverTrigger>
         <PopoverContent
@@ -78,11 +87,11 @@ export function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }
         <button
           type="button"
           data-tour={TOUR_TARGETS.workspaceSwitcher}
-          className="flex w-full items-center justify-between gap-2 rounded-md border border-border-subtle bg-bg-highlight/60 px-2.5 py-2 text-left transition-colors hover:bg-bg-highlight"
+          className="flex w-full items-center gap-2 rounded-md border border-border-subtle bg-bg-highlight/60 px-2 py-2 text-left transition-colors hover:bg-bg-highlight"
         >
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             {hasCustomName && (
-              <p className="truncate text-[12px] font-semibold text-text-primary">{label}</p>
+              <p className="truncate text-[11px] font-medium text-text-muted">{label}</p>
             )}
             {activeWorkspace && (
               <WorkspaceLayoutLabel
@@ -176,6 +185,40 @@ function WorkspaceList({
   );
 }
 
+function WorkspacePluginIcons({
+  primaryPluginId,
+  sidebarPluginId,
+  size = 'md',
+}: {
+  primaryPluginId: PluginId;
+  sidebarPluginId: PluginId | null;
+  size?: 'sm' | 'md';
+}) {
+  const primarySize = size === 'sm' ? 14 : 16;
+  const sidebarSize = size === 'sm' ? 12 : 14;
+
+  if (!sidebarPluginId) {
+    return (
+      <PluginBrandIcon
+        pluginId={primaryPluginId}
+        size={primarySize}
+        className="shrink-0"
+      />
+    );
+  }
+
+  return (
+    <span className="inline-flex shrink-0 items-center -space-x-1">
+      <span className="relative z-10 rounded-[4px] ring-1 ring-bg-highlight">
+        <PluginBrandIcon pluginId={primaryPluginId} size={primarySize} />
+      </span>
+      <span className="relative z-0 opacity-55">
+        <PluginBrandIcon pluginId={sidebarPluginId} size={sidebarSize} />
+      </span>
+    </span>
+  );
+}
+
 function WorkspaceLayoutLabel({
   primaryPluginId,
   sidebarPluginId,
@@ -191,32 +234,42 @@ function WorkspaceLayoutLabel({
   const sidebarLabel = sidebarPluginId
     ? getPlugin(sidebarPluginId)?.shortLabel ?? sidebarPluginId
     : null;
+  const iconSize = subdued ? 12 : 14;
+  const textSize = subdued ? 'text-[10px]' : 'text-[12px]';
 
   if (!sidebarLabel) {
     return (
-      <p
+      <div
         className={cn(
-          'truncate text-text-primary',
-          subdued ? 'text-[10px] text-text-muted' : 'text-[12px] font-semibold',
+          'flex min-w-0 items-center gap-1.5',
+          textSize,
           className
         )}
       >
-        {primaryLabel}
-      </p>
+        <PluginBrandIcon pluginId={primaryPluginId} size={iconSize} className="shrink-0" />
+        <span
+          className={cn(
+            'truncate text-text-primary',
+            subdued ? 'font-medium text-text-secondary' : 'font-semibold'
+          )}
+        >
+          {primaryLabel}
+        </span>
+      </div>
     );
   }
 
   return (
-    <p
-      className={cn(
-        'flex min-w-0 items-center gap-1 truncate',
-        subdued ? 'text-[10px]' : 'text-[12px]',
-        className
-      )}
+    <div
+      className={cn('flex min-w-0 items-center gap-1 truncate', textSize, className)}
       title={`${primaryLabel} is the main view · ${sidebarLabel} is the sidebar`}
     >
       <span className="inline-flex min-w-0 items-center gap-1">
-        <span className="h-1 w-1 shrink-0 rounded-full bg-accent-blue" aria-hidden />
+        <PluginBrandIcon
+          pluginId={primaryPluginId}
+          size={iconSize}
+          className="shrink-0 rounded-[3px] ring-1 ring-accent-blue/30"
+        />
         <span
           className={cn(
             'truncate text-text-primary',
@@ -226,8 +279,11 @@ function WorkspaceLayoutLabel({
           {primaryLabel}
         </span>
       </span>
-      <span className="shrink-0 text-text-muted/50">+</span>
-      <span className="truncate font-normal text-text-muted">{sidebarLabel}</span>
-    </p>
+      <span className="shrink-0 text-text-muted/45">+</span>
+      <span className="inline-flex min-w-0 items-center gap-1 opacity-80">
+        <PluginBrandIcon pluginId={sidebarPluginId} size={iconSize - 2} className="shrink-0" />
+        <span className="truncate font-normal text-text-muted">{sidebarLabel}</span>
+      </span>
+    </div>
   );
 }
