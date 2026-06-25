@@ -464,7 +464,7 @@ export function WorkspaceLayoutSection() {
 
       <ProfileSection
         title="Keyboard shortcuts"
-        description="Press ? for the full cheat sheet, or customize bindings in Profile → Shortcuts."
+        description="Customize bindings in Profile → Shortcuts."
       >
         <ul className="space-y-2 text-[13px] text-text-secondary">
           <li>
@@ -480,10 +480,6 @@ export function WorkspaceLayoutSection() {
             <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">[</kbd>{' '}
             <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">]</kbd>{' '}
             Previous / next workspace
-          </li>
-          <li>
-            <kbd className="rounded bg-bg-highlight px-1.5 py-0.5 font-mono text-[11px]">?</kbd> Open
-            shortcut reference
           </li>
         </ul>
       </ProfileSection>

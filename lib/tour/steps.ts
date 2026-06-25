@@ -97,7 +97,7 @@ export const APP_TOUR_STEPS: AppTourStep[] = [
     id: 'complete',
     title: "You're ready to go",
     placement: 'center',
-    body: 'That covers the essentials. Explore at your own pace — press ? whenever you need shortcuts, and {mod}+K to jump anywhere. Happy productivity!',
+    body: 'That covers the essentials. Explore at your own pace — use {mod}+K to jump anywhere. Happy productivity!',
   },
 ];
 

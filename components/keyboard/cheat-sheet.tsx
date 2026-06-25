@@ -36,9 +36,9 @@ export function CheatSheet() {
                   Keyboard shortcuts
                 </h2>
                 <p className="mt-0.5 text-[12px] text-text-muted">
-                  Press <kbd className="rounded bg-bg-highlight px-1 font-mono">?</kbd> anytime ·{' '}
                   <kbd className="rounded bg-bg-highlight px-1 font-mono">Ctrl</kbd> on Windows,{' '}
-                  <kbd className="rounded bg-bg-highlight px-1 font-mono">⌘</kbd> on Mac for shortcuts
+                  <kbd className="rounded bg-bg-highlight px-1 font-mono">⌘</kbd> on Mac for modifier
+                  shortcuts
                 </p>
               </div>
               <Button

@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store/app-store';
 import { useTheme } from 'next-themes';
-import { useKeyboardStore } from '@/lib/keyboard/keyboard-store';
 import { useWorkspaces } from '@/hooks/use-workspaces';
 import { useSuperSearch } from '@/hooks/use-super-search';
 import { navigateSuperSearchResult } from '@/lib/search/navigate-result';
@@ -15,7 +14,6 @@ import {
   Calendar,
   Settings,
   Moon,
-  TerminalSquare,
   ArrowUp,
   ArrowDown,
   CornerDownLeft,
@@ -90,7 +88,6 @@ export function CommandPalette() {
     openDriveFile,
   } = useAppStore();
   const { setTheme, theme } = useTheme();
-  const { setCheatSheetOpen } = useKeyboardStore();
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -232,20 +229,11 @@ export function CommandPalette() {
         icon: Moon,
         action: () => setTheme(theme === 'dark' ? 'light' : 'dark'),
       },
-      {
-        id: 'shortcuts',
-        category: 'App',
-        label: 'Show keyboard shortcuts',
-        icon: TerminalSquare,
-        shortcut: '?',
-        action: () => setCheatSheetOpen(true),
-      },
     ],
     [
       focusPluginIfAvailable,
       router,
       setCalendarView,
-      setCheatSheetOpen,
       setComposeOpen,
       setCurrentDateStr,
       setEmailCategory,

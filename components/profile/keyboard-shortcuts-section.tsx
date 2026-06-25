@@ -64,6 +64,7 @@ export function KeyboardShortcutsSection() {
   const grouped = useMemo(() => {
     const map = new Map<string, ReturnType<typeof keybindingRegistry.getBindings>>();
     for (const b of keybindingRegistry.getBindings()) {
+      if (b.id === 'global.cheatSheet') continue;
       const list = map.get(b.group) ?? [];
       list.push(b);
       map.set(b.group, list);
@@ -152,8 +153,7 @@ export function KeyboardShortcutsSection() {
 
         <div className={cn(!enabled && 'pointer-events-none opacity-50')}>
           <p className="mb-4 text-[12px] leading-relaxed text-text-muted">
-            Press <kbd className="rounded bg-bg-highlight px-1 font-mono text-[11px]">?</kbd> in
-            the app for a quick overlay. Remaps sync to your account.
+            Remaps sync to your account. Open this page anytime to review or customize bindings.
           </p>
 
           {conflicts.length > 0 && (

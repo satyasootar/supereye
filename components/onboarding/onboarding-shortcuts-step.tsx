@@ -93,8 +93,7 @@ export function OnboardingShortcutsStep({
       <footer className="z-[200] shrink-0 border-t border-border-subtle bg-bg-app px-6 py-4 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="hidden text-[13px] text-text-muted sm:block">
-            Press <kbd className="rounded bg-bg-highlight px-1 font-mono text-[11px]">?</kbd> anytime
-            for the full list
+            Open Profile → Shortcuts anytime to customize bindings
           </p>
           <div className="flex w-full items-center gap-3 sm:w-auto">
             {onBack && (

@@ -47,7 +47,6 @@ export const SHORTCUT_TIPS = [
   "Tip: Press Tab to switch plugins (Email/Calendar) in your workspace!",
   "Tip: Press D at any time to toggle between Light and Dark mode.",
   "Tip: Press Ctrl+K (or Cmd+K) to open the Command Palette.",
-  "Tip: Press ? to view all active keyboard shortcuts.",
   "Tip: Press j and k to move down and up in your email list.",
   "Tip: Press Ctrl+J to toggle eye open/closed.",
   "Tip: Press t in the Calendar view to jump back to Today.",

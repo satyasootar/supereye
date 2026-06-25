@@ -14,7 +14,6 @@ export type ShortcutEntry = {
 export function getFeaturedShortcuts(): ShortcutEntry[] {
   const mod = modKeyLabel();
   return [
-    { description: 'Show all shortcuts', keys: '?' },
     { description: 'Switch workspace', keys: '1 – 5' },
     { description: 'Previous / next workspace', keys: '[  ]' },
     { description: 'Switch plugin in workspace', keys: 'Tab' },
@@ -22,11 +21,14 @@ export function getFeaturedShortcuts(): ShortcutEntry[] {
   ];
 }
 
+const HIDDEN_SHORTCUT_BINDING_IDS = new Set(['global.cheatSheet']);
+
 export function groupBindings(
   bindings: KeybindingDefinition[] = keybindingRegistry.getBindings()
 ): [string, ShortcutEntry[]][] {
   const map = new Map<string, ShortcutEntry[]>();
   for (const b of bindings) {
+    if (HIDDEN_SHORTCUT_BINDING_IDS.has(b.id)) continue;
     const list = map.get(b.group) ?? [];
     list.push({
       description: b.description,
@@ -114,8 +116,7 @@ export function ShortcutsFooterHint() {
   const mod = modKeyLabel();
   return (
     <p className="text-[12px] leading-relaxed text-text-muted">
-      Press <ShortcutKbd keys="?" className="inline-block align-middle" /> anytime for the full
-      list. Shortcuts use <ShortcutKbd keys={mod} className="inline-block align-middle" /> on Mac
+      Shortcuts use <ShortcutKbd keys={mod} className="inline-block align-middle" /> on Mac
       or <ShortcutKbd keys="Ctrl" className="inline-block align-middle" /> on Windows. Customize
       in <span className="font-medium text-text-secondary">Profile → Shortcuts</span>.
     </p>
