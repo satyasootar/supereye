@@ -991,7 +991,7 @@ export function MockDashboard() {
                       <p className="mt-3">+142 −38 across 8 files</p>
                       <div className="mt-4 rounded-md border border-border-subtle bg-bg-surface p-3 font-mono text-[10px]">
                         <span className="text-emerald-400">+ export function MockDashboard()</span><br />
-                        <span className="text-text-muted">  // interactive landing preview</span>
+                        <span className="text-text-muted">{`  // interactive landing preview`}</span>
                       </div>
                     </div>
                   </>
