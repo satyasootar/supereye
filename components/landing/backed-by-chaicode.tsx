@@ -14,9 +14,9 @@ export function BackedByChaicode() {
       <Image
         src="/logo/chaicode.png"
         alt="Chaicode"
-        width={22}
-        height={22}
-        className="h-[22px] w-[22px] shrink-0 rounded-[1px] object-contain"
+        width={24}
+        height={24}
+        className="h-[24px] w-[24px] shrink-0 rounded-[1px] object-contain"
       />
       <div className="flex flex-col leading-none">
         <span className="text-[10px] font-medium text-text-muted">Backed by</span>
