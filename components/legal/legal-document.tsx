@@ -27,7 +27,7 @@ export function LegalDocument({
         <LandingNavbar />
       </div>
 
-      <LandingSection className="py-12 md:py-16">
+      <LandingSection className="pt-28 pb-12 md:pt-32 md:pb-16">
         <article className="mx-auto max-w-3xl">
           <header className="mb-10 border-b border-border-subtle pb-8">
             <p className="mb-2 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-accent-blue">

@@ -28,7 +28,7 @@ interface NavItemsProps {
     link: string;
   }[];
   className?: string;
-  onItemClick?: () => void;
+  onItemClick?: (e: React.MouseEvent<HTMLAnchorElement>, link: string) => void;
 }
 
 interface MobileNavProps {
@@ -135,7 +135,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
       {items.map((item, idx) => (
         <a
           onMouseEnter={() => setHovered(idx)}
-          onClick={onItemClick}
+          onClick={(e) => onItemClick?.(e, item.link)}
           className="relative px-4 py-2 text-text-secondary transition-colors hover:text-text-primary"
           key={`link-${idx}`}
           href={item.link}
