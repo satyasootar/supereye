@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/popover";
 import { Check } from "lucide-react";
 import { AdvancedSearchFilter } from '@/components/os/advanced-search-filter';
+import { ShortcutKbd } from '@/components/keyboard/shortcuts-reference';
+import { modKeyLabel } from '@/lib/keyboard/key-parser';
 import { SendersFilter } from '@/components/os/senders-filter';
 import { EmailPriorityBadge } from '@/components/os/email-priority-badge';
 import { EmailFetchPatienceNotice } from '@/components/os/email-fetch-patience-notice';
@@ -121,6 +123,11 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debouncedSearch = useDebounce(searchQuery, 600);
+  const [commandPaletteShortcut, setCommandPaletteShortcut] = useState('Ctrl+K');
+
+  useEffect(() => {
+    setCommandPaletteShortcut(`${modKeyLabel()}+K`);
+  }, []);
   
   const [hoveredEmail, setHoveredEmail] = useState<EmailMessage | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -563,8 +570,13 @@ export function EmailListFull({ isSplitView = false }: { isSplitView?: boolean }
               placeholder="Search emails..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent border-none outline-none text-[13px] font-medium text-text-primary placeholder:text-text-muted w-full"
+              className="bg-transparent border-none outline-none text-[13px] font-medium text-text-primary placeholder:text-text-muted w-full min-w-0"
             />
+            {!searchQuery && (
+              <span title="Open command palette" className="hidden shrink-0 sm:inline-flex">
+                <ShortcutKbd keys={commandPaletteShortcut} />
+              </span>
+            )}
             {searchQuery && (
               <button 
                 onClick={() => setSearchQuery('')}

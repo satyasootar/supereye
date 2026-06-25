@@ -141,8 +141,6 @@ export function EmailSidebar() {
     refetchInterval: 30000,
   });
 
-  const goToProfile = () => router.push('/workspace/profile');
-
   const { data: billingData } = useBillingWallet();
 
   const getPlanName = () => {
@@ -599,28 +597,17 @@ export function EmailSidebar() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-1 shrink-0 pr-1">
-                <button
-                  type="button"
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className={cn(
-                    "p-1.5 rounded-[var(--radius-md)] text-text-secondary hover:text-text-primary hover:bg-bg-overlay transition-colors cursor-pointer",
-                    isMenuOpen && "bg-bg-overlay text-text-primary"
-                  )}
-                  title="Open menu"
-                >
-                  <ListFilter className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={goToProfile}
-                  className="p-1.5 rounded-[var(--radius-md)] text-text-secondary hover:text-text-primary hover:bg-bg-overlay transition-colors cursor-pointer"
-                  title="View Profile Settings"
-                >
-                  <Settings className="h-4 w-4" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className={cn(
+                  "shrink-0 p-1.5 pr-2 rounded-[var(--radius-md)] text-text-secondary hover:text-text-primary hover:bg-bg-overlay transition-colors cursor-pointer",
+                  isMenuOpen && "bg-bg-overlay text-text-primary"
+                )}
+                title="Open menu"
+              >
+                <ListFilter className="h-4 w-4" />
+              </button>
             </div>
           </motion.div>
         )}
@@ -642,7 +629,14 @@ export function EmailSidebar() {
                 : "left-3 right-3 bottom-[72px]"
             )}
           >
-
+            <Link
+              href="/workspace/profile"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2.5 py-1.5 text-left text-[12px] text-text-secondary hover:bg-bg-overlay hover:text-text-primary transition-colors cursor-pointer"
+            >
+              <Settings className="h-3.5 w-3.5 text-text-muted" />
+              Profile & settings
+            </Link>
 
             {isAdmin && (
               <Link

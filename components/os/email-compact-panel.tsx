@@ -14,6 +14,8 @@ import { EmailFetchPatienceNotice } from './email-fetch-patience-notice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSlowLoadingNotice } from '@/lib/hooks/use-slow-loading-notice';
 import { MAIL_THREADS_PAGE_SIZE } from '@/lib/mail/constants';
+import { ShortcutKbd } from '@/components/keyboard/shortcuts-reference';
+import { modKeyLabel } from '@/lib/keyboard/key-parser';
 
 type EmailMessage = {
   id: string;
@@ -32,8 +34,13 @@ type EmailMessage = {
 export function EmailCompactPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const { selectedEmailId, setSelectedEmailId, emailCategory, setWorkspaceMode } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [commandPaletteShortcut, setCommandPaletteShortcut] = useState('Ctrl+K');
   const queryClient = useQueryClient();
   const [compactSelectedId, setCompactSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCommandPaletteShortcut(`${modKeyLabel()}+K`);
+  }, []);
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['emails', 'threads', emailCategory],
@@ -133,8 +140,13 @@ export function EmailCompactPanel({ hideHeader = false }: { hideHeader?: boolean
             placeholder="Search emails..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent border-none outline-none text-[12px] text-text-primary placeholder:text-text-muted w-full"
+            className="bg-transparent border-none outline-none text-[12px] text-text-primary placeholder:text-text-muted w-full min-w-0"
           />
+          {!searchQuery && (
+            <span title="Open command palette" className="hidden shrink-0 sm:inline-flex">
+              <ShortcutKbd keys={commandPaletteShortcut} />
+            </span>
+          )}
           {searchQuery && (
             <button onClick={() => setSearchQuery('')} className="text-text-muted hover:text-text-primary">
               <X className="h-3 w-3" />
