@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import LaserFlow from './LaserFlow';
 import { MockDashboard } from '@/components/landing/mock-dashboard';
+import { BackedByChaicode } from '@/components/landing/backed-by-chaicode';
 
 function useCssVar(name: string) {
   const { resolvedTheme } = useTheme();
@@ -98,7 +99,7 @@ export function LaserFlowBoxExample() {
           wispIntensity={50}
           flowSpeed={0.35}
           flowStrength={0.1}
-          fogIntensity={1}
+          fogIntensity={0.3}
           fogScale={0.8}
           fogFallSpeed={0.6}
           decay={1.1}
@@ -142,44 +143,37 @@ export function LaserFlowBoxExample() {
             pointerEvents: 'none',
             display: 'flex',
             flexDirection: 'column',
-            gap: '24px',
+            gap: '20px',
           }}
         >
-          <div
+          <BackedByChaicode />
+          <h1
             style={{
-              padding: '24px 32px',
-              margin: '-24px -32px',
-              background: 'radial-gradient(ellipse at center, var(--bg-app) 30%, color-mix(in srgb, var(--bg-app) 70%, transparent) 70%, transparent 100%)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '24px',
-              width: 'fit-content',
+              fontSize: '3.75rem',
+              fontWeight: 800,
+              color: 'var(--text-primary)',
+              lineHeight: 1.1,
+              letterSpacing: '-0.03em',
+              textShadow:
+                '0 0 24px var(--bg-app), 0 0 48px color-mix(in srgb, var(--bg-app) 85%, transparent)',
             }}
           >
-            <h1
-              style={{
-                fontSize: '3.75rem',
-                fontWeight: 800,
-                color: 'var(--text-primary)',
-                lineHeight: 1.1,
-                letterSpacing: '-0.03em',
-              }}
-            >
-              Everything You Need,<br />
-              <span style={{ color: 'var(--accent-blue)' }}>One Eye Away.</span>
-            </h1>
-            <p
-              style={{
-                fontSize: '1.05rem',
-                color: 'var(--text-secondary)',
-                lineHeight: 1.6,
-                maxWidth: '460px',
-              }}
-            >
-              Supereye brings your email, calendar, and favourite tools into one intelligent workspace. Plug in the apps you already use, let AI handle the rest, and run your entire workday from a single place.
-            </p>
-          </div>
-          <div style={{ pointerEvents: 'auto', marginTop: '8px' }}>
+            Everything You Need,<br />
+            <span style={{ color: 'var(--accent-blue)' }}>One Eye Away.</span>
+          </h1>
+          <p
+            style={{
+              fontSize: '1.05rem',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.6,
+              maxWidth: '460px',
+              textShadow:
+                '0 0 20px var(--bg-app), 0 0 40px color-mix(in srgb, var(--bg-app) 80%, transparent)',
+            }}
+          >
+            Supereye brings your email, calendar, and favourite tools into one intelligent workspace. Plug in the apps you already use, let AI handle the rest, and run your entire workday from a single place.
+          </p>
+          <div style={{ pointerEvents: 'auto' }}>
             <Link
               href="/login"
               style={{
