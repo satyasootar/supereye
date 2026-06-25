@@ -57,6 +57,7 @@ export function GlobalComposer() {
   const [showScheduleSend, setShowScheduleSend] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [scheduleAt, setScheduleAt] = useState<Date | null>(null);
   const [tone, setTone] = useState<ComposeTone>('professional');
@@ -376,7 +377,7 @@ export function GlobalComposer() {
 
   const suggestions = getSuggestions(inputValue);
 
-  const handleSend = async (isDraft = false) => {
+  const collectRecipients = () => {
     const finalTo = [...toRecipients];
     if (inputValue.trim()) {
       finalTo.push(inputValue.trim().replace(/,/g, ''));
@@ -392,37 +393,106 @@ export function GlobalComposer() {
       finalBcc.push(bccInputValue.trim().replace(/,/g, ''));
     }
 
-    if (finalTo.length === 0 && finalCc.length === 0 && finalBcc.length === 0 && !isDraft) {
+    return { finalTo, finalCc, finalBcc };
+  };
+
+  const buildComposeFormData = (
+    finalTo: string[],
+    finalCc: string[],
+    finalBcc: string[],
+    isDraft: boolean
+  ) => {
+    const formData = new FormData();
+    formData.append('to', finalTo.join(', '));
+    if (finalCc.length > 0) {
+      formData.append('cc', finalCc.join(', '));
+    }
+    if (finalBcc.length > 0) {
+      formData.append('bcc', finalBcc.join(', '));
+    }
+    formData.append('subject', subject);
+    const finalText = isHtmlMode ? htmlBody.replace(/<[^>]*>/g, ' ') : bodyText;
+    formData.append('text', finalText);
+    if (isHtmlMode && htmlBody.trim()) {
+      formData.append('html', htmlBody);
+    }
+    if (scheduleAt && !isDraft) {
+      formData.append('scheduleAt', scheduleAt.toISOString());
+    }
+    if (isDraft) {
+      formData.append('isDraft', 'true');
+    }
+    attachments.forEach((file) => {
+      formData.append('attachments', file);
+    });
+    return formData;
+  };
+
+  const resetCompose = () => {
+    setComposeOpen(false);
+    setToRecipients([]);
+    setCcRecipients([]);
+    setBccRecipients([]);
+    setInputValue('');
+    setCcInputValue('');
+    setBccInputValue('');
+    setShowCc(false);
+    setShowBcc(false);
+    setSubject('');
+    setBodyText('');
+    setHtmlBody('');
+    setIsHtmlMode(false);
+    setAttachments([]);
+    setScheduleAt(null);
+    setIsMinimized(false);
+    setEnhancedDraft(null);
+    setOriginalDraft(null);
+    setComposeSize(COMPOSE_SIZE_DEFAULT);
+    setIsExpanded(false);
+    setDraftStatus('idle');
+  };
+
+  const handleSaveDraft = async () => {
+    if (isSending || isSavingDraft) return;
+
+    const { finalTo, finalCc, finalBcc } = collectRecipients();
+    setIsSavingDraft(true);
+    setDraftStatus('saving');
+    try {
+      const formData = buildComposeFormData(finalTo, finalCc, finalBcc, true);
+      const res = await fetch('/api/mail/send', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to save draft');
+      }
+
+      toast.success('Draft saved');
+      setDraftStatus('saved');
+      await queryClient.invalidateQueries({ queryKey: ['emails', 'drafts'] });
+      await queryClient.invalidateQueries({ queryKey: ['emails', 'threads'] });
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to save draft');
+      setDraftStatus('idle');
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  const handleSend = async () => {
+    const { finalTo, finalCc, finalBcc } = collectRecipients();
+
+    if (finalTo.length === 0 && finalCc.length === 0 && finalBcc.length === 0) {
       toast.error('Please add at least one recipient');
       return;
     }
 
     setIsSending(true);
     try {
-      const formData = new FormData();
-      formData.append('to', finalTo.join(', '));
-      if (finalCc.length > 0) {
-        formData.append('cc', finalCc.join(', '));
-      }
-      if (finalBcc.length > 0) {
-        formData.append('bcc', finalBcc.join(', '));
-      }
-      formData.append('subject', subject);
-      const finalText = isHtmlMode ? htmlBody.replace(/<[^>]*>/g, ' ') : bodyText;
-      formData.append('text', finalText);
-      if (isHtmlMode && htmlBody.trim()) {
-        formData.append('html', htmlBody);
-      }
-      if (scheduleAt && !isDraft) {
-        formData.append('scheduleAt', scheduleAt.toISOString());
-      }
-      if (isDraft) {
-        formData.append('isDraft', 'true');
-      }
-      attachments.forEach(file => {
-        formData.append('attachments', file);
-      });
-
+      const formData = buildComposeFormData(finalTo, finalCc, finalBcc, false);
       const res = await fetch('/api/mail/send', {
         method: 'POST',
         body: formData,
@@ -432,32 +502,10 @@ export function GlobalComposer() {
         throw new Error('Failed to send email');
       }
 
-      if (isDraft) {
-        toast.success('Draft saved');
-      } else {
-        toast.success(scheduleAt ? 'Message scheduled' : 'Message sent');
-      }
-      setComposeOpen(false);
-      setToRecipients([]);
-      setCcRecipients([]);
-      setBccRecipients([]);
-      setInputValue('');
-      setCcInputValue('');
-      setBccInputValue('');
-      setShowCc(false);
-      setShowBcc(false);
-      setSubject('');
-      setBodyText('');
-      setHtmlBody('');
-      setIsHtmlMode(false);
-      setAttachments([]);
-      setScheduleAt(null);
-      setIsMinimized(false);
-      setEnhancedDraft(null);
-      setOriginalDraft(null);
-      setComposeSize(COMPOSE_SIZE_DEFAULT);
-      setIsExpanded(false);
+      toast.success(scheduleAt ? 'Message scheduled' : 'Message sent');
+      resetCompose();
     } catch (error) {
+      console.error(error);
       toast.error('Failed to send message');
     } finally {
       setIsSending(false);
@@ -871,8 +919,8 @@ export function GlobalComposer() {
               <div className="flex items-stretch rounded-md overflow-hidden shadow-sm">
                 <button 
                   type="button" 
-                  onClick={() => handleSend(false)}
-                  disabled={isSending}
+                  onClick={handleSend}
+                  disabled={isSending || isSavingDraft}
                   className="flex h-9 min-w-[92px] items-center justify-center px-4 bg-accent-blue hover:bg-accent-blue-dim text-white text-[13px] font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isSending ? 'Sending...' : scheduleAt ? `Schedule send` : 'Send'}
@@ -881,7 +929,7 @@ export function GlobalComposer() {
                 <button 
                   type="button" 
                   onClick={() => setShowScheduleSend(!showScheduleSend)}
-                  disabled={isSending}
+                  disabled={isSending || isSavingDraft}
                   className="flex h-9 w-9 items-center justify-center bg-accent-blue hover:bg-accent-blue-dim text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   <ChevronDown className="h-4 w-4" />
@@ -1054,11 +1102,15 @@ export function GlobalComposer() {
                     <div className="h-[1px] bg-border-subtle/60 my-0.5"></div>
                     <button 
                       type="button"
-                      onClick={() => handleSend(true)}
-                      disabled={isSending}
+                      onPointerDown={(e) => e.preventDefault()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleSaveDraft();
+                      }}
+                      disabled={isSending || isSavingDraft}
                       className="flex items-center gap-2 px-2.5 py-2 text-xs hover:bg-bg-surface rounded-md text-text-primary text-left font-medium transition-colors disabled:opacity-50"
                     >
-                      Save Draft
+                      {isSavingDraft ? 'Saving draft...' : 'Save Draft'}
                     </button>
                   </PopoverContent>
                 </Popover>

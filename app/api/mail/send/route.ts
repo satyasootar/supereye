@@ -65,17 +65,36 @@ export async function POST(req: Request) {
     }
 
     if (isDraft) {
-      await t.gmail.api.drafts.create({
-        message: { raw },
+      const draftResult = await t.gmail.api.drafts.create({
+        userId: 'me',
+        draft: {
+          message: { raw },
+        },
       });
+      if (
+        draftResult &&
+        typeof draftResult === 'object' &&
+        'error' in draftResult &&
+        typeof draftResult.error === 'string'
+      ) {
+        throw new Error(draftResult.error);
+      }
       sseEmitter.emit(userId, { type: 'sync:requested' });
       return NextResponse.json({ success: true, draft: true });
     }
 
-    await t.gmail.api.messages.send({
+    const sendResult = await t.gmail.api.messages.send({
       userId: 'me',
       raw,
     });
+    if (
+      sendResult &&
+      typeof sendResult === 'object' &&
+      'error' in sendResult &&
+      typeof sendResult.error === 'string'
+    ) {
+      throw new Error(sendResult.error);
+    }
 
     sseEmitter.emit(userId, { type: 'sync:requested' });
 
