@@ -107,7 +107,7 @@ export function LaserFlowBoxExample() {
 
         <img
           ref={revealImgRef}
-          src="/bg-dashboard.png"
+          src="/bg-dashboard2.png"
           alt="Reveal effect"
           style={{
             position: 'absolute',
@@ -118,7 +118,7 @@ export function LaserFlowBoxExample() {
             left: '0px',
             zIndex: 5,
             mixBlendMode: 'lighten',
-            opacity: 0.3,
+            opacity: 0.4,
             pointerEvents: 'none',
             '--mx': '-9999px',
             '--my': '-9999px',
@@ -135,9 +135,9 @@ export function LaserFlowBoxExample() {
         <div
           style={{
             position: 'absolute',
-            top: '10%',
+            top: '12%',
             left: '7%',
-            maxWidth: '40%',
+            maxWidth: '45%',
             zIndex: 8,
             pointerEvents: 'none',
             display: 'flex',
@@ -145,28 +145,40 @@ export function LaserFlowBoxExample() {
             gap: '24px',
           }}
         >
-          <h1
+          <div
             style={{
-              fontSize: '3.75rem',
-              fontWeight: 800,
-              color: 'var(--text-primary)',
-              lineHeight: 1.1,
-              letterSpacing: '-0.03em',
+              padding: '24px 32px',
+              margin: '-24px -32px',
+              background: 'radial-gradient(ellipse at center, var(--bg-app) 30%, color-mix(in srgb, var(--bg-app) 70%, transparent) 70%, transparent 100%)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px',
+              width: 'fit-content',
             }}
           >
-            Your Entire Work Life,<br />
-            <span style={{ color: 'var(--accent-blue)' }}>One Eye Away.</span>
-          </h1>
-          <p
-            style={{
-              fontSize: '1.05rem',
-              color: 'var(--text-secondary)',
-              lineHeight: 1.6,
-              maxWidth: '460px',
-            }}
-          >
-            Supereye brings your email, calendar, and favourite tools into one intelligent workspace. Plug in the apps you already use, let AI handle the rest, and run your entire workday from a single place.
-          </p>
+            <h1
+              style={{
+                fontSize: '3.75rem',
+                fontWeight: 800,
+                color: 'var(--text-primary)',
+                lineHeight: 1.1,
+                letterSpacing: '-0.03em',
+              }}
+            >
+              Everything You Need,<br />
+              <span style={{ color: 'var(--accent-blue)' }}>One Eye Away.</span>
+            </h1>
+            <p
+              style={{
+                fontSize: '1.05rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.6,
+                maxWidth: '460px',
+              }}
+            >
+              Supereye brings your email, calendar, and favourite tools into one intelligent workspace. Plug in the apps you already use, let AI handle the rest, and run your entire workday from a single place.
+            </p>
+          </div>
           <div style={{ pointerEvents: 'auto', marginTop: '8px' }}>
             <Link
               href="/login"
